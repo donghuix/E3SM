@@ -303,11 +303,19 @@ contains
     real(r8), optional, intent(out) :: adjustment( bounds%begc: )
     !
     ! !LOCAL VARIABLES:
-    real(r8) :: vals_input(bounds%begc:bounds%endc)
-    logical  :: vals_input_valid(bounds%begc:bounds%endc)
-    logical  :: has_prognostic_state(bounds%begc:bounds%endc)
-    real(r8) :: non_conserved_mass(bounds%begg:bounds%endg)
-    character(len=:), allocatable :: err_msg
+    !real(r8) :: vals_input(bounds%begc:bounds%endc)
+    !logical  :: vals_input_valid(bounds%begc:bounds%endc)
+    !logical  :: has_prognostic_state(bounds%begc:bounds%endc)
+    !real(r8) :: non_conserved_mass(bounds%begg:bounds%endg)
+    !character(len=:), allocatable :: err_msg
+    !! a note here (fmyuan - 2019/01/08): as below the pointer type is much faster than
+    !! the explicit array (which involves a lot of malloc operation).
+    real(r8),pointer :: vals_input(:)
+    logical,pointer  :: vals_input_valid(:)
+    logical,pointer  :: has_prognostic_state(:)
+    real(r8),pointer :: non_conserved_mass(:)
+    character(len=256) :: err_msg
+
     real(r8), parameter :: conservation_tolerance = 1.e-12_r8
 
     character(len=*), parameter :: subname = 'update_column_state_no_special_handling'
@@ -324,17 +332,21 @@ contains
 
     if (this%any_changes(clump_index)) then
 
-       vals_input(bounds%begc:bounds%endc) = var(bounds%begc:bounds%endc)
-       vals_input_valid(bounds%begc:bounds%endc) = .true.
+       allocate(vals_input(bounds%begc:bounds%endc))
+       vals_input(bounds%begc:bounds%endc)           = var(bounds%begc:bounds%endc)
+       allocate(vals_input_valid(bounds%begc:bounds%endc))
+       vals_input_valid(bounds%begc:bounds%endc)     = .true.
+       allocate(has_prognostic_state(bounds%begc:bounds%endc))
        has_prognostic_state(bounds%begc:bounds%endc) = .true.
-       non_conserved_mass(bounds%begg:bounds%endg) = 0._r8
+       allocate(non_conserved_mass  (bounds%begg:bounds%endg))
+       non_conserved_mass(bounds%begg:bounds%endg)   = 0._r8
 
        ! explicit bounds not needed on any of these arguments - and specifying explicit
        ! bounds defeats some later bounds checking (for fractional_area_old and
        ! fractional_area_new)
-       call this%update_column_state_with_optional_fractions(&
+       call this%update_column_state_with_optional_fractions( &
             bounds = bounds, &
-            vals_input = vals_input, &
+            vals_input = var, & !vals_input, &
             vals_input_valid = vals_input_valid, &
             has_prognostic_state = has_prognostic_state, &
             var = var, &
@@ -347,7 +359,12 @@ contains
        ! should not have any accumulation. We allow for roundoff-level accumulation in case
        ! non-conserved mass is determined in a way that is prone to roundoff-level errors.
        err_msg = subname//': ERROR: failure to conserve mass when using no special handling'
-       SHR_ASSERT_ALL(abs(non_conserved_mass(bounds%begg:bounds%endg)) < conservation_tolerance, err_msg)
+       SHR_ASSERT_ALL(abs(non_conserved_mass(bounds%begg:bounds%endg)) < conservation_tolerance, errMsg(trim(err_msg)))
+
+       deallocate(vals_input)
+       deallocate(vals_input_valid)
+       deallocate(has_prognostic_state)
+       deallocate(non_conserved_mass)
 
     end if
 
@@ -407,9 +424,14 @@ contains
     ! !LOCAL VARIABLES:
     integer  :: c, l
     integer  :: template_col
-    real(r8) :: vals_input(bounds%begc:bounds%endc)
-    logical  :: vals_input_valid(bounds%begc:bounds%endc)
-    logical  :: has_prognostic_state(bounds%begc:bounds%endc)
+    !real(r8) :: vals_input(bounds%begc:bounds%endc)
+    !logical  :: vals_input_valid(bounds%begc:bounds%endc)
+    !logical  :: has_prognostic_state(bounds%begc:bounds%endc)
+    !! a note here (fmyuan - 2019/01/08): as below the pointer type is much faster than
+    !! the explicit array (which involves a lot of malloc operation).
+    real(r8),pointer :: vals_input(:)
+    logical,pointer  :: vals_input_valid(:)
+    logical,pointer  :: has_prognostic_state(:)
 
     character(len=*), parameter :: subname = 'update_column_state_fill_special_using_natveg'
     !-----------------------------------------------------------------------
@@ -425,6 +447,9 @@ contains
     end if
 
     if (this%any_changes(clump_index)) then
+       allocate(vals_input(bounds%begc:bounds%endc))
+       allocate(vals_input_valid(bounds%begc:bounds%endc))
+       allocate(has_prognostic_state(bounds%begc:bounds%endc))
 
        do c = bounds%begc, bounds%endc
           l = col_pp%landunit(c)
@@ -459,6 +484,10 @@ contains
             fractional_area_old = fractional_area_old, &
             fractional_area_new = fractional_area_new, &
             adjustment = adjustment)
+
+       deallocate(vals_input)
+       deallocate(vals_input_valid)
+       deallocate(has_prognostic_state)
 
     end if
 
@@ -534,20 +563,26 @@ contains
     real(r8), optional, intent(out) :: adjustment( bounds%begc: )
     !
     ! !LOCAL VARIABLES:
-    character(len=:), allocatable :: err_msg
+    !character(len=:), allocatable :: err_msg
     integer  :: c, l
     integer  :: ltype
     real(r8) :: my_fillval
-    real(r8) :: vals_input(bounds%begc:bounds%endc)
-    logical  :: vals_input_valid(bounds%begc:bounds%endc)
-    logical  :: has_prognostic_state(bounds%begc:bounds%endc)
+    !real(r8) :: vals_input(bounds%begc:bounds%endc)
+    !logical  :: vals_input_valid(bounds%begc:bounds%endc)
+    !logical  :: has_prognostic_state(bounds%begc:bounds%endc)
+    !! a note here (fmyuan - 2019/01/08): as below the pointer type is much faster than
+    !! the explicit array (which involves a lot of malloc operation).
+    real(r8),pointer :: vals_input(:)
+    logical,pointer  :: vals_input_valid(:)
+    logical,pointer  :: has_prognostic_state(:)
+    character(len=256) :: err_msg
 
     character(len=*), parameter :: subname = 'update_column_state_fill_using_fixed_values'
     !-----------------------------------------------------------------------
 
     SHR_ASSERT_ALL((ubound(var) == (/bounds%endc/)), errMsg(sourcefile, __LINE__))
     err_msg = subname//': must provide values for all landunits'
-    SHR_ASSERT((size(landunit_values) == max_lunit), err_msg)
+    SHR_ASSERT((size(landunit_values) == max_lunit), trim(err_msg))
     SHR_ASSERT_ALL((ubound(non_conserved_mass_grc) == (/bounds%begg/)), errMsg(sourcefile, __LINE__))
 
     ! Even if there's no work to be done, need to zero out adjustment, since it's
@@ -558,6 +593,10 @@ contains
     end if
 
     if (this%any_changes(clump_index)) then
+
+       allocate(vals_input(bounds%begc:bounds%endc))
+       allocate(vals_input_valid(bounds%begc:bounds%endc))
+       allocate(has_prognostic_state(bounds%begc:bounds%endc))
 
        do c = bounds%begc, bounds%endc
           l = col_pp%landunit(c)
@@ -588,6 +627,10 @@ contains
             fractional_area_old = fractional_area_old, &
             fractional_area_new = fractional_area_new, &
             adjustment = adjustment)
+
+       deallocate(vals_input)
+       deallocate(vals_input_valid)
+       deallocate(has_prognostic_state)
 
     end if
 
