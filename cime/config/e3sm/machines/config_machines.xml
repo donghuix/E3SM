@@ -369,6 +369,24 @@
     <environment_variables compiler="intel19">
       <env name="MPICH_MEMORY_REPORT">1</env>
     </environment_variables>
+    <environment_variables compiler="intel" mpilib="mpt">
+      <env name="ADIOS2_DIR">/project/projectdirs/e3sm/3rdparty/adios2/2.5.0/cray-mpich-7.7.6/intel-18.0.1</env>
+    </environment_variables>
+    <environment_variables compiler="intel19" mpilib="mpt">
+      <env name="ADIOS2_DIR">/project/projectdirs/e3sm/3rdparty/adios2/2.5.0/cray-mpich-7.7.6/intel-19.0.3</env>
+    </environment_variables>
+    <environment_variables compiler="gnu" mpilib="mpt">
+      <env name="ADIOS2_DIR">/project/projectdirs/e3sm/3rdparty/adios2/2.5.0/cray-mpich-7.7.6/gcc-8.2.0</env>
+    </environment_variables>
+    <environment_variables compiler="intel" mpilib="impi">
+      <env name="ADIOS2_DIR">/project/projectdirs/e3sm/3rdparty/adios2/2.5.0/impi-2019.up3/intel-18.0.1</env>
+    </environment_variables>
+    <environment_variables compiler="intel19" mpilib="impi">
+      <env name="ADIOS2_DIR">/project/projectdirs/e3sm/3rdparty/adios2/2.5.0/impi-2019.up3/intel-19.0.3</env>
+    </environment_variables>
+    <environment_variables compiler="gnu" mpilib="impi">
+      <env name="ADIOS2_DIR">/project/projectdirs/e3sm/3rdparty/adios2/2.5.0/impi-2019.up3/gcc-8.2.0</env>
+    </environment_variables>
   </machine>
 
   <!-- Skylake nodes of Stampede2 at TACC -->
@@ -749,6 +767,9 @@
     <environment_variables SMP_PRESENT="TRUE">
       <env name="OMP_STACKSIZE">64M</env>
     </environment_variables>
+    <environment_variables compiler="gnu" mpilib="mpich">
+      <env name="ADIOS2_DIR">/soft/apps/packages/climate/adios2/2.5.0/mpich-3.3.2/gcc-8.2.0</env>
+    </environment_variables>
   </machine>
 
   <machine MACH="sandiatoss3">
@@ -1110,6 +1131,15 @@
     <environment_variables SMP_PRESENT="TRUE" compiler="gnu">
       <env name="OMP_PLACES">cores</env>
     </environment_variables>
+    <environment_variables compiler="intel" mpilib="mvapich">
+      <env name="ADIOS2_DIR">/lcrc/group/acme/3rdparty/anvil/adios2/2.5.0/mvapich2-2.2/intel-17.0.0</env>
+    </environment_variables>
+    <environment_variables compiler="intel18" mpilib="mvapich">
+      <env name="ADIOS2_DIR">/lcrc/group/acme/3rdparty/anvil/adios2/2.5.0/mvapich2-2.2/intel-18.0.4</env>
+    </environment_variables>
+    <environment_variables compiler="gnu" mpilib="mvapich">
+      <env name="ADIOS2_DIR">/lcrc/group/acme/3rdparty/anvil/adios2/2.5.0/mvapich2-2.2/gcc-8.2.0</env>
+    </environment_variables>
   </machine>
 
   <machine MACH="bebop">
@@ -1204,6 +1234,9 @@
     <environment_variables mpilib="!mpi-serial">
       <env name="PNETCDF_PATH">$SHELL{which pnetcdf_version | xargs dirname | xargs dirname}</env>
     </environment_variables>
+    <environment_variables compiler="gnu">
+      <env name="HDF5_PATH">$SHELL{which h5dump | xargs dirname | xargs dirname}</env>
+    </environment_variables>
     <environment_variables SMP_PRESENT="TRUE">
       <env name="OMP_STACKSIZE">128M</env>
       <env name="OMP_PROC_BIND">spread</env>
@@ -1211,6 +1244,18 @@
     </environment_variables>
     <environment_variables mpilib="impi">
       <env name="I_MPI_FABRICS">shm:tmi</env>
+    </environment_variables>
+    <environment_variables compiler="intel" mpilib="impi">
+      <env name="ADIOS2_DIR">/lcrc/group/acme/3rdparty/bebop/adios2/2.5.0/intel-mpi-2017.3/intel-17.0.4</env>
+    </environment_variables>
+    <environment_variables compiler="intel" mpilib="mvapich">
+      <env name="ADIOS2_DIR">/lcrc/group/acme/3rdparty/bebop/adios2/2.5.0/mvapich2-2.2/intel-17.0.4</env>
+    </environment_variables>
+    <environment_variables compiler="gnu" mpilib="impi">
+      <env name="ADIOS2_DIR">/lcrc/group/acme/3rdparty/bebop/adios2/2.5.0/intel-mpi-2018.4.274/gcc-8.2.0</env>
+    </environment_variables>
+    <environment_variables compiler="gnu" mpilib="mvapich">
+      <env name="ADIOS2_DIR">/lcrc/group/acme/3rdparty/bebop/adios2/2.5.0/mvapich2-2.3/gcc-8.2.0</env>
     </environment_variables>
   </machine>
 
@@ -1540,6 +1585,12 @@
     </environment_variables>
     <environment_variables SMP_PRESENT="TRUE" compiler="!intel">
       <env name="SMP_VARS">-e OMP_NUM_THREADS=$ENV{OMP_NUM_THREADS} -e OMP_STACKSIZE=128M -e OMP_PROC_BIND=spread -e OMP_PLACES=threads</env>
+    </environment_variables>
+    <environment_variables compiler="intel" mpilib="mpt">
+      <env name="ADIOS2_DIR">/projects/ClimateEnergy_4/3rdparty/adios2/2.5.0/cray-mpich-7.7.10/intel-18.0.0</env>
+    </environment_variables>
+    <environment_variables compiler="gnu" mpilib="mpt">
+      <env name="ADIOS2_DIR">/projects/ClimateEnergy_4/3rdparty/adios2/2.5.0/cray-mpich-7.7.10/gcc-8.3.0</env>
     </environment_variables>
   </machine>
 
@@ -1975,6 +2026,18 @@
     <environment_variables SMP_PRESENT="TRUE">
       <env name="OMP_STACKSIZE">64M</env>
       <env name="OMP_PLACES">cores</env>
+    </environment_variables>
+    <environment_variables compiler="intel" mpilib="impi">
+      <env name="ADIOS2_DIR">/compyfs/3rdparty/adios2/2.5.0/intelmpi-2019u4/intel-19.0.5</env>
+    </environment_variables>
+    <environment_variables compiler="intel" mpilib="mvapich2">
+      <env name="ADIOS2_DIR">/compyfs/3rdparty/adios2/2.5.0/mvapich2-2.3.1/intel-19.0.4</env>
+    </environment_variables>
+    <environment_variables compiler="pgi" mpilib="impi">
+      <env name="ADIOS2_DIR">/compyfs/3rdparty/adios2/2.5.0/intelmpi-2019u3/pgi-19.10</env>
+    </environment_variables>
+    <environment_variables compiler="pgi" mpilib="mvapich2">
+      <env name="ADIOS2_DIR">/compyfs/3rdparty/adios2/2.5.0/mvapich2-2.3.1/pgi-19.7</env>
     </environment_variables>
   </machine>
 
@@ -3019,6 +3082,15 @@
     </environment_variables>
     <environment_variables mpilib="!mpi-serial" compiler="pgiacc">
       <env name="OMPI_CXX">$SRCROOT/externals/kokkos/bin/nvcc_wrapper</env>
+    </environment_variables>
+    <environment_variables compiler="ibm" mpilib="spectrum-mpi">
+      <env name="ADIOS2_DIR">/gpfs/alpine/cli115/world-shared/3rdparty/adios2/2.5.0/spectrum-mpi-10.3.1.2/xl-16.1.1-5</env>
+    </environment_variables>
+    <environment_variables compiler="pgi.*" mpilib="spectrum-mpi">
+      <env name="ADIOS2_DIR">/gpfs/alpine/cli115/world-shared/3rdparty/adios2/2.5.0/spectrum-mpi-10.3.1.2/pgi-19.9</env>
+    </environment_variables>
+    <environment_variables compiler="gnu" mpilib="spectrum-mpi">
+      <env name="ADIOS2_DIR">/gpfs/alpine/cli115/world-shared/3rdparty/adios2/2.5.0/spectrum-mpi-10.3.1.2/gcc-6.4.0</env>
     </environment_variables>
   </machine>
 
