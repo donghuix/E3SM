@@ -940,6 +940,60 @@ flags should be captured within MPAS CMake files.
   </SLIBS>
 </compiler>
 
+<compiler MACH="dgx" COMPILER="gnu">
+  <MPI_PATH MPILIB="openmpi">/usr</MPI_PATH>
+  <HDF5_PATH>/home/f9y/Applications/hdf5-1.10.5-gcc</HDF5_PATH>
+  <NETCDF_PATH>/home/f9y/Applications/netcdf-4.x-hdf5-gcc</NETCDF_PATH>
+  <CXX_LINKER>FORTRAN</CXX_LINKER>
+  <FC_AUTO_R8>
+    <base> -fdefault-real-8 </base>
+  </FC_AUTO_R8>
+  <FFLAGS>
+    <base> -O -fconvert=big-endian -ffree-line-length-none -ffixed-line-length-none -fno-range-check</base>
+  </FFLAGS>
+  <FFLAGS_NOOPT>
+    <base> -O0 </base>
+  </FFLAGS_NOOPT>
+  <FIXEDFLAGS>
+    <base>  -ffixed-form </base>
+  </FIXEDFLAGS>
+  <FREEFLAGS>
+    <base> -ffree-form </base>
+  </FREEFLAGS>
+  <LDFLAGS>
+    <append MODEL="driver"> -L$NETCDF_PATH/lib -Wl,-rpath=$NETCDF_PATH/lib -lnetcdff -lnetcdf </append>
+    <append MODEL="driver"> -L$HDF5_PATH/lib -lhdf5_hl -lhdf5 -lhdf5hl_fortran -lhdf5_fortran </append>
+    <append MODEL="driver"> -L/usr/lib -llapack -lblas </append>
+  </LDFLAGS>
+  <MPICC>$MPI_PATH/bin/mpicc</MPICC>
+  <MPICXX>$MPI_PATH/bin/mpicxx</MPICXX>
+  <MPIFC>$MPI_PATH/bin/mpif90</MPIFC>
+  <SCC>/usr/bin/gcc</SCC>
+  <SCXX>/usr/bin/g++</SCXX>
+  <SFC>/usr/bin/gfortran</SFC>
+  <SUPPORTS_CXX>TRUE</SUPPORTS_CXX>
+</compiler>
+
+<compiler MACH="dgx" COMPILER="pgi">
+  <!-- NOTE: all directories in $ENV{} must be pre-defined in .bashrc or mannually set correctly like those for "dgx/gnu"-->
+  <!--       it's used to set those in config_machines.xml, by environmental variables, which not works on dgx machine-->
+  <MPI_PATH MPILIB="openmpi">$ENV{MPI_ROOT}</MPI_PATH>
+  <HDF5_PATH>$ENV{HDF5_PATH}</HDF5_PATH>
+  <NETCDF_PATH>$ENV{NETCDF_PATH}</NETCDF_PATH>
+  <LDFLAGS>
+    <append MODEL="driver">-L$(NETCDF_PATH)/lib -lnetcdff -lnetcdf </append>
+    <append MODEL="driver">-L$(HDF5_PATH)/lib -lhdf5_hl -lhdf5 -lhdf5hl_fortran -lhdf5_fortran -lm -ldl -lz</append>
+    <append MODEL="driver">-L$ENV{BLASLAPACK_DIR} -llapack -lblas</append>
+  </LDFLAGS>
+  <SFC>$ENV{FC_ROOT}/bin/pgfortran</SFC>
+  <SCC>$ENV{CC_ROOT}/bin/pgcc</SCC>
+  <SCXX>$ENV{CC_ROOT}/bin/pgc++</SCXX>
+  <MPICC>$MPI_PATH/bin/mpicc</MPICC>
+  <MPICXX>$MPI_PATH/bin/mpicxx</MPICXX>
+  <MPIFC>$MPI_PATH/bin/mpifort</MPIFC>
+</compiler>
+
+
 <compiler MACH="cades" COMPILER="gnu">
   <CFLAGS>
     <append compile_threaded="TRUE"> -fopenmp </append>

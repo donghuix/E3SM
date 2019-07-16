@@ -1966,35 +1966,43 @@
     </environment_variables>
   </machine>
 
-  <machine MACH="oic5">
-    <DESC>ORNL XK6, os is Linux, 32 pes/node, batch system is PBS</DESC>
-    <NODENAME_REGEX>oic5</NODENAME_REGEX>
-    <OS>LINUX</OS>
-    <COMPILERS>gnu</COMPILERS>
-    <MPILIBS>mpich,openmpi</MPILIBS>
-    <CIME_OUTPUT_ROOT>/home/$USER/models/ACME</CIME_OUTPUT_ROOT>
-    <DIN_LOC_ROOT>/home/zdr/models/ccsm_inputdata</DIN_LOC_ROOT>
-    <DIN_LOC_ROOT_CLMFORC>/home/zdr/models/ccsm_inputdata/atm/datm7</DIN_LOC_ROOT_CLMFORC>
-    <DOUT_S_ROOT>/home/$USER/models/ACME/run/archive/$CASE</DOUT_S_ROOT>
-    <GMAKE_J>32</GMAKE_J>
+  <machine MACH="dgx">
+    <DESC> Nvidia DGX, OS is Ubutu Linux, 1 CPU/4 GPU Tesla V100</DESC>
+    <NODENAME_REGEX>none</NODENAME_REGEX>
+    <OS>Linux</OS>
+    <COMPILERS>gnu,pgi</COMPILERS>
+    <MPILIBS>openmpi,mpi-serieal</MPILIBS>
+    <CIME_OUTPUT_ROOT>$ENV{HOME}/project_e3sm/scratch</CIME_OUTPUT_ROOT>
+    <DIN_LOC_ROOT>$ENV{HOME}/e3sm_inputdata</DIN_LOC_ROOT>
+    <DIN_LOC_ROOT_CLMFORC>$ENV{HOME}/e3sm_inputdata/atm/datm7</DIN_LOC_ROOT_CLMFORC>
+    <DOUT_S_ROOT>$CIME_OUTPUT_ROOT/archive/$CASE</DOUT_S_ROOT>
+    <BASELINE_ROOT>$ENV{HOME}/project_e3sm/baselines/$COMPILER</BASELINE_ROOT>
+    <CCSM_CPRNC>$ENV{HOME}/project_e3sm/tools/cprnc.dgx</CCSM_CPRNC>
+    <GMAKE_J>4</GMAKE_J>
     <TESTS>e3sm_developer</TESTS>
-    <BATCH_SYSTEM>pbs</BATCH_SYSTEM>
-    <SUPPORTED_BY>dmricciuto</SUPPORTED_BY>
-    <MAX_TASKS_PER_NODE>32</MAX_TASKS_PER_NODE>
-    <MAX_MPITASKS_PER_NODE>32</MAX_MPITASKS_PER_NODE>
-    <mpirun mpilib="mpich">
-      <executable>/projects/cesm/devtools/mpich-3.0.4-gcc4.8.1/bin/mpirun</executable>
+    <BATCH_SYSTEM>none</BATCH_SYSTEM>
+    <SUPPORTED_BY>yuanf -at- ornl.gov</SUPPORTED_BY>
+    <MAX_TASKS_PER_NODE>1</MAX_TASKS_PER_NODE>
+    <MAX_MPITASKS_PER_NODE>1</MAX_MPITASKS_PER_NODE>
+    <PROJECT_REQUIRED>FALSE</PROJECT_REQUIRED>
+    <mpirun mpilib="openmpi" compiler="gnu">
+      <executable>/usr/bin/mpirun</executable>
       <arguments>
-        <arg name="num_tasks"> -np {{ total_tasks }}</arg>
-        <arg name="machine_file">--hostfile $ENV{PBS_NODEFILE}</arg>
+        <arg name="num_tasks"> -np $TOTALPES</arg>
+      </arguments>
+    </mpirun>
+    <mpirun mpilib="openmpi" compiler="pgi">
+      <executable>$ENV{MPI_ROOT}/bin/mpirun</executable>
+      <arguments>
+        <arg name="num_tasks"> -np $TOTALPES</arg>
       </arguments>
     </mpirun>
     <mpirun mpilib="mpi-serial">
       <executable> </executable>
     </mpirun>
-    <module_system type="none" />
-    <RUNDIR>/home/$USER/models/ACME/run/$CASE/run</RUNDIR>
-    <EXEROOT>/home/$USER/models/ACME/run/$CASE/bld</EXEROOT>
+    <module_system type="none"></module_system>
+    <RUNDIR>$CIME_OUTPUT_ROOT/$CASE/run</RUNDIR>
+    <EXEROOT>$CIME_OUTPUT_ROOT/$CASE/bld</EXEROOT>
   </machine>
 
   <machine MACH="cades">
