@@ -999,6 +999,23 @@ flags should be captured within MPAS CMake files.
   </SLIBS>
 </compiler>
 
+<compiler MACH="excl" COMPILER="pgi">
+  <HDF5_PATH>/home/7xw/Applications/pgi/hdf5-1.10.5</HDF5_PATH>
+  <NETCDF_PATH>/home/7xw/Applications/pgi/netcdf-4.x-hdf5</NETCDF_PATH>
+  <LDFLAGS>
+    <append MODEL="driver">-L$(NETCDF_PATH)/lib -lnetcdff -lnetcdf </append>
+    <append MODEL="driver">-L$(HDF5_PATH)/lib -lhdf5_hl -lhdf5 -lhdf5hl_fortran -lhdf5_fortran </append>
+    <append MODEL="driver">-L$ENV{BLASLAPACK_DIR} -llapack -lblas</append>
+  </LDFLAGS>
+  <SFC>$(FC_ROOT)/bin/pgfortran</SFC>
+  <SCC>$(CC_ROOT)/bin/pgcc</SCC>
+  <SCXX>$(CC_ROOT)/bin/pgc++</SCXX>
+  <MPICC>$(MPI_ROOT)/bin/mpicc</MPICC>
+  <MPICXX>$(MPI_ROOT)/bin/mpicxx</MPICXX>
+  <MPIFC>$(MPI_ROOT)/bin/mpifort</MPIFC>
+</compiler>
+
+
 <compiler MACH="dgx" COMPILER="gnu">
   <MPI_PATH MPILIB="openmpi">/usr</MPI_PATH>
   <HDF5_PATH>/home/f9y/Applications/hdf5-1.10.5-gcc</HDF5_PATH>
