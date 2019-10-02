@@ -112,7 +112,7 @@ SUBROUTINE shr_sys_chdir(path, rcode)
 
    !----- local -----
    integer(SHR_KIND_IN)             :: lenpath ! length of path
-#if (defined AIX || (defined LINUX && !defined CPRGNU && !defined CPRNAG) || defined CPRINTEL)
+#if (defined AIX || (defined LINUX && !defined CPRGNU && !defined CPRNAG) || defined CPRINTEL || defined CPRPGI)
    integer(SHR_KIND_IN),external    :: chdir   ! AIX system call
 #endif
 
@@ -130,7 +130,7 @@ SUBROUTINE shr_sys_chdir(path, rcode)
 
    rcode = chdir(%ref(path(1:lenpath)//'\0'))
 
-#elif (defined Darwin || (defined LINUX && !defined CPRNAG))
+#elif (defined Darwin || (defined LINUX && !defined CPRGNU && !defined CPRNAG) || defined CPRINTEL || defined CPRPGI)
 
    rcode=chdir(path(1:lenpath))
 

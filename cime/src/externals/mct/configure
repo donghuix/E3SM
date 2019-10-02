@@ -4990,6 +4990,11 @@ DEFFCFLAGS="-g"
 
 #####################################################
 # CHECK COMPILER NAME and add specific flags
+if echo $FC | grep mpi >/dev/null 2>&1; then
+   MPIFC=`eval $FC -show`
+   FC="$(cut -d' ' -f1 <<<"$MPIFC")"
+fi
+echo "Actual compiler is: $FC"
 if echo $FC | grep xlf >/dev/null 2>&1; then
    echo "Fortran Compiler is XLF"
    CPRDEF="XLF"
@@ -5028,7 +5033,7 @@ elif echo $FC | grep pgf >/dev/null 2>&1; then
    fi
 elif echo $FC | grep ftn >/dev/null 2>&1; then
  if echo $ac_fc_version_output | grep -i Portland >/dev/null 2>&1; then
-   echo "Fortran Compiler is Portland Group, Cray"
+   echo "Fortran Compiler is Portland , Cray"
    CPRDEF="PGI"
    SYSDEF="CNLINUX"
    if test -z "$REAL8"; then
