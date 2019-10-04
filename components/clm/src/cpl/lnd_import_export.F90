@@ -26,7 +26,8 @@ contains
     !
     ! !USES:
     use clm_varctl       , only: co2_type, co2_ppmv, iulog, use_c13, create_glacier_mec_landunit, &
-                                 metdata_type, metdata_bypass, metdata_biases, co2_file, aero_file
+                                 metdata_type, metdata_bypass, metdata_biases, co2_file, aero_file, &
+                                 use_nofire, use_fates
     use clm_varctl       , only: add_temperature, add_co2
     use clm_varctl       , only: startdate_add_temperature, startdate_add_co2
     use clm_varcon       , only: rair, o2_molar_const, c13ratio
@@ -699,7 +700,9 @@ contains
         nindex(2) = nindex(1)+1
         if (yr .lt. 1850) nindex(1:2) = 2
         if (yr .ge. 2010) nindex(1:2) = 161
-      
+
+       if ((use_fates .eqv. .false.) .and. &
+           (use_nofire .eqv. .false.)) then
         if (atm2lnd_vars%loaded_bypassdata == 0 .or. (mon .eq. 1 .and. day .eq. 1 .and. tod .eq. 0)) then  
           if (masterproc .and. i .eq. 1) then 
               ! Read pop_dens streams namelist to get filename
@@ -839,6 +842,7 @@ contains
 
         !Lightning data is 3-hourly.  Does not currently interpolate.
         atm2lnd_vars%forc_lnfm(g) = atm2lnd_vars%lnfm(g, ((int(thiscalday)-1)*8+tod/(3600*3))+1)
+       end if   !end of .not.FATES .and. .not.nofire statement
 
    !------------------------------------Nitrogen deposition----------------------------------------------
 
