@@ -12,6 +12,7 @@ module lnd_comp_mct
   use mct_mod          , only : mct_avect, mct_gsmap
   use decompmod        , only : bounds_type, ldecomp
   use lnd_import_export
+  use shr_mem_mod,       only: shr_mem_getusage
   !
   ! !public member functions:
   implicit none
@@ -113,6 +114,8 @@ contains
     integer :: shrlogunit,shrloglev                  ! old values for log unit and log level
     integer :: nstep
     type(bounds_type) :: bounds                      ! bounds
+    real(r8) :: msize0, msize1     ! memory size (high water)
+    real(r8) :: mrss0 , mrss1      ! resident size (current memory use)
     character(len=32), parameter :: sub = 'lnd_init_mct'
     character(len=*),  parameter :: format = "('("//trim(sub)//") :',A)"
     !-----------------------------------------------------------------------
@@ -154,6 +157,18 @@ contains
     else
        iulog = shrlogunit
     end if
+
+#ifdef MEMCHECK
+    if(masterproc) then
+      call shr_mem_getusage(msize0,mrss0)
+      write(iulog,*) '++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++'
+      write(iulog,*) 'MEM USAGE prior to lc_lnd initialization ', ' memory = ', &
+                   msize0,' MB (highwater)', &
+                   mrss0,' MB (usage)'
+        write(iulog,*) ' '
+    endif
+#endif
+
 
     call shr_file_getLogLevel(shrloglev)
     call shr_file_setLogUnit (iulog)
@@ -242,7 +257,23 @@ contains
 
     ! Read namelist, grid and surface data
 
+#ifdef MEMCHECK
+    if(masterproc) &
+      call shr_mem_getusage(msize0, mrss0)
+#endif
     call initialize1( )
+#ifdef MEMCHECK
+    if(masterproc) then
+      call shr_mem_getusage(msize1,mrss1)
+      if(abs(msize1-msize0)>0._r8 .or. abs(mrss1-mrss0)>0._r8) then
+        write(iulog,*) '++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++'
+        write(iulog,*) 'MEM USAGE by lc_lnd_initialize1 ', ' memory = ', &
+                   msize1-msize0,' MB (highwater)', &
+                   mrss1-mrss0,' MB (usage)'
+        write(iulog,*) ' '
+      endif
+    endif
+#endif
 
     ! If no land then exit out of initialization
 
@@ -278,8 +309,42 @@ contains
 
     ! Finish initializing clm
 
+#ifdef MEMCHECK
+    if(masterproc) &
+      call shr_mem_getusage(msize0, mrss0)
+#endif
     call initialize2()
+#ifdef MEMCHECK
+    if(masterproc) then
+      call shr_mem_getusage(msize1,mrss1)
+      if(abs(msize1-msize0)>0._r8 .or. abs(mrss1-mrss0)>0._r8) then
+        write(iulog,*) '++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++'
+        write(iulog,*) 'MEM USAGE by lc_lnd_initialize2 ', ' memory = ', &
+                   msize1-msize0,' MB (highwater)', &
+                   mrss1-mrss0,' MB (usage)'
+        write(iulog,*) ' '
+      endif
+    endif
+#endif
+
+
+#ifdef MEMCHECK
+    if(masterproc) &
+      call shr_mem_getusage(msize0, mrss0)
+#endif
     call initialize3()
+#ifdef MEMCHECK
+    if(masterproc) then
+      call shr_mem_getusage(msize1,mrss1)
+      if(abs(msize1-msize0)>0._r8 .or. abs(mrss1-mrss0)>0._r8) then
+        write(iulog,*) '++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++'
+        write(iulog,*) 'MEM USAGE by lc_lnd_initialize3 ', ' memory = ', &
+                   msize1-msize0,' MB (highwater)', &
+                   mrss1-mrss0,' MB (usage)'
+        write(iulog,*) ' '
+      endif
+    endif
+#endif
 
     ! Check that clm internal dtime aligns with clm coupling interval
 
@@ -406,7 +471,11 @@ contains
     type(mct_gGrid),        pointer :: dom_l                ! Land model domain data
     type(bounds_type)               :: bounds               ! bounds
     character(len=32)               :: rdate                ! date char string for restart file names
+    real(r8)     :: msize0, msize1     ! memory size (high water)
+    real(r8)     :: mrss0 , mrss1      ! resident size (current memory use)
+    integer      :: prv_loaded
     character(len=32), parameter    :: sub = "lnd_run_mct"
+
     !---------------------------------------------------------------------------
 
     ! Determine processor bounds
@@ -455,7 +524,26 @@ contains
     ! Map to clm (only when state and/or fluxes need to be updated)
 
     call t_startf ('lc_lnd_import')
+#ifdef MEMCHECK
+    if(masterproc .and. atm2lnd_vars%loaded_bypassdata == 0 ) then
+      call shr_mem_getusage(msize0, mrss0)
+    endif
+    prv_loaded = atm2lnd_vars%loaded_bypassdata
+#endif
     call lnd_import( bounds, x2l_l%rattr, atm2lnd_vars, glc2lnd_vars)
+#ifdef MEMCHECK
+    if(masterproc .and. prv_loaded == 0) then
+      call shr_mem_getusage(msize1,mrss1)
+      if(abs(msize1-msize0)>0._r8 .or. abs(mrss1-mrss0)>0._r8) then
+        write(iulog,*) '++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++'
+        write(iulog,*) 'MEM USAGE by lc_lnd_import ', ' memory = ', &
+                   msize1-msize0,' MB (highwater)', &
+                   mrss1-mrss0,' MB (usage)'
+        write(iulog,*) '++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++'
+      endif
+    endif
+
+#endif
     call t_stopf ('lc_lnd_import')
 
     ! Use infodata to set orbital values if updated mid-run

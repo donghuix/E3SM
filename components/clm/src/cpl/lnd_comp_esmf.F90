@@ -20,6 +20,7 @@ module lnd_comp_esmf
   use clm_instMod       , only : lnd2atm_vars, atm2lnd_vars, lnd2glc_vars, glc2lnd_vars
   use clm_cpl_indices
   use lnd_import_export
+  use shr_mem_mod,       only: shr_mem_getusage
   !
   ! !PUBLIC MEMBER FUNCTIONS:
   implicit none
@@ -511,6 +512,8 @@ contains
     logical,save :: first_call = .true.   ! first call work
     character(len=32)            :: rdate ! date char string for restart file names
     character(len=32), parameter :: sub = "lnd_run_esmf"
+    real(r8) :: msize0, msize1     ! memory size (high water)
+    real(r8) :: mrss0 , mrss1      ! resident size (current memory use)
     !---------------------------------------------------------------------------
 
     call get_proc_bounds(bounds)
@@ -558,7 +561,24 @@ contains
     call ESMF_ArrayGet(x2l, localDe=0, farrayPtr=fptr, rc=rc)
     if (rc /= ESMF_SUCCESS) call ESMF_Finalize(rc=rc, endflag=ESMF_END_ABORT)
 
+#ifdef MEMCHECK
+    if(masterproc) call shr_mem_getusage(msize0, mrss0)
+#endif
     call lnd_import( bounds, fptr, atm2lnd_vars, glc2lnd_vars )
+#ifdef MEMCHECK
+    if(masterproc) then
+      call shr_mem_getusage(msize1,mrss1)
+      if(abs(msize1-msize0)>0._r8 .or. abs(mrss1-mrss0)>0._r8) then
+        write(iulog,*) '++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++'
+        write(iulog,*) 'lc_lnd_import: ', ' memory = ', &
+                   msize1-msize0,' MB (highwater)', &
+                   mrss1-mrss0,' MB (usage)'
+                   msize1-msize0,' MB (highwater)', &
+                   mrss1-mrss0,' MB (usage)'
+        write(iulog,*) '++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++'
+      endif
+    endif
+#endif
 
     call t_stopf ('lc_lnd_import')
 
