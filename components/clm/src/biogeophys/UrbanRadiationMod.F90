@@ -1,6 +1,6 @@
 module UrbanRadiationMod
 
-#include "shr_assert.h"
+  !#include "shr_assert.h"
 
   !----------------------------------------------------------------------- 
   ! !DESCRIPTION: 
@@ -8,13 +8,13 @@ module UrbanRadiationMod
   !
   ! !USES:
   use shr_kind_mod      , only : r8 => shr_kind_r8
-  use shr_sys_mod       , only : shr_sys_flush 
-  use shr_log_mod       , only : errMsg => shr_log_errMsg
+  !#py use shr_sys_mod       , only : shr_sys_flush
+  !#py !#py use shr_log_mod       , only : errMsg => shr_log_errMsg
   use decompMod         , only : bounds_type
   use clm_varpar        , only : numrad
   use clm_varcon        , only : isecspday, degpsec, namel
   use clm_varctl        , only : iulog
-  use abortutils        , only : endrun  
+  !#py use abortutils        , only : endrun
   use UrbanParamsType   , only : urbanparams_type
   use atm2lndType       , only : atm2lnd_type
   use WaterStateType    , only : waterstate_type
@@ -50,7 +50,7 @@ contains
        num_urbanl, filter_urbanl                                      , &
        num_urbanc, filter_urbanc                                      , &
        num_urbanp, filter_urbanp                                      , &
-       atm2lnd_vars, waterstate_vars, temperature_vars, urbanparams_vars, &
+       atm2lnd_vars, urbanparams_vars, &
        solarabs_vars, surfalb_vars, energyflux_vars)
     !
     ! !DESCRIPTION: 
@@ -58,10 +58,10 @@ contains
     ! Also net and upward longwave fluxes.
 
     ! !USES:
+    !$acc routine seq
     use clm_varcon          , only : spval, sb, tfrz
     use column_varcon       , only : icol_road_perv, icol_road_imperv
     use column_varcon       , only : icol_roof, icol_sunwall, icol_shadewall
-    use clm_time_manager    , only : get_curr_date, get_step_size
     !
     ! !ARGUMENTS:
     type(bounds_type)      , intent(in)    :: bounds    
@@ -74,8 +74,6 @@ contains
     integer                , intent(in)    :: num_urbanp         ! number of urban patches in clump
     integer                , intent(in)    :: filter_urbanp(:)   ! urban pft filter
     type(atm2lnd_type)     , intent(in)    :: atm2lnd_vars
-    type(waterstate_type)  , intent(in)    :: waterstate_vars
-    type(temperature_type) , intent(in)    :: temperature_vars
     type(urbanparams_type) , intent(in)    :: urbanparams_vars
     type(solarabs_type)    , intent(inout) :: solarabs_vars
     type(surfalb_type)     , intent(in)    :: surfalb_vars
@@ -223,35 +221,35 @@ contains
       if (num_urbanl > 0) then
          call net_longwave (bounds,       &
               num_urbanl, filter_urbanl,  &
-              canyon_hwr(begl:endl),      &
-              wtroad_perv(begl:endl),     &
-              lwdown(begl:endl),          &
-              em_roof_s(begl:endl),       &
-              em_improad_s(begl:endl),    &
-              em_perroad_s(begl:endl),    &
-              em_wall(begl:endl),         &
-              t_roof(begl:endl),          &
-              t_improad(begl:endl),       &
-              t_perroad(begl:endl),       &
-              t_sunwall(begl:endl),       &
-              t_shadewall(begl:endl),     &
-              lwnet_roof(begl:endl),      &
-              lwnet_improad(begl:endl),   &
-              lwnet_perroad(begl:endl),   &
-              lwnet_sunwall(begl:endl),   &
-              lwnet_shadewall(begl:endl), &
-              lwnet_canyon(begl:endl),    &
-              lwup_roof(begl:endl),       &
-              lwup_improad(begl:endl),    &
-              lwup_perroad(begl:endl),    &
-              lwup_sunwall(begl:endl),    &
-              lwup_shadewall(begl:endl),  &
-              lwup_canyon(begl:endl),     &
+              canyon_hwr,      &
+              wtroad_perv,     &
+              lwdown,          &
+              em_roof_s,       &
+              em_improad_s,    &
+              em_perroad_s,    &
+              em_wall,         &
+              t_roof,          &
+              t_improad,       &
+              t_perroad,       &
+              t_sunwall,       &
+              t_shadewall,     &
+              lwnet_roof,      &
+              lwnet_improad,   &
+              lwnet_perroad,   &
+              lwnet_sunwall,   &
+              lwnet_shadewall, &
+              lwnet_canyon,    &
+              lwup_roof,       &
+              lwup_improad,    &
+              lwup_perroad,    &
+              lwup_sunwall,    &
+              lwup_shadewall,  &
+              lwup_canyon,     &
               urbanparams_vars)
       end if
 
-      dtime = get_step_size()
-      call get_curr_date (year, month, day, secs)
+      !dtime = get_step_size()
+      !call get_curr_date (year, month, day, secs)
 
       ! Determine variables needed for history output and communication with atm
       ! Loop over urban patches in clump
@@ -337,6 +335,7 @@ contains
     ! multiple reflection. Also net longwave radiation for urban roof. 
     !
     ! !USES:
+    !$acc routine seq
     use clm_varcon , only : sb
     !
     ! !ARGUMENTS:
@@ -438,30 +437,6 @@ contains
 
     ! Enforce expected array sizes
 
-    SHR_ASSERT_ALL((ubound(canyon_hwr)      == (/bounds%endl/)), errMsg(__FILE__, __LINE__))
-    SHR_ASSERT_ALL((ubound(wtroad_perv)     == (/bounds%endl/)), errMsg(__FILE__, __LINE__))
-    SHR_ASSERT_ALL((ubound(lwdown)          == (/bounds%endl/)), errMsg(__FILE__, __LINE__))
-    SHR_ASSERT_ALL((ubound(em_roof)         == (/bounds%endl/)), errMsg(__FILE__, __LINE__))
-    SHR_ASSERT_ALL((ubound(em_improad)      == (/bounds%endl/)), errMsg(__FILE__, __LINE__))
-    SHR_ASSERT_ALL((ubound(em_perroad)      == (/bounds%endl/)), errMsg(__FILE__, __LINE__))
-    SHR_ASSERT_ALL((ubound(em_wall)         == (/bounds%endl/)), errMsg(__FILE__, __LINE__))
-    SHR_ASSERT_ALL((ubound(t_roof)          == (/bounds%endl/)), errMsg(__FILE__, __LINE__))
-    SHR_ASSERT_ALL((ubound(t_improad)       == (/bounds%endl/)), errMsg(__FILE__, __LINE__))
-    SHR_ASSERT_ALL((ubound(t_perroad)       == (/bounds%endl/)), errMsg(__FILE__, __LINE__))
-    SHR_ASSERT_ALL((ubound(t_sunwall)       == (/bounds%endl/)), errMsg(__FILE__, __LINE__))
-    SHR_ASSERT_ALL((ubound(t_shadewall)     == (/bounds%endl/)), errMsg(__FILE__, __LINE__))
-    SHR_ASSERT_ALL((ubound(lwnet_roof)      == (/bounds%endl/)), errMsg(__FILE__, __LINE__))
-    SHR_ASSERT_ALL((ubound(lwnet_improad)   == (/bounds%endl/)), errMsg(__FILE__, __LINE__))
-    SHR_ASSERT_ALL((ubound(lwnet_perroad)   == (/bounds%endl/)), errMsg(__FILE__, __LINE__))
-    SHR_ASSERT_ALL((ubound(lwnet_sunwall)   == (/bounds%endl/)), errMsg(__FILE__, __LINE__))
-    SHR_ASSERT_ALL((ubound(lwnet_shadewall) == (/bounds%endl/)), errMsg(__FILE__, __LINE__))
-    SHR_ASSERT_ALL((ubound(lwnet_canyon)    == (/bounds%endl/)), errMsg(__FILE__, __LINE__))
-    SHR_ASSERT_ALL((ubound(lwup_roof)       == (/bounds%endl/)), errMsg(__FILE__, __LINE__))
-    SHR_ASSERT_ALL((ubound(lwup_improad)    == (/bounds%endl/)), errMsg(__FILE__, __LINE__))
-    SHR_ASSERT_ALL((ubound(lwup_perroad)    == (/bounds%endl/)), errMsg(__FILE__, __LINE__))
-    SHR_ASSERT_ALL((ubound(lwup_sunwall)    == (/bounds%endl/)), errMsg(__FILE__, __LINE__))
-    SHR_ASSERT_ALL((ubound(lwup_shadewall)  == (/bounds%endl/)), errMsg(__FILE__, __LINE__))
-    SHR_ASSERT_ALL((ubound(lwup_canyon)     == (/bounds%endl/)), errMsg(__FILE__, __LINE__))
 
     associate(                             & 
          vf_sr => urbanparams_vars%vf_sr , & ! Input:  [real(r8) (:)]  view factor of sky for road                       
@@ -490,14 +465,14 @@ contains
 
          err = lwdown(l) - (lwdown_road(l) + (lwdown_shadewall(l) + lwdown_sunwall(l))*canyon_hwr(l))
          if (abs(err) > 0.10_r8 ) then
-            write(iulog,*) 'urban incident atmospheric longwave radiation balance error',err
-            write(iulog,*) 'l          = ',l
-            write(iulog,*) 'lwdown     = ',lwdown(l)
-            write(iulog,*) 'vf_sr      = ',vf_sr(l)
-            write(iulog,*) 'vf_sw      = ',vf_sw(l)
-            write(iulog,*) 'canyon_hwr = ',canyon_hwr(l)
-            write(iulog,*) 'clm model is stopping'
-            call endrun(decomp_index=l, clmlevel=namel, msg=errmsg(__FILE__, __LINE__))
+            !write(iulog,*) 'urban incident atmospheric longwave radiation balance error',err
+            !write(iulog,*) 'l          = ',l
+            !write(iulog,*) 'lwdown     = ',lwdown(l)
+            !write(iulog,*) 'vf_sr      = ',vf_sr(l)
+            !write(iulog,*) 'vf_sw      = ',vf_sw(l)
+            !write(iulog,*) 'canyon_hwr = ',canyon_hwr(l)
+            !write(iulog,*) 'clm model is stopping'
+            !call endrun(decomp_index=l, clmlevel=namel, msg=errmsg(__FILE__, __LINE__))
          endif
       end do
 
@@ -675,9 +650,9 @@ contains
             if (crit < .001_r8) exit
          end do
          if (iter >= n) then
-            write (iulog,*) 'urban net longwave radiation error: no convergence'
-            write (iulog,*) 'clm model is stopping'
-            call endrun(decomp_index=l, clmlevel=namel, msg=errmsg(__FILE__, __LINE__))
+            !#py write (iulog,*) 'urban net longwave radiation error: no convergence'
+            !#py write (iulog,*) 'clm model is stopping'
+            !call endrun(decomp_index=l, clmlevel=namel, msg=errmsg(__FILE__, __LINE__))
          endif
 
          ! total net longwave radiation for canyon. project wall fluxes to horizontal surface
@@ -700,9 +675,9 @@ contains
 
          err = lwnet_canyon(l) - (lwup_canyon(l) - lwdown(l))
          if (abs(err) > .10_r8 ) then
-            write (iulog,*) 'urban net longwave radiation balance error',err
-            write (iulog,*) 'clm model is stopping'
-            call endrun(decomp_index=l, clmlevel=namel, msg=errmsg(__FILE__, __LINE__))
+            !#py write (iulog,*) 'urban net longwave radiation balance error',err
+            !#py write (iulog,*) 'clm model is stopping'
+            !call endrun(decomp_index=l, clmlevel=namel, msg=errmsg(__FILE__, __LINE__))
          end if
 
       end do

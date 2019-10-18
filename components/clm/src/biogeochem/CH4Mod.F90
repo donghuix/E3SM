@@ -10,7 +10,7 @@ module CH4Mod
   !
   ! !USES:
   use shr_kind_mod       , only : r8 => shr_kind_r8
-  use shr_infnan_mod     , only : nan => shr_infnan_nan, assignment(=)
+  use shr_infnan_mod     , only : nan => shr_infnan_nan
   use shr_log_mod        , only : errMsg => shr_log_errMsg
   use clm_varpar         , only : nlevsoi, ngases, nlevsno, nlevdecomp
   use clm_varcon         , only : denh2o, denice, tfrz, grav, spval, rgas, grlnd
@@ -23,17 +23,11 @@ module CH4Mod
   use SharedParamsMod  , only : ParamsShareInst
   use atm2lndType        , only : atm2lnd_type
   use CanopyStateType    , only : canopystate_type
-  use CNCarbonFluxType   , only : carbonflux_type
-  use CNCarbonStateType  , only : carbonstate_type
-  use CNNitrogenFluxType , only : nitrogenflux_type
   use EnergyFluxType     , only : energyflux_type
   use LakeStateType      , only : lakestate_type
   use lnd2atmType        , only : lnd2atm_type
   use SoilHydrologyType  , only : soilhydrology_type  
   use SoilStateType      , only : soilstate_type
-  use TemperatureType    , only : temperature_type
-  use WaterfluxType      , only : waterflux_type
-  use WaterstateType     , only : waterstate_type
   use GridcellType       , only : grc_pp
   use TopounitDataType   , only : top_as  ! for topounit-level atmospheric state forcing  
   use LandunitType       , only : lun_pp                
@@ -50,6 +44,8 @@ module CH4Mod
   ! Non-tunable constants
   real(r8) :: rgasm  ! J/mol.K; rgas / 1000; will be set below
   real(r8), parameter :: rgasLatm = 0.0821_r8 ! L.atm/mol.K
+  !$acc declare copyin(rgasLatm)
+  !$acc declare copyin(rgasm)
 
   ! !PUBLIC MEMBER FUNCTIONS:
   public  :: readCH4Params
@@ -114,6 +110,7 @@ module CH4Mod
      real(r8) :: rob                  ! ratio of root length to vertical depth ("root obliquity") (= 3._r8)
   end type CH4ParamsType
   type(CH4ParamsType), private ::  CH4ParamsInst
+  !$acc declare create(CH4ParamsInst)
 
   type, public :: ch4_type
      real(r8), pointer, private :: ch4_prod_depth_sat_col     (:,:) ! col CH4 production rate from methanotrophs (mol/m3/s) (nlevsoi)
@@ -225,7 +222,7 @@ contains
     ! Allocate module variables and data structures
     !
     ! !USES:
-    use shr_infnan_mod, only: nan => shr_infnan_nan, assignment(=)
+    !#py use shr_infspval_mod, only: spval => shr_infspval_spval, assignment(=)
     use clm_varpar    , only: nlevgrnd
     !
     ! !ARGUMENTS:
@@ -1274,13 +1271,13 @@ contains
        num_lakec, filter_lakec, &
        num_soilp, filter_soilp, &
        atm2lnd_vars, lakestate_vars, canopystate_vars, soilstate_vars, soilhydrology_vars, &
-       temperature_vars, energyflux_vars, waterstate_vars, waterflux_vars, &
-       carbonstate_vars, carbonflux_vars, nitrogenflux_vars, ch4_vars, lnd2atm_vars)
+       energyflux_vars, ch4_vars, lnd2atm_vars, dtime)
     !
     ! !DESCRIPTION:
     ! Driver for the methane emissions model
     !
     ! !USES:
+      !$acc routine seq
     use subgridAveMod      , only : p2c, c2g
     use clm_varpar         , only : nlevgrnd, nlevdecomp
     use pftvarcon          , only : noveg
@@ -1300,21 +1297,16 @@ contains
     type(canopystate_type)   , intent(in)    :: canopystate_vars
     type(soilstate_type)     , intent(inout) :: soilstate_vars
     type(soilhydrology_type) , intent(in)    :: soilhydrology_vars
-    type(temperature_type)   , intent(in)    :: temperature_vars
     type(energyflux_type)    , intent(inout) :: energyflux_vars
-    type(waterstate_type)    , intent(in)    :: waterstate_vars
-    type(waterflux_type)     , intent(in)    :: waterflux_vars
-    type(carbonstate_type)   , intent(in)    :: carbonstate_vars
-    type(carbonflux_type)    , intent(inout) :: carbonflux_vars
-    type(nitrogenflux_type)  , intent(in)    :: nitrogenflux_vars
     type(ch4_type)           , intent(inout) :: ch4_vars
     type(lnd2atm_type)       , intent(inout) :: lnd2atm_vars
+    real(r8), intent(in) :: dtime                                  ! land model time step (sec)
+
     !
     ! !LOCAL VARIABLES:
     integer  :: sat                                    ! 0 = unsatured, 1 = saturated
     logical  :: lake                                   ! lake or not lake
     integer  :: j,fc,c,g,fp,p,t                        ! indices
-    real(r8) :: dtime                                  ! land model time step (sec)
     real(r8) :: dtime_ch4                              ! ch4 model time step (sec)
     integer  :: nstep
     integer  :: jwt(bounds%begc:bounds%endc)           ! index of the soil layer right above the water table (-)
@@ -1338,7 +1330,6 @@ contains
     real(r8) :: qflxlagd                               ! days to lag qflx_surf_lag in the tropics (days)
     real(r8) :: highlatfact                            ! multiple of qflxlagd for high latitudes
     integer  :: dummyfilter(1)                         ! empty filter
-    character(len=32) :: subname='ch4'                 ! subroutine name
     !-----------------------------------------------------------------------
 
     associate(                                                                 & 
@@ -1417,15 +1408,15 @@ contains
       qflxlagd          = CH4ParamsInst%qflxlagd
       highlatfact       = CH4ParamsInst%highlatfact
 
-      dtime = get_step_size()
-      nstep = get_nstep()
+      !#py dtime = get_step_size()
+      !#py nstep = get_nstep()
       dtime_ch4 = dtime
       redoxlags = redoxlag*secspday ! days --> s
       redoxlags_vertical = redoxlag_vertical*secspday ! days --> s
       rgasm = rgas / 1000._r8
 
       jwt(begc:endc)            = huge(1)
-      totcolch4_bef(begc:endc)  = nan
+      totcolch4_bef(begc:endc)  = spval
 
       ! Initialize local fluxes to zero: necessary for columns outside the filters because averaging up to gridcell will be done
       ch4_surf_flux_tot(begc:endc) = 0._r8
@@ -1445,10 +1436,10 @@ contains
             forc_pch4(t) = atmch4*forc_pbot(t)
          else
             if (forc_pch4(t) == 0._r8) then
-               write(iulog,*)'not using ch4offline, but methane concentration not passed from the atmosphere', &
-                    'to land model! CLM Model is stopping.'
-               call endrun(msg=' ERROR: Methane not being passed to atmosphere'//&
-                    errMsg(__FILE__, __LINE__))
+               !#py write(iulog,*)'not using ch4offline, but methane concentration not passed from the atmosphere', &
+                    !#py 'to land model! CLM Model is stopping.'
+               !#py call endrun(msg=' ERROR: Methane not being passed to atmosphere'//&
+                    !#py !#py errMsg(__FILE__, __LINE__))
             end if
          end if
          c_atm(g,1) =  forc_pch4(t) / rgasm / forc_t(t) ! [mol/m3 air]
@@ -1537,8 +1528,7 @@ contains
       ! Do CH4 Annual Averages
       call ch4_annualupdate(bounds, &
            num_soilc, filter_soilc, &
-           num_soilp, filter_soilp, &
-           carbonflux_vars, ch4_vars)
+           num_soilp, filter_soilp, ch4_vars, dtime, 365.d0)
 
       ! Determine rootfr_col and also check for inactive columns
 
@@ -1562,10 +1552,10 @@ contains
          end do
 
          call p2c (bounds, nlevgrnd, &
-              rootfraction(bounds%begp:bounds%endp, :), &
-              rootfr_col(bounds%begc:bounds%endc, :), &
-              'unity')
-         
+              rootfraction, &
+              rootfr_col, &
+              0)
+
          do j=1, nlevsoi
             do fc = 1, num_soilc
                c = filter_soilc(fc)
@@ -1578,8 +1568,8 @@ contains
       ! Needed to use non-filter form above so that spval would be treated properly.
 
       call p2c (bounds, num_soilc, filter_soilc, &
-           grnd_ch4_cond_patch(bounds%begp:bounds%endp), &
-           grnd_ch4_cond_col(bounds%begc:bounds%endc))
+           grnd_ch4_cond_patch, &
+           grnd_ch4_cond_col)
 
       ! Set the gridcell atmospheric CH4 and O2 concentrations
       do fc = 1, num_soilc
@@ -1604,8 +1594,8 @@ contains
          ! Get index of water table
          if (sat == 0) then ! unsaturated
 
-            call get_jwt (bounds, num_soilc, filter_soilc, jwt(begc:endc), &
-                 soilstate_vars, waterstate_vars, temperature_vars)
+            call get_jwt (bounds, num_soilc, filter_soilc, jwt, &
+                 soilstate_vars )
 
             do fc = 1, num_soilc
                c = filter_soilc(fc)
@@ -1642,37 +1632,34 @@ contains
          call ch4_prod (bounds, &
               num_soilc, filter_soilc, &
               num_soilp, filter_soilp, &
-              jwt(begc:endc), sat, lake, &
-              soilstate_vars, temperature_vars, waterstate_vars, &
-              carbonflux_vars, nitrogenflux_vars, ch4_vars)
+              jwt, sat, lake, &
+              soilstate_vars, ch4_vars, dtime)
 
          ! calculate CH4 oxidation in each soil layer
          call ch4_oxid (bounds, &
               num_soilc, filter_soilc, &
-              jwt(begc:endc), sat, lake, &
-              waterstate_vars, soilstate_vars, temperature_vars, ch4_vars)
+              jwt, sat, lake, &
+              soilstate_vars, ch4_vars, dtime)
 
          ! calculate CH4 aerenchyma losses in each soil layer
          call ch4_aere (bounds, &
               num_soilc, filter_soilc, &
               num_soilp, filter_soilp, &
-              jwt(begc:endc), sat, lake, &
-              canopystate_vars, soilstate_vars, temperature_vars, energyflux_vars, &
-              waterstate_vars, waterflux_vars, carbonstate_vars, carbonflux_vars, ch4_vars)
+              jwt, sat, lake, &
+              canopystate_vars, soilstate_vars, energyflux_vars, ch4_vars)
 
          ! calculate CH4 ebullition losses in each soil layer
          call ch4_ebul (bounds, &
               num_soilc, filter_soilc, &
-              jwt(begc:endc), sat, lake, &
-              atm2lnd_vars, temperature_vars, lakestate_vars, soilstate_vars, waterstate_vars, &
-              ch4_vars)
+              jwt, sat, lake, &
+              atm2lnd_vars, lakestate_vars, soilstate_vars, ch4_vars, dtime)
 
          ! Solve CH4 reaction/diffusion equation 
          ! Competition for oxygen will occur here.
          call ch4_tran (bounds, &
               num_soilc, filter_soilc, &
-              jwt(begc:endc), dtime_ch4, sat, lake, &
-              soilstate_vars, temperature_vars, waterstate_vars, energyflux_vars, ch4_vars)
+              jwt, dtime_ch4, sat, lake, &
+              soilstate_vars, energyflux_vars, ch4_vars, dtime)
 
       enddo ! sat/unsat
 
@@ -1691,37 +1678,33 @@ contains
          ! calculate CH4 production in each lake layer
          call ch4_prod (bounds, &
               num_lakec, filter_lakec, &
-              0, dummyfilter, jwt(begc:endc), sat, lake, &
-              soilstate_vars, temperature_vars, waterstate_vars, &
-              carbonflux_vars, nitrogenflux_vars, ch4_vars)
+              0, dummyfilter, jwt, sat, lake, &
+              soilstate_vars, ch4_vars, dtime)
 
          ! calculate CH4 oxidation in each lake layer
          call ch4_oxid (bounds, &
               num_lakec, filter_lakec, &
-              jwt(begc:endc), sat, lake, &
-              waterstate_vars, soilstate_vars, temperature_vars, ch4_vars)
+              jwt, sat, lake, soilstate_vars, ch4_vars, dtime)
 
          ! calculate CH4 aerenchyma losses in each lake layer
          ! The p filter will not be used here; the relevant column vars will just be set to 0.
          call ch4_aere (bounds, &
               num_lakec, filter_lakec, &
-              0, dummyfilter, jwt(begc:endc), sat, lake, &
-              canopystate_vars, soilstate_vars, temperature_vars, energyflux_vars, &
-              waterstate_vars, waterflux_vars, carbonstate_vars, carbonflux_vars, ch4_vars)
+              0, dummyfilter, jwt, sat, lake, &
+              canopystate_vars, soilstate_vars, energyflux_vars, ch4_vars)
 
          ! calculate CH4 ebullition losses in each lake layer
          call ch4_ebul (bounds, &
               num_lakec, filter_lakec, &
-              jwt(begc:endc), sat, lake, &
-              atm2lnd_vars, temperature_vars, lakestate_vars, soilstate_vars, waterstate_vars, &
-              ch4_vars)
+              jwt, sat, lake, &
+              atm2lnd_vars, lakestate_vars, soilstate_vars,ch4_vars, dtime)
 
          ! Solve CH4 reaction/diffusion equation 
          ! Competition for oxygen will occur here.
          call ch4_tran (bounds, &
               num_lakec, filter_lakec, &
-              jwt(begc:endc), dtime_ch4, sat, lake, &
-              soilstate_vars, temperature_vars, waterstate_vars, energyflux_vars, ch4_vars)
+              jwt, dtime_ch4, sat, lake, &
+              soilstate_vars, energyflux_vars, ch4_vars, dtime)
 
       end if
 
@@ -1836,11 +1819,11 @@ contains
                errch4 = totcolch4(c) - totcolch4_bef(c) - dtime*(ch4_prod_tot(c) - ch4_oxid_tot(c) &
                     - ch4_surf_flux_tot(c)*1000._r8) ! kg C --> g C
                if (abs(errch4) > 1.e-7_r8) then ! g C / m^2 / timestep
-                  write(iulog,*)'CH4 Conservation Error in CH4Mod driver, nstep, c, errch4 (gC /m^2.timestep)', &
-                       nstep,c,errch4
+                  !#py write(iulog,*)'CH4 Conservation Error in CH4Mod driver, nstep, c, errch4 (gC /m^2.timestep)', &
+                       !#py nstep,c,errch4
                   g = col_pp%gridcell(c)
-                  write(iulog,*)'Latdeg,Londeg=',grc_pp%latdeg(g),grc_pp%londeg(g)
-                  call endrun(msg=' ERROR: Methane conservation error'//errMsg(__FILE__, __LINE__))
+                  !#py write(iulog,*)'Latdeg,Londeg=',grc_pp%latdeg(g),grc_pp%londeg(g)
+                  !#py !#py call endrun(msg=' ERROR: Methane conservation error'//errMsg(__FILE__, __LINE__))
                end if
             end if
 
@@ -1856,12 +1839,12 @@ contains
                   errch4 = totcolch4(c) - totcolch4_bef(c) - dtime*(ch4_prod_tot(c) - ch4_oxid_tot(c) &
                        - ch4_surf_flux_tot(c)*1000._r8) ! kg C --> g C
                   if (abs(errch4) > 1.e-7_r8) then ! g C / m^2 / timestep
-                     write(iulog,*)'CH4 Conservation Error in CH4Mod driver for lake column, nstep, c, errch4 (gC/m^2.timestep)', &
-                          nstep,c,errch4
+                     !#py write(iulog,*)'CH4 Conservation Error in CH4Mod driver for lake column, nstep, c, errch4 (gC/m^2.timestep)', &
+                          !#py nstep,c,errch4
                      g = col_pp%gridcell(c)
-                     write(iulog,*)'Latdeg,Londeg=',grc_pp%latdeg(g),grc_pp%londeg(g)
-                     call endrun(msg=' ERROR: Methane conservation error, allowlakeprod'//&
-                          errMsg(__FILE__, __LINE__))
+                     !#py write(iulog,*)'Latdeg,Londeg=',grc_pp%latdeg(g),grc_pp%londeg(g)
+                     !#py call endrun(msg=' ERROR: Methane conservation error, allowlakeprod'//&
+                          !#py !#py errMsg(__FILE__, __LINE__))
                   end if
                end if
 
@@ -1871,16 +1854,16 @@ contains
 
       ! Now average up to gridcell for fluxes
       call c2g( bounds, &
-           ch4_oxid_tot(begc:endc), ch4co2f(begg:endg),        &
-           c2l_scale_type= 'unity', l2g_scale_type='unity' )
+           ch4_oxid_tot, ch4co2f,   &
+           c2l_scale_type= 0, l2g_scale_type=0 )
 
       call c2g( bounds, &
-           ch4_prod_tot(begc:endc), ch4prodg(begg:endg),       &
-           c2l_scale_type= 'unity', l2g_scale_type='unity' )
+           ch4_prod_tot, ch4prodg,  &
+            c2l_scale_type= 0, l2g_scale_type=0)
 
       call c2g( bounds, &
-           nem_col(begc:endc), nem_grc(begg:endg),               &
-           c2l_scale_type= 'unity', l2g_scale_type='unity' )
+           nem_col, nem_grc,   &
+          c2l_scale_type= 0, l2g_scale_type=0 )
 
     end associate
 
@@ -1889,8 +1872,7 @@ contains
   !-----------------------------------------------------------------------
   subroutine ch4_prod (bounds, num_methc, filter_methc, num_methp, &
        filter_methp, jwt, sat, lake, &
-       soilstate_vars, temperature_vars, waterstate_vars, &
-       carbonflux_vars, nitrogenflux_vars, ch4_vars)
+       soilstate_vars, ch4_vars, dtime)
     !
     ! !DESCRIPTION:
     ! Production is done below the water table, based on CN heterotrophic respiration.
@@ -1899,6 +1881,7 @@ contains
     ! pH (optional), & redox lag factor.
     !
     ! !USES:
+      !$acc routine seq
     use CH4varcon          , only: usephfact, anoxicmicrosites, ch4rmcnlim
     use clm_varctl         , only: anoxia
     use clm_varpar         , only: nlevdecomp, nlevdecomp_full
@@ -1915,17 +1898,14 @@ contains
     integer                 , intent(in)    :: sat                 ! 0 = unsaturated; 1 = saturated
     logical                 , intent(in)    :: lake                ! function called with lake filter
     type(soilstate_type)    , intent(inout) :: soilstate_vars
-    type(temperature_type)  , intent(in)    :: temperature_vars
-    type(waterstate_type)   , intent(in)    :: waterstate_vars
-    type(carbonflux_type)   , intent(in)    :: carbonflux_vars
-    type(nitrogenflux_type) , intent(in)    :: nitrogenflux_vars
     type(ch4_type)          , intent(inout) :: ch4_vars
+    real(r8), intent(in) :: dtime
+
     !
     ! !LOCAL VARIABLES:
     integer  :: p,c,j,g          ! indices
     integer  :: fc               ! column index
     integer  :: fp               ! PATCH index
-    real(r8) :: dtime
     real(r8) :: base_decomp      ! base rate (mol/m2/s)
     real(r8) :: q10lake          ! For now, take to be the same as q10ch4 * 1.5.
     real(r8) :: q10lakebase      ! (K) base temperature for lake CH4 production
@@ -1957,11 +1937,9 @@ contains
     real(r8), pointer :: co2_decomp_depth(:,:)            ! backwards compatibility
     real(r8), pointer :: conc_o2(:,:)                     ! backwards compatibility
 
-    character(len=32) :: subname='ch4_prod' ! subroutine name
     !-----------------------------------------------------------------------
 
     ! Enforce expected array sizes
-    SHR_ASSERT_ALL((ubound(jwt) == (/bounds%endc/)), errMsg(__FILE__, __LINE__))
 
     associate(                                                     & 
          wtcol          =>    veg_pp%wtcol                          , & ! Input:  [real(r8) (:)    ]  weight (relative to column)                       
@@ -2008,7 +1986,7 @@ contains
          co2_decomp_depth => ch4_vars%co2_decomp_depth_sat_col   ! Output: [real(r8) (:,:)]  CO2 production during decomposition in each soil layer (nlevsoi) (mol/m3/s)
       endif
 
-      dtime = get_step_size()
+      !#py dtime = get_step_size()
 
       q10ch4           = CH4ParamsInst%q10ch4
       q10ch4base       = CH4ParamsInst%q10ch4base
@@ -2028,7 +2006,7 @@ contains
 
       ! PATCH loop to calculate vertically resolved column-averaged root respiration
       if (.not. lake) then
-         rr_vr(bounds%begc:bounds%endc,:) = nan
+         rr_vr(bounds%begc:bounds%endc,:) = spval
 
          do fp = 1, num_methc
             c = filter_methc(fp)
@@ -2078,8 +2056,8 @@ contains
                      end if ! anoxia
                   end if
                else
-                  call endrun(msg=' ERROR: No source for decomp rate in CH4Prod.'//&
-                       ' CH4 model currently requires CN.'//errMsg(__FILE__, __LINE__))
+                  !#py call endrun(msg=' ERROR: No source for decomp rate in CH4Prod.'//&
+                       !#py !#py ' CH4 model currently requires CN.'//errMsg(__FILE__, __LINE__))
                end if ! use_cn
 
                ! For sensitivity studies
@@ -2227,32 +2205,31 @@ contains
   !-----------------------------------------------------------------------
   subroutine ch4_oxid (bounds, &
        num_methc, filter_methc, &
-       jwt, sat, lake, &
-       waterstate_vars, soilstate_vars, temperature_vars, ch4_vars)
+       jwt, sat, lake, soilstate_vars, ch4_vars, dtime)
     !
     ! !DESCRIPTION:
     ! Oxidation is based on double Michaelis-Mentin kinetics, and is adjusted for low soil moisture.
     ! Oxidation will be limited by available oxygen in ch4_tran.
-    
+
     ! !USES:
-    use clm_time_manager, only : get_step_size
+    !#py use clm_time_manager, only : get_step_size
     !
     ! !ARGUMENTS:
-    type(bounds_type)      , intent(in) :: bounds    
+      !$acc routine seq
+    type(bounds_type)      , intent(in) :: bounds
     integer                , intent(in) :: num_methc           ! number of column soil points in column filter
     integer                , intent(in) :: filter_methc(:)     ! column filter for soil points
     integer                , intent(in) :: jwt( bounds%begc: ) ! index of the soil layer right above the water table (-) [col]
     integer                , intent(in) :: sat                 ! 0 = unsaturated; 1 = saturated
     logical                , intent(in) :: lake                ! function called with lake filter
-    type(waterstate_type)  , intent(in) :: waterstate_vars
     type(soilstate_type)   , intent(in) :: soilstate_vars
-    type(temperature_type) , intent(in) :: temperature_vars
     type(ch4_type)         , intent(in) :: ch4_vars
+    real(r8), intent(in) :: dtime                         ! land model time step (sec)
+
     !
     ! !LOCAL VARIABLES:
     integer :: c,j                            ! indices
     integer :: fc                             ! column index
-    real(r8) :: dtime                         ! land model time step (sec)
     real(r8):: t0                             ! Base temperature for Q10
     real(r8):: porevol                        ! air-filled volume ratio to total soil volume
     real(r8):: h2osoi_vol_min                 ! h2osoi_vol restricted to be below watsat
@@ -2282,7 +2259,6 @@ contains
     !-----------------------------------------------------------------------
 
     ! Enforce expected array sizes
-    SHR_ASSERT_ALL((ubound(jwt) == (/bounds%endc/)), errMsg(__FILE__, __LINE__))
 
     associate(                                          & 
          h2osoi_vol => col_ws%h2osoi_vol , & ! Input:  [real(r8) (:,:)  ]  volumetric soil water (0<=h2osoi_vol<=watsat) [m3/m3]
@@ -2310,7 +2286,7 @@ contains
       endif
 
       ! Get land model time step
-      dtime = get_step_size()
+      !#py dtime = get_step_size()
 
       ! Set oxidation parameters
       vmax_ch4_oxid   = CH4ParamsInst%vmax_ch4_oxid
@@ -2382,8 +2358,7 @@ contains
        num_methc, filter_methc, &
        num_methp, filter_methp, &
        jwt, sat, lake, &
-       canopystate_vars, soilstate_vars, temperature_vars, energyflux_vars, &
-       waterstate_vars, waterflux_vars, carbonstate_vars, carbonflux_vars, ch4_vars)
+       canopystate_vars, soilstate_vars, energyflux_vars, ch4_vars)
     !
     ! !DESCRIPTION:
     ! Arctic c3 grass (which is often present in fens) and all vegetation in inundated areas is assumed to have
@@ -2393,8 +2368,9 @@ contains
     ! By default upland veg. has small 5% porosity but this can be switched to be equal to inundated porosity.
 
     ! !USES:
+      !$acc routine seq
     use clm_varcon       , only : rpi
-    use clm_time_manager , only : get_step_size
+    !#py use clm_time_manager , only : get_step_size
     use pftvarcon        , only : nc3_arctic_grass, crop, nc3_nonarctic_grass, nc4_grass, noveg
     use CH4varcon        , only : transpirationloss, usefrootc, use_aereoxid_prog
     !
@@ -2452,7 +2428,6 @@ contains
     !-----------------------------------------------------------------------
 
     ! Enforce expected array sizes
-    SHR_ASSERT_ALL((ubound(jwt) == (/bounds%endc/)), errMsg(__FILE__, __LINE__))
 
     associate(                                                     & 
          z             =>    col_pp%z                               , & ! Input:  [real(r8) (:,:)  ]  layer depth (m) (-nlevsno+1:nlevsoi)            
@@ -2504,7 +2479,7 @@ contains
          ch4_prod_depth   =>  ch4_vars%ch4_prod_depth_sat_col   ! Input:  [real(r8) (:,:)]  production of CH4 in each soil layer (nlevsoi) (mol/m3/s)
       endif
 
-      dtime = get_step_size()
+      !#py dtime = get_step_size()
 
       ! Set aerenchyma parameters
       aereoxid           = CH4ParamsInst%aereoxid
@@ -2642,8 +2617,7 @@ contains
   subroutine ch4_ebul (bounds, &
        num_methc, filter_methc, &
        jwt, sat, lake, &
-       atm2lnd_vars, temperature_vars, lakestate_vars, soilstate_vars, waterstate_vars, &
-       ch4_vars)
+       atm2lnd_vars, lakestate_vars, soilstate_vars, ch4_vars, dtime)
     !
     ! !DESCRIPTION:
     ! Bubbling is based on temperature & pressure dependent solubility (k_h_cc), 
@@ -2652,8 +2626,9 @@ contains
     ! Bubbles are released to the water table surface in ch4_tran.
 
     ! !USES:
-    use clm_time_manager   , only : get_step_size
-    use LakeCon           
+    !#py use clm_time_manager   , only : get_step_size
+      !$acc routine seq
+    use LakeCon
     !
     ! !ARGUMENTS:
     type(bounds_type)      , intent(in)    :: bounds    
@@ -2663,17 +2638,16 @@ contains
     integer                , intent(in)    :: sat                 ! 0 = unsaturated; 1 = saturated
     logical                , intent(in)    :: lake             ! function called with lake filter
     type(atm2lnd_type)     , intent(in)    :: atm2lnd_vars
-    type(temperature_type) , intent(in)    :: temperature_vars
     type(lakestate_type)   , intent(in)    :: lakestate_vars 
     type(soilstate_type)   , intent(in)    :: soilstate_vars
-    type(waterstate_type)  , intent(in)    :: waterstate_vars
     type(ch4_type)         , intent(inout) :: ch4_vars
+    real(r8) ,intent(in)  :: dtime   ! land model time step (sec)
+
     !
     ! !LOCAL VARIABLES:
     integer :: c,j,t    ! indices
     integer :: fc       ! soil filter column index
     integer :: fp       ! soil filter pft index
-    real(r8) :: dtime   ! land model time step (sec)
     real(r8) :: vgc     ! volumetric CH4 content (m3 CH4/m3 pore air)
     real(r8) :: vgc_min ! minimum aqueous CH4 content when ebullition ceases
     real(r8) :: k_h_inv ! 
@@ -2691,7 +2665,6 @@ contains
     !-----------------------------------------------------------------------
 
     ! Enforce expected array sizes
-    SHR_ASSERT_ALL((ubound(jwt) == (/bounds%endc/)), errMsg(__FILE__, __LINE__))
 
     associate(                                                      & 
          z            =>    col_pp%z                              , & ! Input:  [real(r8) (:,:) ]  soil layer depth (m)                            
@@ -2722,7 +2695,7 @@ contains
       endif
 
       ! Get land model time step
-      dtime = get_step_size()
+      !#py dtime = get_step_size()
       vgc_max = CH4ParamsInst%vgc_max
 
       bubble_f = 0.57_r8 ! CH4 content in gas bubbles (Kellner et al. 2006)
@@ -2780,7 +2753,7 @@ contains
   subroutine ch4_tran (bounds, &
        num_methc, filter_methc, &
        jwt, dtime_ch4, sat, lake, &
-       soilstate_vars, temperature_vars, waterstate_vars, energyflux_vars, ch4_vars)
+       soilstate_vars, energyflux_vars, ch4_vars, dtime)
     !
     ! !DESCRIPTION:
     ! Solves the reaction & diffusion equation for the timestep.  First "competition" between processes for
@@ -2792,7 +2765,8 @@ contains
     ! Then CH4 diffusive flux is calculated and consistency is checked.
 
     ! !USES:
-    use clm_time_manager   , only : get_step_size, get_nstep
+    !#py use clm_time_manager   , only : get_step_size, get_nstep
+      !$acc routine seq
     use TridiagonalMod     , only : Tridiagonal
     use CH4varcon          , only : ch4frzout, use_aereoxid_prog
     !
@@ -2805,10 +2779,10 @@ contains
     logical                , intent(in)    :: lake      ! function called with lake filter
     real(r8)               , intent(in)    :: dtime_ch4           ! time step for ch4 calculations
     type(soilstate_type)   , intent(in)    :: soilstate_vars
-    type(temperature_type) , intent(in)    :: temperature_vars
-    type(waterstate_type)  , intent(in)    :: waterstate_vars
     type(energyflux_type)  , intent(in)    :: energyflux_vars
     type(ch4_type)         , intent(inout) :: ch4_vars
+    real(r8) ,intent(in)  :: dtime                               ! land model time step (sec)
+
     !
     ! !LOCAL VARIABLES:
     integer :: c,j,g,p,s,i,ll                                              ! indices
@@ -2816,7 +2790,6 @@ contains
     integer :: fp                                                          ! soil filter pft index
     integer  :: jtop(bounds%begc:bounds%endc)                              ! top level at each column
     integer :: iter                                                        ! iteration counter when dtime_ch4 < dtime
-    real(r8) :: dtime                                                      ! land model time step (sec)
     real(r8) :: at (bounds%begc:bounds%endc,0:nlevsoi)                     ! "a" vector for tridiagonal matrix
     real(r8) :: bt (bounds%begc:bounds%endc,0:nlevsoi)                     ! "b" vector for tridiagonal matrix
     real(r8) :: ct (bounds%begc:bounds%endc,0:nlevsoi)                     ! "c" vector for tridiagonal matrix
@@ -2883,7 +2856,6 @@ contains
     character(len=32) :: subname='ch4_tran' ! subroutine name
     !-----------------------------------------------------------------------
 
-    SHR_ASSERT_ALL((ubound(jwt) == (/bounds%endc/)), errMsg(__FILE__, __LINE__))
 
     associate(                                                 & 
          z             =>    col_pp%z                           , & ! Input:  [real(r8) (:,:) ]  soil layer depth (m)                            
@@ -2949,8 +2921,8 @@ contains
       endif
 
       ! Get land model time step
-      dtime = get_step_size()
-      nstep = get_nstep()
+      !#py dtime = get_step_size()
+      !#py nstep = get_nstep()
 
       ! Set transport parameters
       satpow               = CH4ParamsInst%satpow
@@ -3075,35 +3047,35 @@ contains
             ! aerenchyma added to surface flux below
             ! ebul added to soil depth just above WT
             if (source(c,j,1) + conc_ch4(c,j) / dtime < -1.e-12_r8) then
-               write(iulog,*) 'Methane demands exceed methane available. Error in methane competition (mol/m^3/s), c,j:', &
-                    source(c,j,1) + conc_ch4(c,j) / dtime, c, j
+               !#py write(iulog,*) 'Methane demands exceed methane available. Error in methane competition (mol/m^3/s), c,j:', &
+                    !#py source(c,j,1) + conc_ch4(c,j) / dtime, c, j
                g = col_pp%gridcell(c)
-               write(iulog,*)'Latdeg,Londeg=',grc_pp%latdeg(g),grc_pp%londeg(g)
-               call endrun(msg=' ERROR: Methane demands exceed methane available.'&
-                    //errMsg(__FILE__, __LINE__))
+               !#py write(iulog,*)'Latdeg,Londeg=',grc_pp%latdeg(g),grc_pp%londeg(g)
+               !#py call endrun(msg=' ERROR: Methane demands exceed methane available.'&
+                    !#py !#py //errMsg(__FILE__, __LINE__))
             else if (ch4stress(c,j) < 1._r8 .and. source(c,j,1) + conc_ch4(c,j) / dtime > 1.e-12_r8) then
-               write(iulog,*) 'Methane limited, yet some left over. Error in methane competition (mol/m^3/s), c,j:', &
-                    source(c,j,1) + conc_ch4(c,j) / dtime, c, j
+               !#py write(iulog,*) 'Methane limited, yet some left over. Error in methane competition (mol/m^3/s), c,j:', &
+                    !#py source(c,j,1) + conc_ch4(c,j) / dtime, c, j
                g = col_pp%gridcell(c)
-               write(iulog,*)'Latdeg,Londeg=',grc_pp%latdeg(g),grc_pp%londeg(g)
-               call endrun(msg=' ERROR: Methane limited, yet some left over.'//&
-                    errMsg(__FILE__, __LINE__))
+               !#py write(iulog,*)'Latdeg,Londeg=',grc_pp%latdeg(g),grc_pp%londeg(g)
+               !#py call endrun(msg=' ERROR: Methane limited, yet some left over.'//&
+                    !#py !#py errMsg(__FILE__, __LINE__))
             end if
 
             source(c,j,2) = -o2_oxid_depth(c,j) - o2_decomp_depth(c,j) + o2_aere_depth(c,j) ! O2 [mol/m3/s]
             if (source(c,j,2) + conc_o2(c,j) / dtime < -1.e-12_r8) then
-               write(iulog,*) 'Oxygen demands exceed oxygen available. Error in oxygen competition (mol/m^3/s), c,j:', &
-                    source(c,j,2) + conc_o2(c,j) / dtime, c, j
+               !#py write(iulog,*) 'Oxygen demands exceed oxygen available. Error in oxygen competition (mol/m^3/s), c,j:', &
+                    !#py source(c,j,2) + conc_o2(c,j) / dtime, c, j
                g = col_pp%gridcell(c)
-               write(iulog,*)'Latdeg,Londeg=',grc_pp%latdeg(g),grc_pp%londeg(g)
-               call endrun(msg=' ERROR: Oxygen demands exceed oxygen available.'//&
-                    errMsg(__FILE__, __LINE__) )
+               !#py write(iulog,*)'Latdeg,Londeg=',grc_pp%latdeg(g),grc_pp%londeg(g)
+               !#py call endrun(msg=' ERROR: Oxygen demands exceed oxygen available.'//&
+                    !#py !#py errMsg(__FILE__, __LINE__) )
             else if (o2stress(c,j) < 1._r8 .and. source(c,j,2) + conc_o2(c,j) / dtime > 1.e-12_r8) then
-               write(iulog,*) 'Oxygen limited, yet some left over. Error in oxygen competition (mol/m^3/s), c,j:', &
-                    source(c,j,2) + conc_o2(c,j) / dtime, c, j
+               !#py write(iulog,*) 'Oxygen limited, yet some left over. Error in oxygen competition (mol/m^3/s), c,j:', &
+                    !#py source(c,j,2) + conc_o2(c,j) / dtime, c, j
                g = col_pp%gridcell(c)
-               write(iulog,*)'Latdeg,Londeg=',grc_pp%latdeg(g),grc_pp%londeg(g)
-               call endrun(msg=' ERROR: Oxygen limited, yet some left over.'//errMsg(__FILE__, __LINE__))
+               !#py write(iulog,*)'Latdeg,Londeg=',grc_pp%latdeg(g),grc_pp%londeg(g)
+               !#py !#py call endrun(msg=' ERROR: Oxygen limited, yet some left over.'//errMsg(__FILE__, __LINE__))
             end if
 
             conc_ch4_bef(c,j) = conc_ch4(c,j) !For Balance Check
@@ -3406,13 +3378,13 @@ contains
             enddo ! j; nlevsoi
 
             call Tridiagonal(bounds, 0, nlevsoi, &
-                 jtop(bounds%begc:bounds%endc), &
+                 jtop, &
                  num_methc, filter_methc, &
-                 at(bounds%begc:bounds%endc, :), &
-                 bt(bounds%begc:bounds%endc, :), &
-                 ct(bounds%begc:bounds%endc, :), &
-                 rt(bounds%begc:bounds%endc, :), &
-                 conc_ch4_rel(bounds%begc:bounds%endc, 0:nlevsoi))
+                 at, &
+                 bt, &
+                 ct, &
+                 rt, &
+                 conc_ch4_rel)
 
             ! Calculate net ch4 flux to the atmosphere from the surface (+ to atm)
             do fc = 1, num_methc
@@ -3442,16 +3414,16 @@ contains
                      deficit = - conc_ch4_rel(c,j)*epsilon_t(c,j,1)*dz(c,j)  ! Mol/m^2 added
                      if (deficit > 1.e-3_r8 * scale_factor_gasdiff) then
                         if (deficit > 1.e-2_r8) then
-                           write(iulog,*)'Note: sink > source in ch4_tran, sources are changing '// &
-                                ' quickly relative to diffusion timestep, and/or diffusion is rapid.'
+                           !#py write(iulog,*)'Note: sink > source in ch4_tran, sources are changing '// &
+                                !#py ' quickly relative to diffusion timestep, and/or diffusion is rapid.'
                            g = col_pp%gridcell(c)
-                           write(iulog,*)'Latdeg,Londeg=',grc_pp%latdeg(g),grc_pp%londeg(g)
-                           write(iulog,*)'This typically occurs when there is a larger than normal '// &
-                                ' diffusive flux.'
-                           write(iulog,*)'If this occurs frequently, consider reducing land model (or '// &
-                                ' methane model) timestep, or reducing the max. sink per timestep in the methane model.'
+                           !#py write(iulog,*)'Latdeg,Londeg=',grc_pp%latdeg(g),grc_pp%londeg(g)
+                           !#py write(iulog,*)'This typically occurs when there is a larger than normal '// &
+                                !#py ' diffusive flux.'
+                           !#py write(iulog,*)'If this occurs frequently, consider reducing land model (or '// &
+                                !#py ' methane model) timestep, or reducing the max. sink per timestep in the methane model.'
                         end if
-                        write(iulog,*) 'Negative conc. in ch4tran. c,j,deficit (mol):',c,j,deficit
+                        !#py write(iulog,*) 'Negative conc. in ch4tran. c,j,deficit (mol):',c,j,deficit
                      end if
                      conc_ch4_rel(c,j) = 0._r8
                      ! Subtract deficit
@@ -3506,13 +3478,13 @@ contains
                enddo ! fc; column
             enddo ! j; nlevsoi
 
-            call Tridiagonal(bounds, 0, nlevsoi, jtop(bounds%begc:bounds%endc), &
+            call Tridiagonal(bounds, 0, nlevsoi, jtop, &
                  num_methc, filter_methc, &
-                 at(bounds%begc:bounds%endc, :), &
-                 bt(bounds%begc:bounds%endc, :), &
-                 ct(bounds%begc:bounds%endc, :), &
-                 rt(bounds%begc:bounds%endc, :), &
-                 conc_o2_rel(bounds%begc:bounds%endc,0:nlevsoi))
+                 at, &
+                 bt, &
+                 ct, &
+                 rt, &
+                 conc_o2_rel)
 
             ! Ensure that concentrations stay above 0
             do j = 1,nlevsoi
@@ -3565,12 +3537,12 @@ contains
          if (abs(errch4(c)) < 1.e-8_r8) then
             ch4_surf_diff(c) = ch4_surf_diff(c) - errch4(c)/dtime
          else ! errch4 > 1e-8 mol / m^2 / timestep
-            write(iulog,*)'CH4 Conservation Error in CH4Mod during diffusion, nstep, c, errch4 (mol /m^2.timestep)', &
-                 nstep,c,errch4(c)
+            !#py write(iulog,*)'CH4 Conservation Error in CH4Mod during diffusion, nstep, c, errch4 (mol /m^2.timestep)', &
+                 !#py nstep,c,errch4(c)
             g = col_pp%gridcell(c)
-            write(iulog,*)'Latdeg,Londeg=',grc_pp%latdeg(g),grc_pp%londeg(g)
-            call endrun(msg=' ERROR: CH4 Conservation Error in CH4Mod during diffusion'//&
-                 errMsg(__FILE__, __LINE__))
+            !#py write(iulog,*)'Latdeg,Londeg=',grc_pp%latdeg(g),grc_pp%londeg(g)
+            !#py call endrun(msg=' ERROR: CH4 Conservation Error in CH4Mod during diffusion'//&
+                 !#py !#py errMsg(__FILE__, __LINE__))
          end if
       end do
 
@@ -3580,19 +3552,18 @@ contains
 
   !-----------------------------------------------------------------------
   subroutine get_jwt (bounds, num_methc, filter_methc, jwt, &
-       soilstate_vars, waterstate_vars, temperature_vars)
+       soilstate_vars )
     !
     ! !DESCRIPTION:
     ! Finds the first unsaturated layer going up. Also allows a perched water table over ice.
     !
     ! !ARGUMENTS:
-    type(bounds_type)      , intent(in)  :: bounds    
+      !$acc routine seq
+    type(bounds_type)      , intent(in)  :: bounds
     integer                , intent(in)  :: num_methc           ! number of column soil points in column filter
     integer                , intent(in)  :: filter_methc(:)     ! column filter for soil points
     integer                , intent(out) :: jwt( bounds%begc: ) ! index of the soil layer right above the water table (-) [col]
     type(soilstate_type)   , intent(in)  :: soilstate_vars
-    type(waterstate_type)  , intent(in)  :: waterstate_vars
-    type(temperature_type) , intent(in)  :: temperature_vars
     !
     ! !LOCAL VARIABLES:
     real(r8) :: f_sat    ! volumetric soil water defining top of water table or where production is allowed
@@ -3600,7 +3571,6 @@ contains
     integer  :: fc       ! filter column index
     !-----------------------------------------------------------------------
 
-    SHR_ASSERT_ALL((ubound(jwt) == (/bounds%endc/)), errMsg(__FILE__, __LINE__))
 
     associate(                                          & 
          watsat     => soilstate_vars%watsat_col      , & ! Input:  [real(r8) (:,:)  ] volumetric soil water at saturation (porosity)   
@@ -3646,13 +3616,13 @@ contains
   !-----------------------------------------------------------------------
   subroutine ch4_annualupdate(bounds, &
        num_methc, filter_methc, &
-       num_methp, filter_methp, &
-       carbonflux_vars, ch4_vars)
+       num_methp, filter_methp, ch4_vars, dt, dayspyr)
     !
     ! !DESCRIPTION: Annual mean fields.
     !
     ! !USES:
-    use clm_time_manager, only: get_step_size, get_days_per_year, get_nstep
+    !#py use clm_time_manager, only: get_step_size, get_days_per_year, get_nstep
+      !$acc routine seq
     use clm_varcon      , only: secspday
     !
     ! !ARGUMENTS:
@@ -3661,14 +3631,16 @@ contains
     integer                , intent(in)    :: filter_methc(:)   ! filter for soil columns
     integer                , intent(in)    :: num_methp         ! number of soil points in pft filter
     integer                , intent(in)    :: filter_methp(:)   ! patch filter for soil points
-    type(carbonflux_type)  , intent(inout) :: carbonflux_vars
     type(ch4_type)         , intent(inout) :: ch4_vars
+    real(r8),  intent(in)   :: dt        ! time step (seconds)
+    real(r8), intent(in) :: dayspyr
+
+
     !
     ! !LOCAL VARIABLES:
     integer :: c,p       ! indices
     integer :: fc        ! soil column filter indices
     integer :: fp        ! soil pft filter indices
-    real(r8):: dt        ! time step (seconds)
     real(r8):: secsperyear
     logical :: newrun
     !-----------------------------------------------------------------------
@@ -3691,8 +3663,8 @@ contains
          )
 
       ! set time steps
-      dt = real(get_step_size(), r8)
-      secsperyear = real( get_days_per_year() * secspday, r8)
+      !#py dt = real(get_step_size(), r8)
+      secsperyear = real( dayspyr * secspday, r8)
 
       newrun = .false.
 

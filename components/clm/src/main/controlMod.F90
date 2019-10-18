@@ -42,7 +42,7 @@ module controlMod
   use clm_varctl              , only: use_dynroot
   use AllocationMod         , only: nu_com_phosphatase,nu_com_nfix 
   use clm_varctl              , only: nu_com, use_var_soil_thick
-  use seq_drydep_mod          , only: drydep_method, DD_XLND, n_drydep
+  use seq_drydep_mod_elm          , only: drydep_method, DD_XLND, n_drydep
   use clm_varctl              , only: forest_fert_exp
   use clm_varctl              , only: ECA_Pconst_RGspin
   use clm_varctl              , only: NFIX_PTASE_plant
@@ -203,7 +203,7 @@ contains
          co2_type
 
     namelist /clm_inparm / &
-         perchroot, perchroot_alt
+         perchroot_canopyflux, perchroot_alt_canopyflux
 
     namelist /clm_inparm / &
          anoxia, anoxia_wtsat
@@ -712,8 +712,8 @@ contains
        call mpi_bcast (atm_c14_filename,  len(atm_c14_filename), MPI_CHARACTER, 0, mpicom, ier)
     end if
 
-    call mpi_bcast (perchroot, 1, MPI_LOGICAL, 0, mpicom, ier)
-    call mpi_bcast (perchroot_alt, 1, MPI_LOGICAL, 0, mpicom, ier)
+    call mpi_bcast (perchroot_canopyflux, 1, MPI_LOGICAL, 0, mpicom, ier)
+    call mpi_bcast (perchroot_alt_canopyflux, 1, MPI_LOGICAL, 0, mpicom, ier)
     if (use_lch4) then
        call mpi_bcast (anoxia, 1, MPI_LOGICAL, 0, mpicom, ier)
        call mpi_bcast (anoxia_wtsat, 1, MPI_LOGICAL, 0, mpicom, ier)
@@ -725,7 +725,7 @@ contains
     call mpi_bcast (lake_melt_icealb, numrad, MPI_REAL8, 0, mpicom, ier)
 
     ! physics variables
-    call mpi_bcast (urban_hac, len(urban_hac), MPI_CHARACTER, 0, mpicom, ier)
+    call mpi_bcast (urban_hac, 1, MPI_INTEGER, 0, mpicom, ier)
     call mpi_bcast (urban_traffic , 1, MPI_LOGICAL, 0, mpicom, ier)
     call mpi_bcast (nsegspc, 1, MPI_INTEGER, 0, mpicom, ier)
     call mpi_bcast (subgridflag , 1, MPI_INTEGER, 0, mpicom, ier)
@@ -1020,8 +1020,8 @@ contains
     write(iulog,*) '   maxpatch_pft         = ',maxpatch_pft
     write(iulog,*) '   nsegspc              = ',nsegspc
     ! New fields
-    write(iulog,*) ' perchroot (plant water stress based on unfrozen layers only) = ',perchroot
-    write(iulog,*) ' perchroot (plant water stress based on time-integrated active layer only) = ',perchroot
+    write(iulog,*) ' perchroot (plant water stress based on unfrozen layers only) = ',perchroot_canopyflux
+    write(iulog,*) ' perchroot (plant water stress based on time-integrated active layer only) = ',perchroot_canopyflux
     if (use_lch4) then
        write(iulog,*) ' anoxia (applied to soil decomposition)             = ',anoxia
        write(iulog,*) ' anoxia_wtsat (weight anoxia by inundated fraction) = ',anoxia_wtsat

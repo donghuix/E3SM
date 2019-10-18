@@ -5,9 +5,9 @@ module CarbonStateUpdate1Mod
   !
   ! !USES:
   use shr_kind_mod            , only : r8 => shr_kind_r8
-  use shr_log_mod             , only : errMsg => shr_log_errMsg
-  use abortutils              , only : endrun
-  use clm_time_manager        , only : get_step_size
+  !#py !#py use shr_log_mod        , only : errMsg => shr_log_errMsg
+  !#py use abortutils              , only : endrun
+  !#py use clm_time_manager        , only : get_step_size
   use decompMod               , only : bounds_type
   use clm_varpar              , only : ndecomp_cascade_transitions, nlevdecomp
   use clm_varpar              , only : i_met_lit, i_cel_lit, i_lig_lit, i_cwd
@@ -40,7 +40,7 @@ contains
 
   !-----------------------------------------------------------------------
   subroutine CarbonStateUpdateDynPatch(bounds, num_soilc_with_inactive, filter_soilc_with_inactive, &
-       grc_cs, grc_cf, col_cs, col_cf)
+       grc_cs, grc_cf, col_cs, col_cf, dt)
     !
     ! !DESCRIPTION:
     ! Update carbon states based on fluxes from dyn_cnbal_patch
@@ -53,18 +53,19 @@ contains
     type(gridcell_carbon_flux) , intent(inout)  :: grc_cf
     type(column_carbon_state)  , intent(inout)  :: col_cs
     type(column_carbon_flux)   , intent(in)     :: col_cf
+    real(r8), intent(in) :: dt  ! time step (seconds)
+
     !
     ! !LOCAL VARIABLES:
     integer  :: c   ! column index
     integer  :: fc  ! column filter index
     integer  :: g   ! gridcell index
     integer  :: j   ! level index
-    real(r8) :: dt  ! time step (seconds)
 
     character(len=*), parameter :: subname = 'CarbonStateUpdateDynPatch'
     !-----------------------------------------------------------------------
 
-    dt = real( get_step_size(), r8 )
+    !#py dt = real( get_step_size(), r8 )
 
     if (.not.use_fates) then
 
@@ -94,26 +95,27 @@ contains
   end subroutine CarbonStateUpdateDynPatch
 
   !-----------------------------------------------------------------------
-  subroutine CarbonStateUpdate0(num_soilp, filter_soilp, veg_cs, veg_cf)
+  subroutine CarbonStateUpdate0(num_soilp, filter_soilp, veg_cs, veg_cf, dt)
     !
     ! !DESCRIPTION:
     ! On the radiation time step, update cpool carbon state
     !
 
     ! !ARGUMENTS:
+      !$acc routine seq
     integer                , intent(in)    :: num_soilp       ! number of soil patches in filter
     integer                , intent(in)    :: filter_soilp(:) ! filter for soil patches
     type(vegetation_carbon_state),intent(inout) :: veg_cs
     type(vegetation_carbon_flux) ,intent(inout) :: veg_cf
+    real(r8),     intent(in)    :: dt
     !
     ! !LOCAL VARIABLES:
     integer :: p  ! indices
     integer :: fp ! lake filter indices
-    real(r8):: dt ! radiation time step (seconds)
     !-----------------------------------------------------------------------
 
     ! set time steps
-    dt = real( get_step_size(), r8 )
+    !#py dt = real( get_step_size(), r8 )
 
     ! patch loop
     do fp = 1,num_soilp
@@ -129,12 +131,13 @@ contains
   subroutine CarbonStateUpdate1(bounds, &
        num_soilc, filter_soilc, &
        num_soilp, filter_soilp, &
-       crop_vars, col_cs, veg_cs, col_cf, veg_cf)
+       crop_vars, col_cs, veg_cs, col_cf, veg_cf, dt)
     !
     ! !DESCRIPTION:
     ! On the radiation time step, update all the prognostic carbon state
     ! variables (except for gap-phase mortality and fire fluxes)
     !
+      !$acc routine seq
     use tracer_varcon       , only : is_active_betr_bgc
     use subgridAveMod       , only : p2c
     use decompMod           , only : bounds_type    
@@ -149,11 +152,12 @@ contains
     type(vegetation_carbon_state), intent(inout) :: veg_cs
     type(column_carbon_flux)     , intent(inout) :: col_cf
     type(vegetation_carbon_flux) , intent(inout) :: veg_cf
+    real(r8), intent(in) :: dt        ! radiation time step (seconds)
+
     !
     ! !LOCAL VARIABLES:
     integer  :: c,p,j,k,l ! indices
     integer  :: fp,fc     ! lake filter indices
-    real(r8) :: dt        ! radiation time step (seconds)
     !-----------------------------------------------------------------------
 
     associate(                                                                                 & 
@@ -165,7 +169,7 @@ contains
          )
 
       ! set time steps
-      dt = real( get_step_size(), r8 )
+      !#py dt = real( get_step_size(), r8 )
 
       ! column level fluxes
 

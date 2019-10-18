@@ -61,6 +61,8 @@ module dynHarvestMod
 
   real(r8) , allocatable   :: harvest(:) ! harvest rates
   logical                  :: do_harvest ! whether we're in a period when we should do harvest
+  !$acc declare create(do_harvest)
+  !$acc declare create(harvest(:))
   !---------------------------------------------------------------------------
 
 contains
@@ -92,7 +94,6 @@ contains
     character(len=*), parameter :: subname = 'dynHarvest_init'
     !-----------------------------------------------------------------------
 
-    SHR_ASSERT_ALL(bounds%level == BOUNDS_LEVEL_PROC, subname // ': argument must be PROC-level bounds')
 
     allocate(harvest(bounds%begg:bounds%endg),stat=ier)
     if (ier /= 0) then
@@ -143,7 +144,6 @@ contains
     character(len=*), parameter :: subname = 'dynHarvest_interp'
     !-----------------------------------------------------------------------
 
-    SHR_ASSERT_ALL(bounds%level == BOUNDS_LEVEL_PROC, subname // ': argument must be PROC-level bounds')
 
     ! As a workaround for an internal compiler error with ifort 13.1.2 on goldbach, call
     ! the specific name of this procedure rather than using its generic name
@@ -176,16 +176,16 @@ contains
 
   !-----------------------------------------------------------------------
   subroutine CNHarvest (num_soilc, filter_soilc, num_soilp, filter_soilp, &
-       cnstate_vars, carbonstate_vars, nitrogenstate_vars, carbonflux_vars, nitrogenflux_vars,&
-       phosphorusstate_vars,phosphorusflux_vars)
+       cnstate_vars, days_per_year)
     !
     ! !DESCRIPTION:
     ! Harvest mortality routine for coupled carbon-nitrogen code (CN)
     !
     ! !USES:
+      !$acc routine seq
     use pftvarcon       , only : noveg, nbrdlf_evr_shrub, pprodharv10
     use clm_varcon      , only : secspday
-    use clm_time_manager, only : get_days_per_year
+    !#py use clm_time_manager, only : get_days_per_year
     !
     ! !ARGUMENTS:
     integer                  , intent(in)    :: num_soilc       ! number of soil columns in filter
@@ -193,13 +193,8 @@ contains
     integer                  , intent(in)    :: num_soilp       ! number of soil patches in filter
     integer                  , intent(in)    :: filter_soilp(:) ! patch filter for soil points
     type(cnstate_type)       , intent(in)    :: cnstate_vars
-    type(carbonstate_type)   , intent(in)    :: carbonstate_vars
-    type(nitrogenstate_type) , intent(in)    :: nitrogenstate_vars
-    type(carbonflux_type)    , intent(inout) :: carbonflux_vars
-    type(nitrogenflux_type)  , intent(inout) :: nitrogenflux_vars
+    real(r8)   ,intent(in)   :: days_per_year             ! days per year
 
-    type(phosphorusstate_type) , intent(in)    :: phosphorusstate_vars
-    type(phosphorusflux_type)  , intent(inout) :: phosphorusflux_vars
     !
     ! !LOCAL VARIABLES:
     integer :: p                         ! patch index
@@ -207,7 +202,6 @@ contains
     integer :: fp                        ! patch filter index
     real(r8):: am                        ! rate for fractional harvest mortality (1/yr)
     real(r8):: m                         ! rate for fractional harvest mortality (1/s)
-    real(r8):: days_per_year             ! days per year
     !-----------------------------------------------------------------------
 
    associate(& 
@@ -350,7 +344,7 @@ contains
    )
 
 
-   days_per_year = get_days_per_year()
+   !#py days_per_year = get_days_per_year()
 
    ! patch loop
    do fp = 1,num_soilp
@@ -470,34 +464,27 @@ contains
    ! and litter P inputs
 
    call CNHarvestPftToColumn(num_soilc, filter_soilc, &
-      cnstate_vars, carbonstate_vars, nitrogenstate_vars, carbonflux_vars, nitrogenflux_vars,&
-      phosphorusstate_vars,phosphorusflux_vars)
+      cnstate_vars )
 
     end associate 
  end subroutine CNHarvest
 
  !-----------------------------------------------------------------------
  subroutine CNHarvestPftToColumn (num_soilc, filter_soilc, &
-      cnstate_vars, carbonstate_vars, nitrogenstate_vars, carbonflux_vars, nitrogenflux_vars,&
-      phosphorusstate_vars,phosphorusflux_vars)
+      cnstate_vars)
    !
    ! !DESCRIPTION:
    ! called at the end of CNHarvest to gather all pft-level harvest litterfall fluxes
    ! to the column level and assign them to the three litter pools
    !
    ! !USES:
+      !$acc routine seq
    use clm_varpar , only : maxpatch_pft, nlevdecomp
    !
    ! !ARGUMENTS:
    integer                   , intent(in)    :: num_soilc       ! number of soil columns in filter
    integer                   , intent(in)    :: filter_soilc(:) ! soil column filter
    type(cnstate_type)        , intent(in)    :: cnstate_vars
-   type(carbonstate_type)    , intent(in)    :: carbonstate_vars
-   type(nitrogenstate_type)  , intent(in)    :: nitrogenstate_vars
-   type(carbonflux_type)     , intent(inout) :: carbonflux_vars
-   type(nitrogenflux_type)   , intent(inout) :: nitrogenflux_vars
-   type(phosphorusstate_type), intent(in)    :: phosphorusstate_vars
-   type(phosphorusflux_type) , intent(inout) :: phosphorusflux_vars
    !
    ! !LOCAL VARIABLES:
    integer :: fc,c,pi,p,j               ! indices

@@ -55,10 +55,11 @@ module clm_varpar
   integer :: numpft      = mxpft   ! actual # of patches (without bare)
   integer :: numcft      =  10     ! actual # of crops
   logical :: crop_prog   = .true.  ! If prognostic crops is turned on
+  !$acc declare create(crop_prog)
   integer :: maxpatch_urb= 5       ! max number of urban patches (columns) in urban landunit
 
   integer :: maxpatch_pft        ! max number of plant functional types in naturally vegetated landunit (namelist setting)
-
+  !$acc declare create(maxpatch_pft)
   integer, parameter :: nsoilorder  =  15     ! number of soil orders
 
   integer, parameter :: nlevslp = 11          ! number of slope percentile levels
@@ -72,6 +73,8 @@ module clm_varpar
 
   integer :: ndecomp_pools
   integer :: ndecomp_cascade_transitions
+  !$acc declare create(ndecomp_pools)
+  !$acc declare create(ndecomp_cascade_transitions)
 
   ! Indices used in surface file read and set in clm_varpar_init
 
@@ -91,6 +94,47 @@ module clm_varpar
   public clm_varpar_init          ! set parameters
   !
   !-----------------------------------------------------------------------
+  !$acc declare create(more_vertlayers)
+
+
+  !$acc declare copyin(nlev_equalspace  )
+  !$acc declare copyin(toplev_equalspace)
+  !$acc declare copyin(nlevsno    )
+  !$acc declare copyin(ngases     )
+  !$acc declare copyin(nlevcan    )
+  !$acc declare copyin(numwat     )
+  !$acc declare copyin(numrad     )
+  !$acc declare copyin(ivis       )
+  !$acc declare copyin(inir       )
+  !$acc declare copyin(numsolar   )
+  !$acc declare copyin(ndst       )
+  !$acc declare copyin(dst_src_nbr)
+  !$acc declare copyin(sz_nbr     )
+  !$acc declare copyin(mxpft      )
+  !$acc declare create(nlevsoi        )
+  !$acc declare create(nlevsoifl      )
+  !$acc declare create(nlevurb        )
+  !$acc declare create(nlevlak        )
+  !$acc declare create(nlevdecomp     )
+  !$acc declare create(nlevdecomp_full)
+  !$acc declare create(nlevtrc_soil   )
+  !$acc declare create(nlevtrc_full   )
+  !$acc declare create(nlevgrnd)
+  !$acc declare create(natpft_lb  )
+  !$acc declare create(natpft_ub  )
+  !$acc declare create(natpft_size)
+  !$acc declare create(cft_lb     )
+  !$acc declare create(cft_ub     )
+  !$acc declare create(cft_size   )
+  !$acc declare create(i_met_lit  )
+  !$acc declare create(i_cel_lit  )
+  !$acc declare create(i_lig_lit  )
+  !$acc declare create(i_cwd      )
+  !$acc declare create(maxpatch_glcmec )
+  !$acc declare create(max_patch_per_col)
+  !$acc declare create(mach_eps)
+
+  !$acc declare create(nlayert)
 
 contains
 
@@ -208,8 +252,12 @@ contains
        end if
 
     endif
-    
 
+    !$acc update device(nlevurb)
+    !$acc update device(nlayert)
+    !$acc update device(ndecomp_pools)
+    !$acc update device(ndecomp_cascade_transitions)
+    !$acc update device(crop_prog)
 
   end subroutine clm_varpar_init
 

@@ -18,13 +18,11 @@ module DecompCascadeBGCMod
   use SharedParamsMod      , only : ParamsShareInst, anoxia_wtsat, nlev_soildecomp_standard 
   use CNDecompCascadeConType , only : decomp_cascade_con
   use CNStateType            , only : cnstate_type
-  use CNCarbonFluxType       , only : carbonflux_type
   use SoilStateType          , only : soilstate_type
   use CanopyStateType        , only : canopystate_type
-  use TemperatureType        , only : temperature_type 
   use ch4Mod                 , only : ch4_type
   use ColumnType             , only : col_pp
-  use ColumnDataType         , only : col_es, col_cf 
+  use ColumnDataType         , only : col_es, col_cf
   !
   implicit none
   save
@@ -39,53 +37,57 @@ module DecompCascadeBGCMod
   logical , public :: normalize_q10_to_century_tfunc = .true.! do we normalize the century decomp. rates so that they match the CLM Q10 at a given tep?
   logical , public :: use_century_tfunc = .false.
   real(r8), public :: normalization_tref = 15._r8            ! reference temperature for normalizaion (degrees C)
+  !$acc declare copyin(normalize_q10_to_century_tfunc)
+  !$acc declare copyin(use_century_tfunc )
+  !$acc declare copyin(normalization_tref)
   !
   ! !PRIVATE DATA MEMBERS 
-  type, private :: DecompBGCParamsType
-     real(r8):: cn_s1_bgc     !C:N for SOM 1
-     real(r8):: cn_s2_bgc     !C:N for SOM 2
-     real(r8):: cn_s3_bgc     !C:N for SOM 3
-     
-     real(r8):: np_s1_new_bgc  !C:P for SOM 1
-     real(r8):: np_s2_new_bgc  !C:P for SOM 2
-     real(r8):: np_s3_new_bgc  !C:P for SOM 3
+  type, public :: DecompBGCParamsType
 
-     real(r8):: cp_s1_new_bgc        !C:P for SOM 1
-     real(r8):: cp_s2_new_bgc        !C:P for SOM 2
-     real(r8):: cp_s3_new_bgc        !C:P for SOM 3
+     real(r8), pointer:: cn_s1_bgc     => null()!C:N for SOM 1
+     real(r8), pointer:: cn_s2_bgc     => null()!C:N for SOM 2
+     real(r8), pointer:: cn_s3_bgc     => null()!C:N for SOM 3
+
+     real(r8), pointer:: np_s1_new_bgc => null() !C:P for SOM 1
+     real(r8), pointer:: np_s2_new_bgc => null() !C:P for SOM 2
+     real(r8), pointer:: np_s3_new_bgc => null() !C:P for SOM 3
+
+     real(r8), pointer:: cp_s1_new_bgc => null()       !C:P for SOM 1
+     real(r8), pointer:: cp_s2_new_bgc => null()       !C:P for SOM 2
+     real(r8), pointer:: cp_s3_new_bgc => null()       !C:P for SOM 3
 
 
 
-     real(r8):: rf_l1s1_bgc   !respiration fraction litter 1 -> SOM 1
-     real(r8):: rf_l2s1_bgc
-     real(r8):: rf_l3s2_bgc
+     real(r8), pointer:: rf_l1s1_bgc  => null()  !respiration fraction litter 1 -> SOM 1
+     real(r8), pointer:: rf_l2s1_bgc  => null()
+     real(r8), pointer:: rf_l3s2_bgc  => null()
 
-     real(r8):: rf_s2s1_bgc    
-     real(r8):: rf_s2s3_bgc    
-     real(r8):: rf_s3s1_bgc    
+     real(r8), pointer:: rf_s2s1_bgc  => null()
+     real(r8), pointer:: rf_s2s3_bgc  => null()
+     real(r8), pointer:: rf_s3s1_bgc  => null()
+     real(r8), pointer:: rf_cwdl2_bgc => null()
+     real(r8), pointer:: rf_cwdl3_bgc => null()
 
-     real(r8):: rf_cwdl2_bgc 
-     real(r8):: rf_cwdl3_bgc
+     real(r8), pointer:: tau_l1_bgc    => null()! turnover time of  litter 1 (yr)
+     real(r8), pointer:: tau_l2_l3_bgc => null()! turnover time of  litter 2 and litter 3 (yr)
+     real(r8), pointer:: tau_s1_bgc    => null()! turnover time of  SOM 1 (yr)
+     real(r8), pointer:: tau_s2_bgc    => null()! turnover time of  SOM 2 (yr)
+     real(r8), pointer:: tau_s3_bgc    => null()! turnover time of  SOM 3 (yr)
+     real(r8), pointer:: tau_cwd_bgc   => null()! corrected fragmentation rate constant CWD
 
-     real(r8):: tau_l1_bgc    ! turnover time of  litter 1 (yr)
-     real(r8):: tau_l2_l3_bgc ! turnover time of  litter 2 and litter 3 (yr)
-     real(r8):: tau_s1_bgc    ! turnover time of  SOM 1 (yr)
-     real(r8):: tau_s2_bgc    ! turnover time of  SOM 2 (yr)
-     real(r8):: tau_s3_bgc    ! turnover time of  SOM 3 (yr)
-     real(r8):: tau_cwd_bgc   ! corrected fragmentation rate constant CWD
+     real(r8), pointer :: cwd_fcel_bgc => null()!cellulose fraction for CWD
+     real(r8), pointer :: cwd_flig_bgc => null()!
 
-     real(r8) :: cwd_fcel_bgc !cellulose fraction for CWD
-     real(r8) :: cwd_flig_bgc !
+     real(r8), pointer :: k_frag_bgc  => null() !fragmentation rate for CWD
+     real(r8), pointer :: minpsi_bgc  => null() !minimum soil water potential for heterotrophic resp
 
-     real(r8) :: k_frag_bgc   !fragmentation rate for CWD
-     real(r8) :: minpsi_bgc   !minimum soil water potential for heterotrophic resp
-     
-     integer  :: nsompools = 3
-     real(r8),allocatable :: spinup_vector(:) ! multipliers for soil decomp during accelerated spinup
+     integer , pointer :: nsompools   => null()!= 3
+     real(r8), pointer  :: spinup_vector(:) => null() ! multipliers for soil decomp during accelerated spinup
 
   end type DecompBGCParamsType
 
-  type(DecompBGCParamsType),private ::  DecompBGCParamsInst
+  type(DecompBGCParamsType), public, target ::  DecompBGCParamsInst
+  !$acc declare create(DecompBGCParamsInst)
   !-----------------------------------------------------------------------
 
 contains
@@ -108,6 +110,34 @@ contains
     real(r8)           :: tempr   ! temporary to read in constant
     character(len=100) :: tString ! temp. var for reading
     !-----------------------------------------------------------------------
+
+     allocate(DecompBGCParamsInst%cn_s1_bgc   )
+     allocate(DecompBGCParamsInst%cn_s2_bgc   )
+     allocate(DecompBGCParamsInst%cn_s3_bgc   )
+     allocate(DecompBGCParamsInst%np_s1_new_bgc)
+     allocate(DecompBGCParamsInst%np_s2_new_bgc)
+     allocate(DecompBGCParamsInst%np_s3_new_bgc)
+     allocate(DecompBGCParamsInst%cp_s1_new_bgc)
+     allocate(DecompBGCParamsInst%cp_s2_new_bgc)
+     allocate(DecompBGCParamsInst%cp_s3_new_bgc)
+     allocate(DecompBGCParamsInst%rf_l1s1_bgc )
+     allocate(DecompBGCParamsInst%rf_l2s1_bgc )
+     allocate(DecompBGCParamsInst%rf_l3s2_bgc )
+     allocate(DecompBGCParamsInst%rf_s2s1_bgc )
+     allocate(DecompBGCParamsInst%rf_s2s3_bgc )
+     allocate(DecompBGCParamsInst%rf_s3s1_bgc )
+     allocate(DecompBGCParamsInst%rf_cwdl2_bgc)
+     allocate(DecompBGCParamsInst%rf_cwdl3_bgc)
+     allocate(DecompBGCParamsInst%tau_l1_bgc  )
+     allocate(DecompBGCParamsInst%tau_l2_l3_bgc)
+     allocate(DecompBGCParamsInst%tau_s1_bgc  )
+     allocate(DecompBGCParamsInst%tau_s2_bgc  )
+     allocate(DecompBGCParamsInst%tau_s3_bgc  )
+     allocate(DecompBGCParamsInst%tau_cwd_bgc )
+     allocate(DecompBGCParamsInst%cwd_fcel_bgc)
+     allocate(DecompBGCParamsInst%cwd_flig_bgc)
+     allocate(DecompBGCParamsInst%k_frag_bgc  )
+     allocate(DecompBGCParamsInst%minpsi_bgc  )
 
     ! These are not read off of netcdf file
     allocate(DecompBGCParamsInst%spinup_vector(DecompBGCParamsInst%nsompools))
@@ -606,14 +636,16 @@ contains
 
   !-----------------------------------------------------------------------
   subroutine decomp_rate_constants_bgc(bounds, num_soilc, filter_soilc, &
-       canopystate_vars, soilstate_vars, temperature_vars, ch4_vars, carbonflux_vars, cnstate_vars)
+       canopystate_vars, soilstate_vars, ch4_vars, cnstate_vars, &
+       dt, days_per_year,year, mon, day, sec)
     !
     ! !DESCRIPTION:
     !  calculate rate constants and decomposition pathways for teh CENTURY decomposition cascade model
     !  written by C. Koven based on original CLM4 decomposition cascade
     !
     ! !USES:
-    use clm_time_manager , only : get_days_per_year, get_curr_date, get_step_size
+    !#py use clm_time_manager , only : get_days_per_year, get_curr_date, get_step_size
+      !$acc routine seq
     use shr_const_mod    , only : SHR_CONST_PI
     use clm_varcon       , only : secspday
     !
@@ -623,10 +655,11 @@ contains
     integer                , intent(in)    :: filter_soilc(:) ! filter for soil columns
     type(canopystate_type) , intent(in)    :: canopystate_vars
     type(soilstate_type)   , intent(in)    :: soilstate_vars
-    type(temperature_type) , intent(in)    :: temperature_vars
     type(ch4_type)         , intent(in)    :: ch4_vars
-    type(carbonflux_type)  , intent(inout) :: carbonflux_vars
     type(cnstate_type)     , intent(inout) :: cnstate_vars
+    real(r8)     , intent(in)  :: dt, days_per_year
+    integer, intent(in) :: year, mon, day, sec          ! fraction of potential aerobic rate
+
 
     !
     ! !LOCAL VARIABLES:
@@ -664,11 +697,8 @@ contains
     real(r8):: catanf_30                    ! reference rate at 30C
     real(r8):: t1                           ! temperature argument
     real(r8):: normalization_factor         ! factor by which to offset the decomposition rates frm century to a q10 formulation
-    real(r8):: days_per_year                ! days per year
-    real(r8):: depth_scalar(bounds%begc:bounds%endc,1:nlevdecomp) 
+    real(r8):: depth_scalar(bounds%begc:bounds%endc,1:nlevdecomp)
     real(r8):: mino2lim                     !minimum anaerobic decomposition rate
-    integer :: year, mon, day, sec          ! fraction of potential aerobic rate
-    real(r8):: dt                           ! decomp timestep (seconds) 
     !-----------------------------------------------------------------------
 
     !----- CENTURY T response function
@@ -696,12 +726,12 @@ contains
       mino2lim = ParamsShareInst%mino2lim
 
       if ( use_century_tfunc .and. normalize_q10_to_century_tfunc ) then
-         call endrun(msg='ERROR: cannot have both use_century_tfunc and normalize_q10_to_century_tfunc set as true'//&
-              errMsg(__FILE__, __LINE__))
+         !#py call endrun(msg='ERROR: cannot have both use_century_tfunc and normalize_q10_to_century_tfunc set as true'//&
+              !#py !#py errMsg(__FILE__, __LINE__))
       endif
 
-      days_per_year = get_days_per_year()
-      dt = real( get_step_size(), r8 ) 
+      !#py days_per_year = get_days_per_year()
+      !#py dt = real( get_step_size(), r8 )
 
       ! the belowground parameters from century
       tau_l1 = 1./18.5
@@ -1010,7 +1040,7 @@ contains
          end do
       end if
 
-      call get_curr_date(year, mon, day, sec)
+      !#py call get_curr_date(year, mon, day, sec)
       !Calcluate location and depth-specific acceleration factors
       do fc=1,num_soilc
           c = filter_soilc(fc)

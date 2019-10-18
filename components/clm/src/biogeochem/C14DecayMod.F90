@@ -5,7 +5,7 @@ module C14DecayMod
   !
   ! !USES:
   use shr_kind_mod           , only : r8 => shr_kind_r8
-  use clm_time_manager       , only : get_curr_date, get_step_size, get_days_per_year
+  !#py use clm_time_manager       , only : get_curr_date, get_step_size, get_days_per_year
   use clm_varpar             , only : ndecomp_cascade_transitions, nlevdecomp, ndecomp_pools
   use clm_varcon             , only : secspday
   use clm_varctl             , only : spinup_state
@@ -27,38 +27,42 @@ module C14DecayMod
 
   ! !PUBLIC TYPES:
   logical, public :: use_c14_bombspike = .false.         ! do we use time-varying atmospheric C14?
+  !$acc declare copyin(use_c14_bombspike)
+
   character(len=256), public :: atm_c14_filename = ' '   ! file name of C14 input data
 
   ! !PRIVATE TYPES:
   real(r8), allocatable, private :: atm_c14file_time(:)
   real(r8), allocatable, private :: atm_delta_c14(:)
+  !$acc declare create(atm_c14file_time(:))
+  !$acc declare create(atm_delta_c14(:)   )
   !-----------------------------------------------------------------------
 
 contains
 
   !-----------------------------------------------------------------------
   subroutine C14Decay( num_soilc, filter_soilc, num_soilp, filter_soilp, &
-       cnstate_vars, c14_carbonstate_vars)
+       cnstate_vars, dt, days_per_year,yr, mon, day, tod, offset)
     !
     ! !DESCRIPTION:
     ! On the radiation time step, calculate the radioactive decay of C14
     !
+      !$acc routine seq
     use tracer_varcon, only : is_active_betr_bgc      
     ! !ARGUMENTS:
     integer                , intent(in)    :: num_soilc       ! number of soil columns filter
     integer                , intent(in)    :: filter_soilc(:) ! filter for soil columns
     integer                , intent(in)    :: num_soilp       ! number of soil patches in filter
     integer                , intent(in)    :: filter_soilp(:) ! filter for soil patches
-    type(carbonstate_type) , intent(inout) :: c14_carbonstate_vars
     type(cnstate_type)     , intent(in)    :: cnstate_vars
+    real(r8), intent(in) :: dt , days_per_year          ! radiation time step (seconds)
+    integer, intent(in)  :: yr, mon, day, tod, offset
+
     !
     ! !LOCAL VARIABLES:
-    integer  :: yr, mon, day, tod, offset
     integer  :: fp,j,l,p,fc,c,i
-    real(r8) :: dt            ! radiation time step (seconds)
     real(r8) :: half_life
     real(r8) :: decay_const
-    real(r8) :: days_per_year ! days per year
     real(r8) :: spinup_term   ! spinup accelerated decomposition factor, used to accelerate transport as well
     !-----------------------------------------------------------------------
 
@@ -93,9 +97,9 @@ contains
          )
 
       ! set time steps
-      call get_curr_date(yr, mon, day, tod, offset)
-      dt = real( get_step_size(), r8 )
-      days_per_year = get_days_per_year()
+      !#py call get_curr_date(yr, mon, day, tod, offset)
+      !#py dt = real( get_step_size(), r8 )
+      !#py days_per_year = get_days_per_year()
 
       half_life = 5568._r8 * secspday * days_per_year  !! libby half-life value, for comparison against ages calculated with this value
       ! half_life = 5730._r8 * secspday * days_per_year  !! recent half-life value

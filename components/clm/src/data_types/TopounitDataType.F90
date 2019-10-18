@@ -92,6 +92,10 @@ module TopounitDataType
   type(topounit_atmospheric_flux),     public, target :: top_af
   type(topounit_energy_state),         public, target :: top_es
 
+  !$acc declare create(top_as)
+  !$acc declare create(top_af)
+  !$acc declare create(top_es)
+
   contains
 
   !-----------------------------------------------------------------------
@@ -590,7 +594,7 @@ module TopounitDataType
     integer, intent(in) :: begt   ! beginning topographic unit index
     integer, intent(in) :: endt   ! ending topographic unit index
 
-    allocate(this%t_rad   (begt:endt)) ; this%t_rad   (:) = nan
+    allocate(this%t_rad   (begt:endt)) ; this%t_rad   (:) =spval
   end subroutine init_top_es
   
   !-----------------------------------------------------------------------

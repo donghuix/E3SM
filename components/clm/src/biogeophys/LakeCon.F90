@@ -42,26 +42,35 @@ module LakeCon
   ! This is roughly the fraction over 700 nm but may depend on the details
   ! of atmospheric radiative transfer. As long as NIR = 700 nm and up, this can be zero.
   real(r8) :: betavis = 0.0_r8            
+  !$acc declare create(betavis)
 
   ! Momentum Roughness length over frozen lakes without snow  (m)
   ! Typical value found in the literature, and consistent with Mironov expressions.
   ! See e.g. Morris EM 1989, Andreas EL 1987, Guest & Davidson 1991 (as cited in Vavrus 1996)
   real(r8), parameter :: z0frzlake = 0.001_r8  
+  !$acc declare copyin(z0frzlake)
 
   ! Base of surface light absorption layer for lakes (m)
   real(r8), parameter :: za_lake = 0.6_r8           
 
+  !$acc declare copyin(za_lake)
   ! For calculating prognostic roughness length
   real(r8), parameter :: cur0    = 0.01_r8  ! min. Charnock parameter
   real(r8), parameter :: cus     = 0.1_r8   ! empirical constant for roughness under smooth flow
   real(r8), parameter :: curm    = 0.1_r8   ! maximum Charnock parameter
+  !$acc declare copyin(cur0)
+  !$acc declare copyin(cus )
+  !$acc declare copyin(curm)
 
   ! The following will be set in initLake based on namelists. !TODO - fix this commend
   real(r8)            :: fcrit              ! critical dimensionless fetch for Charnock parameter.
   real(r8)            :: minz0lake          ! (m) Minimum allowed roughness length for unfrozen lakes.
+  !$acc declare create(fcrit     )
+  !$acc declare create(minz0lake )
 
   ! For calculating enhanced diffusivity
   real(r8), parameter :: n2min = 7.5e-5_r8 ! (s^-2) (yields diffusivity about 6 times km) ! Fang & Stefan 1996
+  !$acc declare copyin(n2min)
 
   ! Note, this will be adjusted in initLake if the timestep is not 1800 s.
   ! Lake top numerics can oscillate with 0.01m top layer and 1800 s timestep.
@@ -80,11 +89,16 @@ module LakeCon
   ! the lake is frozen, or if there is an unstable density gradient in the top unfrozen lake layer.
   real(r8)            :: lsadz = 0.03_r8 ! m
 
+  !$acc declare copyin(lsadz)
+
   !! The following will be set in initLake based on namelists.
   real(r8)            :: pudz          ! (m) Optional minimum total ice thickness required to allow lake puddling.
   ! Currently used for sensitivity tests only.
   real(r8)            :: depthcrit     ! (m) Depth beneath which to increase mixing. See discussion in Subin et al. 2011
   real(r8)            :: mixfact       ! Mixing increase factor.
+  !$acc declare create(pudz)
+  !$acc declare create(depthcrit)
+  !$acc declare create(mixfact)
 
   !!!!!!!!!!!
   ! Namelists (some of these have not been extensively tested and are hardwired to default values currently).
@@ -95,6 +109,7 @@ module LakeCon
   ! See initLakeMod for details. Difference is very small for
   ! small lakes and negligible for large lakes. Currently hardwired off.
   logical,  public :: lake_use_old_fcrit_minz0 = .false. 
+  !$acc declare copyin(lake_use_old_fcrit_minz0)
 
   ! used in LakeTemperature
   ! Increase mixing by a large factor for deep lakes
@@ -121,10 +136,13 @@ module LakeCon
   ! true => suppress convection when greater than minimum amount
   ! of ice is present. This also effectively sets lake_no_melt_icealb.
   logical,  public :: lakepuddling = .false.            
+  !$acc declare create(lakepuddling)
+  !$acc declare create(lake_no_ed)
 
   ! (m) minimum amount of total ice nominal thickness before
   ! convection is suppressed
   real(r8), public :: lake_puddle_thick = 0.2_r8        
+  !$acc declare copyin(lake_puddle_thick)
   !-----------------------------------------------------------------------
 
 contains

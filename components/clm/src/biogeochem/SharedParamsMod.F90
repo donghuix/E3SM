@@ -25,8 +25,11 @@ module SharedParamsMod
 
   type(ParamsShareType),protected :: ParamsShareInst
 
+  !$acc declare create(ParamsShareInst)
   logical, public :: anoxia_wtsat = .false.
   integer, public :: nlev_soildecomp_standard = 5
+  !$acc declare create(anoxia_wtsat)
+  !$acc declare create(nlev_soildecomp_standard)
 
   !-----------------------------------------------------------------------
   

@@ -21,14 +21,7 @@ module restFileMod
   use clm_varcon           , only : c13ratio, c14ratio
   use clm_varcon           , only : nameg, namet, namel, namec, namep, nameCohort
   use CH4Mod               , only : ch4_type
-  use CNCarbonFluxType     , only : carbonflux_type
-  use CNCarbonStateType    , only : carbonstate_type
   use CNStateType          , only : cnstate_type
-  use CNNitrogenFluxType   , only : nitrogenflux_type
-  use CNNitrogenStateType  , only : nitrogenstate_type
-  
-  use PhosphorusFluxType     , only : phosphorusflux_type
-  use PhosphorusStateType    , only : phosphorusstate_type
 
   use CLMFatesInterfaceMod , only : hlm_fates_interface_type
 
@@ -43,9 +36,6 @@ module restFileMod
   use SoilStateType        , only : soilstate_type
   use SolarAbsorbedType    , only : solarabs_type
   use SurfaceAlbedoType    , only : surfalb_type
-  use TemperatureType      , only : temperature_type
-  use WaterfluxType        , only : waterflux_type
-  use WaterstateType       , only : waterstate_type
   use atm2lndType          , only : atm2lnd_type
   use lnd2atmType          , only : lnd2atm_type
   use glc2lndMod           , only : glc2lnd_type
@@ -109,14 +99,12 @@ contains
   !-----------------------------------------------------------------------
   subroutine restFile_write( bounds, file,                                            &
        atm2lnd_vars, aerosol_vars, canopystate_vars, cnstate_vars,                    &
-       carbonstate_vars, c13_carbonstate_vars, c14_carbonstate_vars, carbonflux_vars, &
-       ch4_vars, energyflux_vars, frictionvel_vars, lakestate_vars,        &
-       nitrogenstate_vars, nitrogenflux_vars, photosyns_vars, soilhydrology_vars,     &
-       soilstate_vars, solarabs_vars, surfalb_vars, temperature_vars,                 &
-       waterflux_vars, waterstate_vars, sedflux_vars,                                 &
-       phosphorusstate_vars, phosphorusflux_vars,                                     &
-       ep_betr,                                                                       &
-       alm_fates, crop_vars,                                                          &
+       ch4_vars, energyflux_vars, frictionvel_vars, lakestate_vars,                   &
+       soilhydrology_vars,                                           &
+       soilstate_vars, solarabs_vars, surfalb_vars,                  &
+       sedflux_vars,                                                 &
+       ep_betr,                                                      &
+       alm_fates, crop_vars,                                         &
        rdate, noptr)
     !
     ! !DESCRIPTION:
@@ -134,28 +122,17 @@ contains
     type(aerosol_type)             , intent(in)    :: aerosol_vars
     type(canopystate_type)         , intent(inout) :: canopystate_vars ! due to EDrest call
     type(cnstate_type)             , intent(inout) :: cnstate_vars
-    type(carbonstate_type)         , intent(inout) :: carbonstate_vars
-    type(carbonstate_type)         , intent(in)    :: c13_carbonstate_vars
-    type(carbonstate_type)         , intent(in)    :: c14_carbonstate_vars
-    type(carbonflux_type)          , intent(inout) :: carbonflux_vars
     type(ch4_type)                 , intent(in)    :: ch4_vars
     type(energyflux_type)          , intent(in)    :: energyflux_vars
     type(frictionvel_type)         , intent(inout) :: frictionvel_vars
     type(lakestate_type)           , intent(in)    :: lakestate_vars
-    type(nitrogenstate_type)       , intent(inout) :: nitrogenstate_vars
-    type(nitrogenflux_type)        , intent(in)    :: nitrogenflux_vars
     type(photosyns_type)           , intent(in)    :: photosyns_vars
     type(sedflux_type)             , intent(in)    :: sedflux_vars
     type(soilhydrology_type)       , intent(in)    :: soilhydrology_vars
     type(soilstate_type)           , intent(inout) :: soilstate_vars
     type(solarabs_type)            , intent(in)    :: solarabs_vars
     type(surfalb_type)             , intent(in)    :: surfalb_vars
-    type(temperature_type)         , intent(in)    :: temperature_vars
-    type(waterstate_type)          , intent(inout) :: waterstate_vars  ! due to EDrest call
-    type(waterflux_type)           , intent(in)    :: waterflux_vars
-    type(phosphorusstate_type)     , intent(inout) :: phosphorusstate_vars
-    type(phosphorusflux_type)      , intent(in)    :: phosphorusflux_vars
-    class(betr_simulation_alm_type), intent(inout):: ep_betr
+    class(betr_simulation_alm_type), intent(inout) :: ep_betr
     type(hlm_fates_interface_type) , intent(inout) :: alm_fates
     type(crop_type)                , intent(inout) :: crop_vars
     character(len=*)               , intent(in), optional :: rdate     ! restart file time stamp for name
@@ -516,12 +493,10 @@ contains
   !-----------------------------------------------------------------------
   subroutine restFile_read( bounds, file,                                             &
        atm2lnd_vars, aerosol_vars, canopystate_vars, cnstate_vars,                    &
-       carbonstate_vars, c13_carbonstate_vars, c14_carbonstate_vars, carbonflux_vars, &
        ch4_vars, energyflux_vars, frictionvel_vars, lakestate_vars,        &
-       nitrogenstate_vars, nitrogenflux_vars, photosyns_vars, soilhydrology_vars,     &
-       soilstate_vars, solarabs_vars, surfalb_vars, temperature_vars,                 &
-       waterflux_vars, waterstate_vars, sedflux_vars,                                 &
-       phosphorusstate_vars,phosphorusflux_vars,                                      &
+       soilhydrology_vars,     &
+       soilstate_vars, solarabs_vars, surfalb_vars,                 &
+       sedflux_vars,                                 &
        ep_betr,                                                                       &
        alm_fates, glc2lnd_vars, crop_vars)
     !
@@ -545,27 +520,15 @@ contains
     type(aerosol_type)             , intent(inout) :: aerosol_vars
     type(canopystate_type)         , intent(inout) :: canopystate_vars
     type(cnstate_type)             , intent(inout) :: cnstate_vars
-    type(carbonstate_type)         , intent(inout) :: carbonstate_vars
-    type(carbonstate_type)         , intent(inout) :: c13_carbonstate_vars
-    type(carbonstate_type)         , intent(inout) :: c14_carbonstate_vars
-    type(carbonflux_type)          , intent(inout) :: carbonflux_vars
     type(ch4_type)                 , intent(inout) :: ch4_vars
     type(energyflux_type)          , intent(inout) :: energyflux_vars
     type(frictionvel_type)         , intent(inout) :: frictionvel_vars
     type(lakestate_type)           , intent(inout) :: lakestate_vars
-    type(nitrogenstate_type)       , intent(inout) :: nitrogenstate_vars
-    type(nitrogenflux_type)        , intent(inout) :: nitrogenflux_vars
-    type(photosyns_type)           , intent(inout) :: photosyns_vars
     type(sedflux_type)             , intent(inout) :: sedflux_vars
     type(soilhydrology_type)       , intent(inout) :: soilhydrology_vars
     type(soilstate_type)           , intent(inout) :: soilstate_vars
     type(solarabs_type)            , intent(inout) :: solarabs_vars
-    type(temperature_type)         , intent(inout) :: temperature_vars
     type(surfalb_type)             , intent(inout) :: surfalb_vars
-    type(waterstate_type)          , intent(inout) :: waterstate_vars
-    type(waterflux_type)           , intent(inout) :: waterflux_vars
-    type(phosphorusstate_type)     , intent(inout) :: phosphorusstate_vars
-    type(phosphorusflux_type)      , intent(inout) :: phosphorusflux_vars
     class(betr_simulation_alm_type), intent(inout) :: ep_betr
     type(hlm_fates_interface_type) , intent(inout) :: alm_fates
     type(glc2lnd_type)             , intent(inout) :: glc2lnd_vars

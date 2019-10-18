@@ -191,9 +191,7 @@ contains
 !!-------------------------------------------------------------------------------------------------
   subroutine SetPlantMicNPDemand(bounds, num_soilc, filter_soilc, num_soilp, filter_soilp, &
        photosyns_vars, crop_vars, canopystate_vars, cnstate_vars,             &
-       carbonstate_vars, carbonflux_vars, c13_carbonflux_vars, c14_carbonflux_vars,  &
-       nitrogenstate_vars, nitrogenflux_vars,&
-       phosphorusstate_vars,phosphorusflux_vars, PlantMicKinetics_vars)
+       PlantMicKinetics_vars)
   implicit none
 
     !
@@ -207,40 +205,22 @@ contains
     type(crop_type)          , intent(in)    :: crop_vars
     type(canopystate_type)   , intent(in)    :: canopystate_vars
     type(cnstate_type)       , intent(inout) :: cnstate_vars
-    type(carbonstate_type)   , intent(in)    :: carbonstate_vars
-    type(carbonflux_type)    , intent(inout) :: carbonflux_vars
-    type(carbonflux_type)    , intent(inout) :: c13_carbonflux_vars
-    type(carbonflux_type)    , intent(inout) :: c14_carbonflux_vars
-    type(nitrogenstate_type) , intent(inout) :: nitrogenstate_vars
-    type(nitrogenflux_type)  , intent(inout) :: nitrogenflux_vars
-    type(phosphorusstate_type) , intent(inout) :: phosphorusstate_vars
-    type(phosphorusflux_type)  , intent(inout) :: phosphorusflux_vars
     type(PlantMicKinetics_type)      , intent(inout) :: PlantMicKinetics_vars
 
    !calculate the plant nutrient demand
    call Allocation1_PlantNPDemand(bounds, num_soilc, filter_soilc, num_soilp, filter_soilp, &
-       photosyns_vars, crop_vars, canopystate_vars, cnstate_vars,             &
-       carbonstate_vars, carbonflux_vars, c13_carbonflux_vars, c14_carbonflux_vars,  &
-       nitrogenstate_vars, nitrogenflux_vars,&
-       phosphorusstate_vars,phosphorusflux_vars)
+       photosyns_vars, crop_vars, canopystate_vars, cnstate_vars)
 
    !extract the kinetic parameters
    call calc_plantN_kineticpar(bounds, num_soilc, filter_soilc               , &
                             num_soilp, filter_soilp                         , &
                             cnstate_vars                                    , &
-                            carbonstate_vars                                , &
-                            nitrogenstate_vars                              , &
-                            phosphorusstate_vars                            , &
-                            carbonflux_vars                                 , &
                             PlantMicKinetics_vars                             )
 
   end subroutine SetPlantMicNPDemand
 !!-------------------------------------------------------------------------------------------------
   subroutine Allocation1_PlantNPDemand (bounds, num_soilc, filter_soilc, num_soilp, filter_soilp, &
-       photosyns_vars, crop_vars, canopystate_vars, cnstate_vars,             &
-       carbonstate_vars, carbonflux_vars, c13_carbonflux_vars, c14_carbonflux_vars,  &
-       nitrogenstate_vars, nitrogenflux_vars,&
-       phosphorusstate_vars,phosphorusflux_vars)
+       photosyns_vars, crop_vars, canopystate_vars, cnstate_vars)
     !! PHASE-1 of CNAllocation: loop over patches to assess the total plant N demand and P demand
     ! !USES:
     use shr_sys_mod      , only: shr_sys_flush
@@ -264,14 +244,6 @@ contains
     type(crop_type)          , intent(in)    :: crop_vars
     type(canopystate_type)   , intent(in)    :: canopystate_vars
     type(cnstate_type)       , intent(inout) :: cnstate_vars
-    type(carbonstate_type)   , intent(in)    :: carbonstate_vars
-    type(carbonflux_type)    , intent(inout) :: carbonflux_vars
-    type(carbonflux_type)    , intent(inout) :: c13_carbonflux_vars
-    type(carbonflux_type)    , intent(inout) :: c14_carbonflux_vars
-    type(nitrogenstate_type) , intent(inout) :: nitrogenstate_vars
-    type(nitrogenflux_type)  , intent(inout) :: nitrogenflux_vars
-    type(phosphorusstate_type) , intent(inout) :: phosphorusstate_vars
-    type(phosphorusflux_type)  , intent(inout) :: phosphorusflux_vars
     !
     ! !LOCAL VARIABLES:
 
@@ -932,10 +904,6 @@ contains
   subroutine calc_plantN_kineticpar(bounds, num_soilc, filter_soilc         , &
                             num_soilp, filter_soilp                         , &
                             cnstate_vars                                    , &
-                            carbonstate_vars                                , &
-                            nitrogenstate_vars                              , &
-                            phosphorusstate_vars                            , &
-                            carbonflux_vars                                 , &
                             PlantMicKinetics_vars                             )
   !
   !DESCRIPTION
@@ -949,10 +917,6 @@ contains
   integer, intent(in) :: num_soilp
   integer, intent(in) :: filter_soilp(:)
   type(cnstate_type), intent(in) :: cnstate_vars
-  type(carbonstate_type), intent(in) :: carbonstate_vars
-  type(nitrogenstate_type), intent(in) :: nitrogenstate_vars
-  type(phosphorusstate_type), intent(in):: phosphorusstate_vars
-  type(carbonflux_type), intent(in) :: carbonflux_vars
   type(PlantMicKinetics_type), intent(inout) :: PlantMicKinetics_vars
 
   real(r8) :: leaf_totc
@@ -1094,10 +1058,7 @@ contains
   subroutine Allocation3_PlantCNPAlloc (bounds            , &
         num_soilc, filter_soilc, num_soilp, filter_soilp    , &
         canopystate_vars                                    , &
-        cnstate_vars, carbonstate_vars, carbonflux_vars     , &
-        c13_carbonflux_vars, c14_carbonflux_vars            , &
-        nitrogenstate_vars, nitrogenflux_vars               , &
-        phosphorusstate_vars, phosphorusflux_vars, crop_vars)
+        cnstate_vars, crop_vars)
     !! PHASE-3 of CNAllocation: start new pft loop to distribute the available N/P between the
     ! competing patches on the basis of relative demand, and allocate C/N/P to new growth and storage
 
@@ -1124,14 +1085,6 @@ contains
     type(crop_type)          , intent(inout)    :: crop_vars
     type(canopystate_type)   , intent(in)    :: canopystate_vars
     type(cnstate_type)       , intent(inout) :: cnstate_vars
-    type(carbonstate_type)   , intent(in)    :: carbonstate_vars
-    type(carbonflux_type)    , intent(inout) :: carbonflux_vars
-    type(carbonflux_type)    , intent(inout) :: c13_carbonflux_vars
-    type(carbonflux_type)    , intent(inout) :: c14_carbonflux_vars
-    type(nitrogenstate_type) , intent(inout) :: nitrogenstate_vars
-    type(nitrogenflux_type)  , intent(inout) :: nitrogenflux_vars
-    type(phosphorusstate_type) , intent(inout) :: phosphorusstate_vars
-    type(phosphorusflux_type)  , intent(inout) :: phosphorusflux_vars
     !
     ! !LOCAL VARIABLES:
     !

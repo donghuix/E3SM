@@ -17,9 +17,9 @@ module glc2lndMod
   use decompMod      , only : bounds_type
   use shr_log_mod    , only : errMsg => shr_log_errMsg
   use shr_kind_mod   , only : r8 => shr_kind_r8
-  use shr_infnan_mod , only : nan => shr_infnan_nan, assignment(=)
   use clm_varpar     , only : maxpatch_glcmec
   use clm_varctl     , only : iulog, glc_smb
+  use clm_varcon     , only : spval
   use abortutils     , only : endrun
   use GridcellType   , only : grc_pp
   use TopounitType   , only : top_pp
@@ -68,7 +68,7 @@ module glc2lndMod
      procedure, public  :: Restart
      procedure, public  :: update_glc2lnd
 
-     procedure, private :: InitAllocate
+     procedure, public :: InitAllocate
      procedure, private :: InitHistory
      procedure, private :: InitCold
      procedure, private :: check_glc2lnd_icemask  ! sanity-check icemask from GLC
@@ -111,11 +111,11 @@ contains
 
     begg = bounds%begg; endg = bounds%endg
 
-    allocate(this%frac_grc    (begg:endg,0:maxpatch_glcmec)) ;   this%frac_grc    (:,:) = nan
-    allocate(this%topo_grc    (begg:endg,0:maxpatch_glcmec)) ;   this%topo_grc    (:,:) = nan
-    allocate(this%hflx_grc    (begg:endg,0:maxpatch_glcmec)) ;   this%hflx_grc    (:,:) = nan
-    allocate(this%icemask_grc (begg:endg))                   ;   this%icemask_grc (:)   = nan
-    allocate(this%icemask_coupled_fluxes_grc (begg:endg))    ;   this%icemask_coupled_fluxes_grc (:)   = nan
+    allocate(this%frac_grc    (begg:endg,0:maxpatch_glcmec)) ;   this%frac_grc    (:,:) = spval
+    allocate(this%topo_grc    (begg:endg,0:maxpatch_glcmec)) ;   this%topo_grc    (:,:) = spval
+    allocate(this%hflx_grc    (begg:endg,0:maxpatch_glcmec)) ;   this%hflx_grc    (:,:) = spval
+    allocate(this%icemask_grc (begg:endg))                   ;   this%icemask_grc (:)   = spval
+    allocate(this%icemask_coupled_fluxes_grc (begg:endg))    ;   this%icemask_coupled_fluxes_grc (:)   = spval
     allocate(this%glc_dyn_runoff_routing_grc (begg:endg))    ;   this%glc_dyn_runoff_routing_grc (:)   = .false.
 
   end subroutine InitAllocate

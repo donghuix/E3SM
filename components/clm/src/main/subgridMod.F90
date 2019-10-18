@@ -6,12 +6,19 @@ module subgridMod
   !
   ! !USES:
   use shr_kind_mod, only : r8 => shr_kind_r8
-  use spmdMod     , only : masterproc
-  use abortutils  , only : endrun
+  !use spmdMod     , only : masterproc
+  !use abortutils  , only : endrun
   use clm_varctl  , only : iulog
 
   implicit none
-  private   
+
+  real *8, public, allocatable     :: wt_lunit(:,:)
+  integer, public, allocatable     :: urban_valid(:)
+  real*8  ,public, dimension(1,1)  :: wt_glc_mec = reshape((/1.6127168011336070D-312/),shape(wt_glc_mec))
+
+  integer :: fates_maxElementsPerSite = 1
+
+  private
   save
 
   ! !PUBLIC MEMBER FUNCTIONS:
@@ -41,11 +48,11 @@ contains
     ! !USES
     use clm_varpar  , only : natpft_size, cft_size, maxpatch_urb, maxpatch_glcmec
     use clm_varctl  , only : create_crop_landunit
-    use clm_varsur  , only : wt_lunit, urban_valid, wt_glc_mec
+    !use clm_varsur  , only : wt_lunit, urban_valid, wt_glc_mec
     use landunit_varcon  , only : istsoil, istcrop, istice, istice_mec, istdlak, istwet, &
                              isturb_tbd, isturb_hd, isturb_md
     use topounit_varcon  , only : max_topounits
-    use FatesInterfaceMod, only : fates_maxElementsPerSite
+    !use FatesInterfaceMod, only : fates_maxElementsPerSite
 
     !
     ! !ARGUMENTS
@@ -323,10 +330,10 @@ contains
     ! !USES
     use clm_varpar  , only : natpft_size, cft_size, maxpatch_urb, maxpatch_glcmec
     use clm_varctl  , only : create_crop_landunit
-    use clm_varsur  , only : wt_lunit, urban_valid, wt_glc_mec
+    !use clm_varsur  , only : wt_lunit, urban_valid, wt_glc_mec
     use landunit_varcon  , only : istsoil, istcrop, istice, istice_mec, istdlak, istwet, &
                              isturb_tbd, isturb_hd, isturb_md
-    use FatesInterfaceMod, only : fates_maxElementsPerSite
+    !use FatesInterfaceMod, only : fates_maxElementsPerSite
 
     !
     ! !ARGUMENTS

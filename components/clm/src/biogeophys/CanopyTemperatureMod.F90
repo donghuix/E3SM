@@ -10,15 +10,15 @@ module CanopyTemperatureMod
 
   !
   ! !USES:
-  use shr_sys_mod          , only : shr_sys_flush
+  !#py use shr_sys_mod          , only : shr_sys_flush
   use shr_kind_mod         , only : r8 => shr_kind_r8
-  use shr_log_mod          , only : errMsg => shr_log_errMsg
+  !#py !#py use shr_log_mod          , only : errMsg => shr_log_errMsg
   use shr_const_mod        , only : SHR_CONST_PI
   use decompMod            , only : bounds_type
-  use abortutils           , only : endrun
+  !#py use abortutils           , only : endrun
   use clm_varctl           , only : iulog, use_fates
   use PhotosynthesisMod    , only : Photosynthesis, PhotosynthesisTotal, Fractionation 
-  use CLMFatesInterfaceMod , only : hlm_fates_interface_type
+  !#py use CLMFatesInterfaceMod , only : hlm_fates_interface_type
   use SurfaceResistanceMod , only : calc_soilevap_stress
   use VegetationPropertiesType, only : veg_vp
   use atm2lndType          , only : atm2lnd_type
@@ -26,9 +26,6 @@ module CanopyTemperatureMod
   use EnergyFluxType       , only : energyflux_type
   use FrictionVelocityType , only : frictionvel_type
   use SoilStateType        , only : soilstate_type
-  use TemperatureType      , only : temperature_type
-  use WaterfluxType        , only : waterflux_type
-  use WaterstateType       , only : waterstate_type
   use TopounitDataType     , only : top_as
   use LandunitType         , only : lun_pp                
   use ColumnType           , only : col_pp
@@ -49,10 +46,9 @@ contains
   !------------------------------------------------------------------------------
   subroutine CanopyTemperature(bounds, &
        num_nolakec, filter_nolakec, num_nolakep, filter_nolakep, &
-       atm2lnd_vars, canopystate_vars, soilstate_vars, frictionvel_vars, &
-       waterstate_vars, waterflux_vars, energyflux_vars, temperature_vars, &
-       alm_fates)
-    !
+       atm2lnd_vars, canopystate_vars, soilstate_vars, frictionvel_vars, energyflux_vars &
+       )
+ !#fates_py alm_fates)    !
     ! !DESCRIPTION:
     ! This is the main subroutine to execute the calculation of leaf temperature
     ! and surface fluxes. Subroutine SoilFluxes then determines soil/snow and ground
@@ -75,6 +71,7 @@ contains
     !                Ha = Hf + Hg and Ea = Ef + Eg
     !
     ! !USES:
+      !$acc routine seq
     use QSatMod            , only : QSat
     use clm_varcon         , only : denh2o, denice, roverg, hvap, hsub, zlnd, zsno, tfrz, spval 
     use column_varcon      , only : icol_roof, icol_sunwall, icol_shadewall
@@ -92,11 +89,8 @@ contains
     type(canopystate_type) , intent(inout) :: canopystate_vars
     type(soilstate_type)   , intent(inout) :: soilstate_vars
     type(frictionvel_type) , intent(inout) :: frictionvel_vars
-    type(waterstate_type)  , intent(inout) :: waterstate_vars
-    type(waterflux_type)   , intent(inout) :: waterflux_vars
     type(energyflux_type)  , intent(inout) :: energyflux_vars
-    type(temperature_type) , intent(inout) :: temperature_vars
-    type(hlm_fates_interface_type) , intent(inout) :: alm_fates
+    !#py type(hlm_fates_interface_type) , intent(inout) :: alm_fates
     !
     ! !LOCAL VARIABLES:
     integer  :: g,t,l,c,p    ! indices
@@ -226,7 +220,7 @@ contains
       end do
 
       ! calculate moisture stress/resistance for soil evaporation
-      call calc_soilevap_stress(bounds, num_nolakec, filter_nolakec, soilstate_vars, waterstate_vars)
+      call calc_soilevap_stress(bounds, num_nolakec, filter_nolakec, soilstate_vars)
 
       do fc = 1,num_nolakec
          c = filter_nolakec(fc)
@@ -403,7 +397,7 @@ contains
       ! enabled simultaneously with FATES, we will 
       ! have to apply a filter here.
       if(use_fates) then
-         call alm_fates%TransferZ0mDisp(bounds,frictionvel_vars,canopystate_vars)
+         !#py call alm_fates%TransferZ0mDisp(bounds,frictionvel_vars,canopystate_vars)
       end if
 
       do fp = 1,num_nolakep

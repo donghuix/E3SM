@@ -69,6 +69,20 @@ module CH4varcon
                                     ! Causes slight increase in emissions in the fall and decrease in the spring.
                                     ! Currently hardwired off; small impact.
 
+  !-----------------------------------------------------------------------
+
+  !$acc declare copyin(allowlakeprod)
+  !$acc declare copyin(replenishlakec)
+  !$acc declare copyin(fin_use_fsat)
+  !$acc declare copyin(ch4offline)
+  !$acc declare copyin(ch4rmcnlim)
+  !$acc declare copyin(anoxicmicrosites)
+  !$acc declare copyin(ch4frzout)
+  !$acc declare copyin(usefrootc)
+  !$acc declare copyin(transpirationloss)
+  !$acc declare copyin(use_aereoxid_prog)
+  !$acc declare copyin(usephfact)
+
   public :: CH4conrd ! Read and initialize CH4 constants
   !-----------------------------------------------------------------------
 

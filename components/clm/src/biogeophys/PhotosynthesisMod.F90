@@ -1,6 +1,6 @@
 module  PhotosynthesisMod
 
-#include "shr_assert.h"
+!#py #include "shr_assert.h"
   !------------------------------------------------------------------------------
   ! !DESCRIPTION:
   ! Leaf photosynthesis and stomatal conductance calculation as described by
@@ -9,8 +9,8 @@ module  PhotosynthesisMod
   !
   ! !USES:
   use shr_kind_mod        , only : r8 => shr_kind_r8
-  use shr_log_mod         , only : errMsg => shr_log_errMsg
-  use abortutils          , only : endrun
+  !#py !#py use shr_log_mod         , only : errMsg => shr_log_errMsg
+  !#py use abortutils          , only : endrun
   use clm_varctl          , only : iulog, use_c13, use_c14, use_cn, use_fates
   use clm_varpar          , only : nlevcan
   use clm_varctl          , only : use_hydrstress
@@ -28,8 +28,6 @@ module  PhotosynthesisMod
   use PhotosynthesisType  , only : photosyns_type
   use VegetationType           , only : veg_pp
   use AllocationMod     , only : nu_com_leaf_physiology
-  use PhosphorusStateType , only : phosphorusstate_type
-  use CNNitrogenStateType , only : nitrogenstate_type
   use clm_varctl          , only : cnallocate_carbon_only
   use clm_varctl          , only : cnallocate_carbonnitrogen_only
   use clm_varctl          , only : cnallocate_carbonphosphorus_only
@@ -38,11 +36,9 @@ module  PhotosynthesisMod
   use SharedParamsMod     , only : ParamsShareInst
   use TopounitDataType    , only : top_as
   use VegetationDataType  , only : veg_es, veg_ns, veg_ps  
-  use VegetationDataType, only : veg_wf, veg_ws
+  use VegetationDataType  , only : veg_wf, veg_ws
   use ColumnDataType      , only : col_es, col_ws, col_wf 
-  use SoilStateType              , only : soilstate_type
-  use WaterFluxType              , only : waterflux_type
-  use WaterStateType             , only : waterstate_type
+  use SoilStateType       , only : soilstate_type
   !
   implicit none
   save
@@ -193,8 +189,8 @@ contains
   !------------------------------------------------------------------------------
   subroutine Photosynthesis ( bounds, fn, filterp, &
        esat_tv, eair, oair, cair, rb, btran, &
-       dayl_factor, atm2lnd_vars, temperature_vars, surfalb_vars, solarabs_vars, &
-       canopystate_vars, photosyns_vars, nitrogenstate_vars,phosphorusstate_vars, phase)
+       dayl_factor, atm2lnd_vars, surfalb_vars, solarabs_vars, &
+       canopystate_vars, photosyns_vars, phase)
     !
     ! !DESCRIPTION:
     ! Leaf photosynthesis and stomatal conductance calculation as described by
@@ -204,6 +200,7 @@ contains
     ! Note: This subroutine is not called via FATES (RGK)
     !
     ! !USES:
+      !$acc routine seq
     use clm_varcon     , only : rgas, tfrz
     use clm_varctl     , only : cnallocate_carbon_only 
     use pftvarcon      , only : nbrdlf_dcd_tmp_shrub, nsoybean, nsoybeanirrig, npcropmin
@@ -221,15 +218,12 @@ contains
     real(r8)               , intent(in)    :: btran( bounds%begp: )          ! transpiration wetness factor (0 to 1) [pft]
     real(r8)               , intent(in)    :: dayl_factor( bounds%begp: )    ! scalar (0-1) for daylength
     type(atm2lnd_type)     , intent(in)    :: atm2lnd_vars
-    type(temperature_type) , intent(in)    :: temperature_vars
     type(surfalb_type)     , intent(in)    :: surfalb_vars
     type(solarabs_type)    , intent(in)    :: solarabs_vars
     type(canopystate_type) , intent(in)    :: canopystate_vars
     type(photosyns_type)   , intent(inout) :: photosyns_vars
-    type(nitrogenstate_type)  , intent(inout) :: nitrogenstate_vars
-    type(phosphorusstate_type), intent(inout) :: phosphorusstate_vars
-    character(len=*)       , intent(in)    :: phase                          ! 'sun' or 'sha'
-    
+    integer                , intent(in)    :: phase                          ! 'sun' or 'sha'
+
     !
     ! !LOCAL VARIABLES:
     !
@@ -356,14 +350,6 @@ contains
 
     ! Enforce expected array sizes
 
-    SHR_ASSERT_ALL((ubound(esat_tv)     == (/bounds%endp/)), errMsg(__FILE__, __LINE__))
-    SHR_ASSERT_ALL((ubound(eair)        == (/bounds%endp/)), errMsg(__FILE__, __LINE__))
-    SHR_ASSERT_ALL((ubound(oair)        == (/bounds%endp/)), errMsg(__FILE__, __LINE__))
-    SHR_ASSERT_ALL((ubound(cair)        == (/bounds%endp/)), errMsg(__FILE__, __LINE__))
-    SHR_ASSERT_ALL((ubound(rb)          == (/bounds%endp/)), errMsg(__FILE__, __LINE__))
-    SHR_ASSERT_ALL((ubound(btran)       == (/bounds%endp/)), errMsg(__FILE__, __LINE__))
-    SHR_ASSERT_ALL((ubound(dayl_factor) == (/bounds%endp/)), errMsg(__FILE__, __LINE__))
-
     associate(                                                       & 
          c3psn         => veg_vp%c3psn                         , & ! Input:  [real(r8) (:)   ]  photosynthetic pathway: 0. = c4, 1. = c3                              
          leafcn        => veg_vp%leafcn                        , & ! Input:  [real(r8) (:)   ]  leaf C:N (gC/gN)                                                      
@@ -410,7 +396,7 @@ contains
          s_vcmax       => veg_vp%s_vc                            &
          )
       
-      if (phase == 'sun') then
+      if (phase == 1) then
          par_z     =>    solarabs_vars%parsun_z_patch        ! Input:  [real(r8) (:,:) ]  par absorbed per unit lai for canopy layer (w/m**2)                 
          lai_z     =>    canopystate_vars%laisun_z_patch     ! Input:  [real(r8) (:,:) ]  leaf area index for canopy layer, sunlit or shaded                  
          vcmaxcint =>    surfalb_vars%vcmaxcintsun_patch     ! Input:  [real(r8) (:)   ]  leaf to canopy scaling coefficient                                     
@@ -425,7 +411,7 @@ contains
          psn_wc    =>    photosyns_vars%psnsun_wc_patch      ! Output: [real(r8) (:)   ]  Rubisco-limited foliage photosynthesis (umol co2 /m**2/ s) [always +] 
          psn_wj    =>    photosyns_vars%psnsun_wj_patch      ! Output: [real(r8) (:)   ]  RuBP-limited foliage photosynthesis (umol co2 /m**2/ s) [always +]    
          psn_wp    =>    photosyns_vars%psnsun_wp_patch      ! Output: [real(r8) (:)   ]  product-limited foliage photosynthesis (umol co2 /m**2/ s) [always +] 
-      else if (phase == 'sha') then
+      else if (phase == 0) then
          par_z     =>    solarabs_vars%parsha_z_patch        ! Input:  [real(r8) (:,:) ]  par absorbed per unit lai for canopy layer (w/m**2)                 
          lai_z     =>    canopystate_vars%laisha_z_patch     ! Input:  [real(r8) (:,:) ]  leaf area index for canopy layer, sunlit or shaded                  
          vcmaxcint =>    surfalb_vars%vcmaxcintsha_patch     ! Input:  [real(r8) (:)   ]  leaf to canopy scaling coefficient                                    
@@ -441,6 +427,9 @@ contains
          psn_wj    =>    photosyns_vars%psnsha_wj_patch      ! Output: [real(r8) (:)   ]  RuBP-limited foliage photosynthesis (umol co2 /m**2/ s) [always +]    
          psn_wp    =>    photosyns_vars%psnsha_wp_patch      ! Output: [real(r8) (:)   ]  product-limited foliage photosynthesis (umol co2 /m**2/ s) [always +] 
       end if
+
+
+      ! Enforce expected array sizes
 
       !==============================================================================!
       ! Photosynthesis and stomatal conductance parameters, from:
@@ -901,9 +890,9 @@ contains
                ! Make sure iterative solution is correct
 
                if (gs_mol(p,iv) < 0._r8) then
-                  write (iulog,*)'Negative stomatal conductance:'
-                  write (iulog,*)'p,iv,gs_mol= ',p,iv,gs_mol(p,iv)
-                  call endrun(decomp_index=p, clmlevel=namep, msg=errmsg(__FILE__, __LINE__))
+                  !#py write (iulog,*)'Negative stomatal conductance:'
+                  !#py write (iulog,*)'p,iv,gs_mol= ',p,iv,gs_mol(p,iv)
+                  !#py !#py call endrun(decomp_index=p, clmlevel=namep, msg=errmsg(__FILE__, __LINE__))
                end if
 
                ! Compare with Ball-Berry model: gs_mol = m * an * hs/cs p + b
@@ -913,8 +902,8 @@ contains
                gs_mol_err = mbb(p)*max(an(p,iv), 0._r8)*hs/cs*forc_pbot(t) + bbb(p)
 
                if (abs(gs_mol(p,iv)-gs_mol_err) > 1.e-01_r8) then
-                  write (iulog,*) 'Ball-Berry error check - stomatal conductance error:'
-                  write (iulog,*) gs_mol(p,iv), gs_mol_err
+                  !#py write (iulog,*) 'Ball-Berry error check - stomatal conductance error:'
+                  !#py write (iulog,*) gs_mol(p,iv), gs_mol_err
                end if
 
             end if    ! night or day if branch
@@ -974,7 +963,7 @@ contains
        atm2lnd_vars, cnstate_vars, canopystate_vars, photosyns_vars)
 
     ! Note: This subroutine is not called via FATES (RGK)
-
+    !$acc routine seq
     !
     ! Determine total photosynthesis
     !
@@ -1062,7 +1051,7 @@ contains
   !------------------------------------------------------------------------------
   subroutine Fractionation(bounds, &
        fn, filterp, &
-       atm2lnd_vars, canopystate_vars, cnstate_vars, solarabs_vars, surfalb_vars, photosyns_vars, &
+       cnstate_vars, solarabs_vars, surfalb_vars, photosyns_vars, &
        phase)
     !
     ! !DESCRIPTION:
@@ -1070,16 +1059,15 @@ contains
     ! limitation is taken into account in the CNAllocation module.
     !
     ! !ARGUMENTS:
+    !$acc routine seq
     type(bounds_type)      , intent(in)    :: bounds               
     integer                , intent(in)    :: fn                   ! size of pft filter
     integer                , intent(in)    :: filterp(fn)          ! patch filter
-    type(atm2lnd_type)     , intent(in)    :: atm2lnd_vars
-    type(canopystate_type) , intent(in)    :: canopystate_vars
     type(cnstate_type)     , intent(in)    :: cnstate_vars
     type(solarabs_type)    , intent(in)    :: solarabs_vars
     type(surfalb_type)     , intent(in)    :: surfalb_vars
     type(photosyns_type)   , intent(in)    :: photosyns_vars
-    character(len=*)       , intent(in)    :: phase                ! 'sun' or 'sha'
+    integer                , intent(in)    :: phase                ! 'sun' or 'sha'
     !
     ! !LOCAL VARIABLES:
     real(r8) , pointer :: par_z (:,:)   ! needed for backwards compatiblity
@@ -1104,12 +1092,12 @@ contains
          gs_mol      => photosyns_vars%gs_mol_patch             & ! Input:  [real(r8) (:,:) ]  leaf stomatal conductance (umol H2O/m**2/s)                         
          )
 
-      if (phase == 'sun') then
-         par_z    =>    solarabs_vars%parsun_z_patch     ! Input :  [real(r8) (:,:)]  par absorbed per unit lai for canopy layer (w/m**2)                 
-         alphapsn =>    photosyns_vars%alphapsnsun_patch ! Output:  [real(r8) (:)]                                                                        
-      else if (phase == 'sha') then
-         par_z    =>    solarabs_vars%parsha_z_patch     ! Input :  [real(r8) (:,:)]  par absorbed per unit lai for canopy layer (w/m**2)                 
-         alphapsn =>    photosyns_vars%alphapsnsha_patch ! Output:  [real(r8) (:)]                                                                        
+      if (phase == 1) then
+         par_z    =>    solarabs_vars%parsun_z_patch     ! Input :  [real(r8) (:,:)]  par absorbed per unit lai for canopy layer (w/m**2)
+         alphapsn =>    photosyns_vars%alphapsnsun_patch ! Output:  [real(r8) (:)]
+      else if (phase == 0) then
+         par_z    =>    solarabs_vars%parsha_z_patch     ! Input :  [real(r8) (:,:)]  par absorbed per unit lai for canopy layer (w/m**2)
+         alphapsn =>    photosyns_vars%alphapsnsha_patch ! Output:  [real(r8) (:)]
       end if
 
       do f = 1, fn
@@ -1156,6 +1144,7 @@ contains
     !!USES:   
     !
     !! ARGUMENTS:
+      !$acc routine seq
     implicit none
     real(r8), intent(inout) :: x0              !initial guess and final value of the solution
     real(r8), intent(in) :: lmr_z              ! canopy layer: leaf maintenance respiration rate (umol CO2/m**2/s)
@@ -1258,7 +1247,8 @@ contains
   subroutine brent(x, x1,x2,f1, f2, tol, ip, iv, ic, it, gb_mol, je, cair, oair,&
        lmr_z, par_z, rh_can, gs_mol, &
        atm2lnd_vars, photosyns_vars)
-    !
+     !$acc routine seq
+
     !!DESCRIPTION:
     !Use Brent's method to find the root of a single variable function ci_func, which is known to exist between x1 and x2.
     !The found root will be updated until its accuracy is tol.
@@ -1294,8 +1284,8 @@ contains
     fa=f1
     fb=f2
     if((fa > 0._r8 .and. fb > 0._r8).or.(fa < 0._r8 .and. fb < 0._r8))then
-       write(iulog,*) 'root must be bracketed for brent'
-       call endrun(msg=errmsg(__FILE__, __LINE__))
+       !#py write(iulog,*) 'root must be bracketed for brent'
+       !#py !#py call endrun(msg=errmsg(__FILE__, __LINE__))
     endif
     c=b
     fc=fb
@@ -1362,7 +1352,7 @@ contains
 
     enddo
 
-    if(iter==ITMAX)write(iulog,*) 'brent exceeding maximum iterations', b, fb
+    !if(iter==ITMAX)write(iulog,*) 'brent exceeding maximum iterations', b, fb
     x=b
 
     return
@@ -1370,7 +1360,7 @@ contains
 
   !-------------------------------------------------------------------------------
   function ft(tl, ha) result(ans)
-    !
+    !$acc routine seq
     !!DESCRIPTION:
     ! photosynthesis temperature response
     !
@@ -1395,7 +1385,7 @@ contains
 
   !-------------------------------------------------------------------------------   
   function fth(tl,hd,se,scaleFactor) result(ans)
-    !
+    !$acc routine seq
     !!DESCRIPTION:
     !photosynthesis temperature inhibition
     !
@@ -1423,6 +1413,7 @@ contains
   function fth25(hd,se)result(ans)
     !
     !!DESCRIPTION:   
+    !$acc routine seq
     ! scaling factor for photosynthesis temperature inhibition
     !
     ! !REVISION HISTORY:
@@ -1447,7 +1438,7 @@ contains
   !------------------------------------------------------------------------------
   subroutine ci_func(ci, fval, p, iv, c, t, gb_mol, je, cair, oair, lmr_z, par_z,&
        rh_can, gs_mol, atm2lnd_vars, photosyns_vars)
-    !
+    !$acc routine seq
     !! DESCRIPTION:
     ! evaluate the function
     ! f(ci)=ci - (ca - (1.37rb+1.65rs))*patm*an

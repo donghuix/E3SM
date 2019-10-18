@@ -7,7 +7,7 @@ module RootDynamicsMod
   !
   ! !USES:
   use shr_kind_mod        , only : r8 => shr_kind_r8
-  use clm_time_manager    , only : get_step_size
+  !#py use clm_time_manager    , only : get_step_size
   use clm_varpar          , only : nlevsoi, nlevgrnd
   use clm_varctl          , only : use_vertsoilc
   use decompMod           , only : bounds_type
@@ -39,7 +39,7 @@ contains
   !-----------------------------------------------------------------------
   !
   subroutine RootDynamics(bounds, num_soilc, filter_soilc, num_soilp, filter_soilp, &
-       canopystate_vars, carbonstate_vars, nitrogenstate_vars, carbonflux_vars,  &
+       canopystate_vars,  &
        cnstate_vars, crop_vars,  energyflux_vars, soilstate_vars)
     !
     ! !DESCRIPTION:
@@ -52,6 +52,7 @@ contains
 
 
     ! !ARGUMENTS:
+      !$acc routine seq
     type(bounds_type)        , intent(in)    :: bounds             ! bounds
     integer                  , intent(in)    :: num_soilc
     integer                  , intent(in)    :: filter_soilc(:)
@@ -59,9 +60,6 @@ contains
     integer                  , intent(in)    :: filter_soilp(:)    ! filter for soil pfts
     type(canopystate_type)   , intent(in)    :: canopystate_vars
     type(cnstate_type)       , intent(in)    :: cnstate_vars
-    type(carbonstate_type)   , intent(in)    :: carbonstate_vars
-    type(carbonflux_type)    , intent(in)    :: carbonflux_vars
-    type(nitrogenstate_type) , intent(in)    :: nitrogenstate_vars !
     type(crop_type)          , intent(in)    :: crop_vars
     type(energyflux_type)    , intent(in)    :: energyflux_vars
     type(soilstate_type)     , intent(inout) :: soilstate_vars
@@ -121,7 +119,7 @@ contains
          )
 
       ! set time steps
-      dt = get_step_size()
+      !#py dt = get_step_size()
 
       !initialize to 0
       w_limit(bounds%begp:bounds%endp)              = 0._r8
@@ -203,8 +201,8 @@ contains
       !------------------------------------------------------------------
 
       call init_vegrootfr(bounds, nlevsoi, nlevgrnd, &
-                   nlevbed(bounds%begc:bounds%endc), &
-                   rootfr_coarse(bounds%begp:bounds%endp,1:nlevgrnd))
+                   nlevbed, &
+                   rootfr_coarse)
 
       !--------------------------------------------------------------------
       ! Now calculate the density of roots in each soil layer for each pft

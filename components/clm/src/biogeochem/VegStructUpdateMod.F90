@@ -5,14 +5,12 @@ module VegStructUpdateMod
   !
   ! !USES:
   use shr_kind_mod         , only: r8 => shr_kind_r8
-  use shr_sys_mod          , only : shr_sys_flush
+  !#py use shr_sys_mod          , only : shr_sys_flush
   use shr_const_mod        , only : SHR_CONST_PI
   use clm_varctl           , only : iulog
   use VegetationPropertiesType     , only : veg_vp
-  use WaterStateType       , only : waterstate_type
   use FrictionVelocityType , only : frictionvel_type
   use CNStateType          , only : cnstate_type
-  use CNCarbonStateType    , only : carbonstate_type
   use CanopyStateType      , only : canopystate_type
   use CropType             , only : crop_type
   use ColumnDataType       , only : col_ws
@@ -31,28 +29,29 @@ contains
 
   !-----------------------------------------------------------------------
   subroutine VegStructUpdate(num_soilp, filter_soilp, &
-       waterstate_vars, frictionvel_vars, cnstate_vars, &
-       carbonstate_vars, canopystate_vars, crop_vars)
+       frictionvel_vars, cnstate_vars, &
+       canopystate_vars, crop_vars, dt)
     !
     ! !DESCRIPTION:
     ! On the radiation time step, use C state variables and epc to diagnose
     ! vegetation structure (LAI, SAI, height)
     !
     ! !USES:
+      !$acc routine seq
     use pftvarcon        , only : noveg, nc3crop, nc3irrig, nbrdlf_evr_shrub, nbrdlf_dcd_brl_shrub
     use pftvarcon        , only : ncorn, ncornirrig, npcropmin, ztopmx, laimx
-    use clm_time_manager , only : get_rad_step_size
+    !#py use clm_time_manager , only : get_rad_step_size
     use clm_varctl       , only : spinup_state, spinup_mortality_factor
     !
     ! !ARGUMENTS:
     integer                , intent(in)    :: num_soilp       ! number of column soil points in pft filter
     integer                , intent(in)    :: filter_soilp(:) ! patch filter for soil points
-    type(waterstate_type)  , intent(in)    :: waterstate_vars
     type(frictionvel_type) , intent(in)    :: frictionvel_vars
     type(cnstate_type)     , intent(inout) :: cnstate_vars
-    type(carbonstate_type) , intent(in)    :: carbonstate_vars
     type(canopystate_type) , intent(inout) :: canopystate_vars
     type(crop_type)        , intent(inout) :: crop_vars
+    real(r8), intent(in)     :: dt         ! radiation time step (sec)
+
     !
     ! !REVISION HISTORY:
     ! 10/28/03: Created by Peter Thornton
@@ -69,7 +68,6 @@ contains
     real(r8) :: tsai_old   ! for use in Zeng tsai formula
     real(r8) :: tsai_min   ! PATCH derived minimum tsai
     real(r8) :: tsai_alpha ! monthly decay rate of tsai
-    real(r8) :: dt         ! radiation time step (sec)
 
     real(r8), parameter :: dtsmonth = 2592000._r8 ! number of seconds in a 30 day month (60x60x24x30)
     !-----------------------------------------------------------------------
@@ -115,7 +113,7 @@ contains
          frac_veg_nosno_alb =>  canopystate_vars%frac_veg_nosno_alb_patch & ! Output: [integer  (:) ] frac of vegetation not covered by snow [-]         
          )
 
-      dt = real( get_rad_step_size(), r8 )
+      !#py dt = real( get_rad_step_size(), r8 )
 
       ! constant allometric parameters
       taper = 200._r8

@@ -7,7 +7,7 @@ module LakeFluxesMod
   !
   ! !USES
   use shr_kind_mod         , only : r8 => shr_kind_r8
-  use shr_log_mod          , only : errMsg => shr_log_errMsg
+  !#py !#py use shr_log_mod          , only : errMsg => shr_log_errMsg
   use decompMod            , only : bounds_type
   use atm2lndType          , only : atm2lnd_type
   use EnergyFluxType       , only : energyflux_type
@@ -37,8 +37,8 @@ contains
 
   !-----------------------------------------------------------------------
   subroutine LakeFluxes(bounds, num_lakec, filter_lakec, num_lakep, filter_lakep, &
-       atm2lnd_vars, solarabs_vars, frictionvel_vars, temperature_vars, &
-       energyflux_vars, waterstate_vars, waterflux_vars, lakestate_vars) 
+       atm2lnd_vars, solarabs_vars, frictionvel_vars, &
+       energyflux_vars, lakestate_vars)
     !
     ! !DESCRIPTION:
     ! Calculates lake temperatures and surface fluxes.
@@ -47,6 +47,7 @@ contains
     ! WARNING: This subroutine assumes lake columns have one and only one pft.
     !
     ! !USES:
+      !$acc routine seq
     use clm_varpar          , only : nlevlak
     use clm_varcon          , only : hvap, hsub, hfus, cpair, cpliq, tkwat, tkice, tkair
     use clm_varcon          , only : sb, vkc, grav, denh2o, tfrz, spval, zsno
@@ -67,9 +68,6 @@ contains
     type(solarabs_type)    , intent(inout) :: solarabs_vars
     type(frictionvel_type) , intent(inout) :: frictionvel_vars
     type(energyflux_type)  , intent(inout) :: energyflux_vars
-    type(waterstate_type)  , intent(inout) :: waterstate_vars
-    type(waterflux_type)   , intent(inout) :: waterflux_vars
-    type(temperature_type) , intent(inout) :: temperature_vars
     type(lakestate_type)   , intent(inout) :: lakestate_vars
     !
     ! !LOCAL VARIABLES:
@@ -361,9 +359,9 @@ contains
          ! profiles of the surface boundary layer
 
          call FrictionVelocity(begp, endp, fncopy, fpcopy, &
-              displa(begp:endp), z0mg(begp:endp), z0hg(begp:endp), z0qg(begp:endp), &
-              obu(begp:endp), iter, ur(begp:endp), um(begp:endp), ustar(begp:endp), &
-              temp1(begp:endp), temp2(begp:endp), temp12m(begp:endp), temp22m(begp:endp), fm(begp:endp), &
+              displa, z0mg, z0hg, z0qg, &
+              obu, iter, ur, um, ustar, &
+              temp1, temp2, temp12m, temp22m, fm, &
               frictionvel_vars)
 
          do fp = 1, fncopy

@@ -61,6 +61,7 @@ contains
 
   !-----------------------------------------------------------------------
   subroutine QSat (T, p, es, esdT, qs, qsdT)
+    !$acc routine seq
     !
     ! !DESCRIPTION:
     ! Computes saturation mixing ratio and the change in saturation

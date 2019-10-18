@@ -14,7 +14,6 @@ module DUSTMod
   ! !USES:
   use shr_kind_mod         , only : r8 => shr_kind_r8 
   use shr_log_mod          , only : errMsg => shr_log_errMsg
-  use shr_infnan_mod       , only : nan => shr_infnan_nan, assignment(=)
   use clm_varpar           , only : dst_src_nbr, ndst, sz_nbr
   use clm_varcon           , only : grav, spval
   use landunit_varcon      , only : istcrop, istice_mec, istsoil
@@ -50,19 +49,25 @@ module DUSTMod
   real(r8) , allocatable :: stk_crc(:) ![frc] Correction to Stokes settling velocity
   real(r8) tmp1                        !Factor in saltation computation (named as in Charlie's code)
   real(r8) dns_aer                     ![kg m-3] Aerosol density
+  !$acc declare create(ovr_src_snk_mss(:,:))
+  !$acc declare create(dmt_vwr(:)          )
+  !$acc declare create(stk_crc(:)          )
+  !$acc declare create(tmp1)
+  !$acc declare create(dns_aer)
+
   !
   ! !PUBLIC DATA TYPES:
   !
   type, public :: dust_type
 
-     real(r8), pointer, PUBLIC  :: flx_mss_vrt_dst_patch     (:,:) ! surface dust emission (kg/m**2/s) [ + = to atm] (ndst) 
-     real(r8), pointer, private :: flx_mss_vrt_dst_tot_patch (:)   ! total dust flux into atmosphere
-     real(r8), pointer, private :: vlc_trb_patch             (:,:) ! turbulent deposition velocity  (m/s) (ndst) 
-     real(r8), pointer, private :: vlc_trb_1_patch           (:)   ! turbulent deposition velocity 1(m/s)
-     real(r8), pointer, private :: vlc_trb_2_patch           (:)   ! turbulent deposition velocity 2(m/s)
-     real(r8), pointer, private :: vlc_trb_3_patch           (:)   ! turbulent deposition velocity 3(m/s)
-     real(r8), pointer, private :: vlc_trb_4_patch           (:)   ! turbulent deposition velocity 4(m/s)
-     real(r8), pointer, private :: mbl_bsn_fct_col           (:)   ! basin factor
+     real(r8), pointer  :: flx_mss_vrt_dst_patch     (:,:) => null() ! surface dust emission (kg/m**2/s) [ + = to atm] (ndst)
+     real(r8), pointer  :: flx_mss_vrt_dst_tot_patch (:)   => null() ! total dust flux into atmosphere
+     real(r8), pointer  :: vlc_trb_patch             (:,:) => null() ! turbulent deposition velocity  (m/s) (ndst)
+     real(r8), pointer  :: vlc_trb_1_patch           (:)   => null() ! turbulent deposition velocity 1(m/s)
+     real(r8), pointer  :: vlc_trb_2_patch           (:)   => null() ! turbulent deposition velocity 2(m/s)
+     real(r8), pointer  :: vlc_trb_3_patch           (:)   => null() ! turbulent deposition velocity 3(m/s)
+     real(r8), pointer  :: vlc_trb_4_patch           (:)   => null() ! turbulent deposition velocity 4(m/s)
+     real(r8), pointer  :: mbl_bsn_fct_col           (:)   => null() ! basin factor
 
    contains
 
@@ -105,14 +110,14 @@ contains
     begp = bounds%begp ; endp = bounds%endp
     begc = bounds%begc ; endc = bounds%endc
 
-    allocate(this%flx_mss_vrt_dst_patch     (begp:endp,1:ndst)) ; this%flx_mss_vrt_dst_patch     (:,:) = nan
-    allocate(this%flx_mss_vrt_dst_tot_patch (begp:endp))        ; this%flx_mss_vrt_dst_tot_patch (:)   = nan
-    allocate(this%vlc_trb_patch             (begp:endp,1:ndst)) ; this%vlc_trb_patch             (:,:) = nan
-    allocate(this%vlc_trb_1_patch           (begp:endp))        ; this%vlc_trb_1_patch           (:)   = nan
-    allocate(this%vlc_trb_2_patch           (begp:endp))        ; this%vlc_trb_2_patch           (:)   = nan 
-    allocate(this%vlc_trb_3_patch           (begp:endp))        ; this%vlc_trb_3_patch           (:)   = nan
-    allocate(this%vlc_trb_4_patch           (begp:endp))        ; this%vlc_trb_4_patch           (:)   = nan
-    allocate(this%mbl_bsn_fct_col           (begc:endc))        ; this%mbl_bsn_fct_col     (:)   = nan
+    allocate(this%flx_mss_vrt_dst_patch     (begp:endp,1:ndst)) ; this%flx_mss_vrt_dst_patch     (:,:) = spval
+    allocate(this%flx_mss_vrt_dst_tot_patch (begp:endp))        ; this%flx_mss_vrt_dst_tot_patch (:)   = spval
+    allocate(this%vlc_trb_patch             (begp:endp,1:ndst)) ; this%vlc_trb_patch             (:,:) = spval
+    allocate(this%vlc_trb_1_patch           (begp:endp))        ; this%vlc_trb_1_patch           (:)   = spval
+    allocate(this%vlc_trb_2_patch           (begp:endp))        ; this%vlc_trb_2_patch           (:)   = spval
+    allocate(this%vlc_trb_3_patch           (begp:endp))        ; this%vlc_trb_3_patch           (:)   = spval
+    allocate(this%vlc_trb_4_patch           (begp:endp))        ; this%vlc_trb_4_patch           (:)   = spval
+    allocate(this%mbl_bsn_fct_col           (begc:endc))        ; this%mbl_bsn_fct_col     (:)   = spval
 
   end subroutine InitAllocate
 
@@ -186,7 +191,7 @@ contains
   !------------------------------------------------------------------------
   subroutine DustEmission (bounds, &
        num_nolakep, filter_nolakep, &
-       atm2lnd_vars, soilstate_vars, canopystate_vars, waterstate_vars, &
+       atm2lnd_vars, soilstate_vars, canopystate_vars, &
        frictionvel_vars, dust_vars)
     !
     ! !DESCRIPTION: 
@@ -197,8 +202,8 @@ contains
     ! Source: C. Zender's dust model
     !
     ! !USES
+      !$acc routine seq
     use shr_const_mod, only : SHR_CONST_RHOFW
-    use subgridaveMod, only : p2g
     !
     ! !ARGUMENTS:
     type(bounds_type)      , intent(in)    :: bounds                      
@@ -207,7 +212,6 @@ contains
     type(atm2lnd_type)     , intent(in)    :: atm2lnd_vars
     type(soilstate_type)   , intent(in)    :: soilstate_vars
     type(canopystate_type) , intent(in)    :: canopystate_vars
-    type(waterstate_type)  , intent(in)    :: waterstate_vars
     type(frictionvel_type) , intent(in)    :: frictionvel_vars
     type(dust_type)        , intent(inout) :: dust_vars
 
@@ -294,8 +298,8 @@ contains
          end if
       end do
       if (found) then
-         write(iulog,*) 'p2l_1d error: sumwt is greater than 1.0 at l= ',index
-         call endrun(msg=errMsg(__FILE__, __LINE__))
+         !#py write(iulog,*) 'p2l_1d error: sumwt is greater than 1.0 at l= ',index
+         !#py !#py call endrun(msg=errMsg(__FILE__, __LINE__))
       end if
 
       ! Loop through patches
@@ -330,8 +334,8 @@ contains
       do fp = 1,num_nolakep
          p = filter_nolakep(fp)
          if (lnd_frc_mbl(p)>1.0_r8 .or. lnd_frc_mbl(p)<0.0_r8) then
-            write(iulog,*)'Error dstmbl: pft= ',p,' lnd_frc_mbl(p)= ',lnd_frc_mbl(p)
-            call endrun(msg=errMsg(__FILE__, __LINE__))
+            !#py write(iulog,*)'Error dstmbl: pft= ',p,' lnd_frc_mbl(p)= ',lnd_frc_mbl(p)
+            !#py !#py call endrun(msg=errMsg(__FILE__, __LINE__))
          end if
       end do
 
@@ -487,6 +491,7 @@ contains
     ! Source: C. Zender's dry deposition code
     !
     ! !USES
+      !$acc routine seq
     use shr_const_mod, only : SHR_CONST_PI, SHR_CONST_RDAIR, SHR_CONST_BOLTZ
     !
     ! !ARGUMENTS:
@@ -623,7 +628,7 @@ contains
      !
      ! !USES
      use shr_const_mod , only: SHR_CONST_PI, SHR_CONST_RDAIR
-     use shr_spfn_mod  , only: erf => shr_spfn_erf
+     !#py use shr_spfn_mod  , only: erf => shr_spfn_erf
      use decompMod     , only : get_proc_bounds
      !
      ! !ARGUMENTS:
@@ -718,14 +723,14 @@ contains
          end do
       end do
 
-      ! The following code from subroutine wnd_frc_thr_slt_get was placed 
+      ! The following code from subroutine wnd_frc_thr_slt_get was placed
       ! here because tmp1 needs to be defined just once
 
       ryn_nbr_frc_thr_prx_opt = 0.38_r8 + 1331.0_r8 * (100.0_r8*dmt_slt_opt)**1.56_r8
 
       if (ryn_nbr_frc_thr_prx_opt < 0.03_r8) then
-         write(iulog,*) 'dstmbl: ryn_nbr_frc_thr_prx_opt < 0.03'
-         call endrun(msg=errMsg(__FILE__, __LINE__))
+          write(iulog,*) 'dstmbl: ryn_nbr_frc_thr_prx_opt < 0.03'
+         !#py !#py call endrun(msg=errMsg(__FILE__, __LINE__))
       else if (ryn_nbr_frc_thr_prx_opt < 10.0_r8) then
          ryn_nbr_frc_thr_opt_fnc = -1.0_r8 + 1.928_r8 * (ryn_nbr_frc_thr_prx_opt**0.0922_r8)
          ryn_nbr_frc_thr_opt_fnc = 0.1291_r8 * 0.1291_r8 / ryn_nbr_frc_thr_opt_fnc
@@ -761,8 +766,8 @@ contains
             dmt_dlt(n) = dmt_max(n)-dmt_min(n)            ![m] Width of size bin
          end do
       else
-         write(iulog,*) 'Dustini error: ndst must equal to 4 with current code'
-         call endrun(msg=errMsg(__FILE__, __LINE__))
+         !#py write(iulog,*) 'Dustini error: ndst must equal to 4 with current code'
+         !#py !#py call endrun(msg=errMsg(__FILE__, __LINE__))
          !see more comments above end if ndst == 4
       end if
 
@@ -886,9 +891,9 @@ contains
             else if (ryn_nbr_grv(m) < 2.0e5_r8) then
                cff_drg_grv(m) = 0.44_r8                         !Sep97 p.463 (8.32)
             else
-               write(iulog,'(a,es9.2)') "ryn_nbr_grv(m) = ",ryn_nbr_grv(m)
-               write(iulog,*)'Dustini error: Reynolds number too large in stk_crc_get()'
-               call endrun(msg=errMsg(__FILE__, __LINE__))
+               !#py write(iulog,'(a,es9.2)') "ryn_nbr_grv(m) = ",ryn_nbr_grv(m)
+               !#py write(iulog,*)'Dustini error: Reynolds number too large in stk_crc_get()'
+               !#py !#py call endrun(msg=errMsg(__FILE__, __LINE__))
             end if
 
             ! Update terminal velocity based on new Reynolds number and drag coeff
@@ -903,8 +908,8 @@ contains
                vlc_grv(m) = 0.5_r8 * (vlc_grv(m)+vlc_grv_old)  ! [m s-1]
             end if
             if (itr_idx > 20) then
-               write(iulog,*) 'Dustini error: Terminal velocity not converging ',&
-                    ' in stk_crc_get(), breaking loop...'
+               !#py write(iulog,*) 'Dustini error: Terminal velocity not converging ',&
+                    !#py ' in stk_crc_get(), breaking loop...'
                goto 100                                        !to next iteration
             end if
             itr_idx = itr_idx + 1
@@ -920,6 +925,12 @@ contains
       do m = 1, ndst
          stk_crc(m) = vlc_grv(m) / vlc_stk(m)
       end do
+
+      !$acc update device(ovr_src_snk_mss(:,:))
+      !$acc update device(dmt_vwr(:)          )
+      !$acc update device(stk_crc(:)          )
+      !$acc update device(tmp1)
+      !$acc update device(dns_aer)
 
     end associate 
 

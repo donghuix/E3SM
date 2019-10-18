@@ -1,7 +1,7 @@
 module RootBiophysMod
 
-#include "shr_assert.h"
-  !-------------------------------------------------------------------------------------- 
+!#py #include "shr_assert.h"
+  !--------------------------------------------------------------------------------------
   ! DESCRIPTION:
   ! module contains subroutine for root biophysics
   !
@@ -16,6 +16,7 @@ module RootBiophysMod
 
   integer :: root_prof_method              !select the type of root profile parameterization   
   !-------------------------------------------------------------------------------------- 
+  !$acc declare copyin(root_prof_method)
 
 contains
 
@@ -37,11 +38,13 @@ contains
     !initialize plant root profiles
     !
     ! USES
-    use shr_kind_mod   , only : r8 => shr_kind_r8   
-    use shr_assert_mod , only : shr_assert
-    use shr_log_mod    , only : errMsg => shr_log_errMsg
+    !$acc routine seq
+
+    use shr_kind_mod   , only : r8 => shr_kind_r8
+    !#py use shr_assert_mod , only : shr_assert
+    !#py !#py use shr_log_mod    , only : errMsg => shr_log_errMsg
     use decompMod      , only : bounds_type
-    use abortutils     , only : endrun         
+    !#py use abortutils     , only : endrun
     !
     ! !ARGUMENTS:
     implicit none
@@ -55,7 +58,6 @@ contains
     character(len=32) :: subname = 'init_vegrootfr'  ! subroutine name
     !------------------------------------------------------------------------
 
-    SHR_ASSERT_ALL((ubound(rootfr) == (/bounds%endp, nlevgrnd/)), errMsg(__FILE__, __LINE__))
 
     select case (root_prof_method)
     case (zeng_2001_root)
@@ -68,7 +70,7 @@ contains
        !schenk and Jackson root, 2002, to be defined later
        !rootfr(bounds%begp:bounds%endp, 1 : ubj) = schenk2002_rootfr(bounds, ubj, pcolumn, ivt, zi)        
     case default
-       call endrun(subname // ':: a root fraction function must be specified!')   
+       !#py call endrun(subname // ':: a root fraction function must be specified!')
     end select
     rootfr(bounds%begp:bounds%endp,nlevsoi+1:nlevgrnd)=0._r8   
 
@@ -77,14 +79,15 @@ contains
   !--------------------------------------------------------------------------------------   
   function zeng2001_rootfr(bounds, ubj, njbed) result(rootfr)
     !
+    !$acc routine seq
     ! DESCRIPTION
     ! compute root profile for soil water uptake
     ! using equation from Zeng 2001, J. Hydrometeorology
     !
     ! USES
-    use shr_kind_mod   , only : r8 => shr_kind_r8   
-    use shr_assert_mod , only : shr_assert
-    use shr_log_mod    , only : errMsg => shr_log_errMsg   
+    use shr_kind_mod   , only : r8 => shr_kind_r8
+    !#py use shr_assert_mod , only : shr_assert
+    !#py !#py use shr_log_mod    , only : errMsg => shr_log_errMsg
     use decompMod      , only : bounds_type
     use pftvarcon      , only : noveg, roota_par, rootb_par  !these pars shall be moved to here and set as private in the future
     use clm_varctl     , only : use_var_soil_thick

@@ -22,11 +22,16 @@ module SoilWaterMovementMod
   !
   ! !PUBLIC DATA MEMBERS:
   logical, public :: zengdecker_2009_with_var_soil_thick
+  !$acc declare create(zengdecker_2009_with_var_soil_thick)
   !
   ! !PRIVATE DATA MEMBERS:
   integer, parameter, public :: zengdecker_2009 = 0
   integer, parameter, public :: vsfm = 1
   integer, public :: soilroot_water_method     !0: use the Zeng and deck method, this will be readin from namelist in the future
+
+  !$acc declare copyin(zengdecker_2009)
+  !$acc declare copyin(vsfm)
+  !$acc declare copyin(soilroot_water_method)
 
   !-----------------------------------------------------------------------
 
@@ -66,31 +71,27 @@ contains
 
   !-----------------------------------------------------------------------
   subroutine SoilWater(bounds, num_hydrologyc, filter_hydrologyc, &
-       num_urbanc, filter_urbanc, soilhydrology_vars, soilstate_vars, &
-       waterflux_vars, waterstate_vars, temperature_vars, soil_water_retention_curve)
+       num_urbanc, filter_urbanc, soilhydrology_vars, soilstate_vars, dt)
     !
     ! DESCRIPTION
     ! select one subroutine to do the soil and root water coupling
     !
     !USES
+      !$acc routine seq
     use clm_varctl                 , only : use_betr
     use clm_varctl                 , only : use_var_soil_thick
     use shr_kind_mod               , only : r8 => shr_kind_r8
     use clm_varpar                 , only : nlevsoi    
     use decompMod                  , only : bounds_type   
-    use abortutils                 , only : endrun   
+    !#py use abortutils                 , only : endrun
     use SoilHydrologyType          , only : soilhydrology_type
     use SoilStateType              , only : soilstate_type
-    use TemperatureType            , only : temperature_type
-    use WaterFluxType              , only : waterflux_type
-    use WaterStateType             , only : waterstate_type
-    use SoilWaterRetentionCurveMod , only : soil_water_retention_curve_type
     use clm_varcon                 , only : denh2o, denice, watmin
     use ColumnType                 , only : col_pp
-    use ExternalModelConstants     , only : EM_VSFM_SOIL_HYDRO_STAGE
-    use ExternalModelConstants     , only : EM_ID_VSFM
-    use ExternalModelInterfaceMod  , only : EMI_Driver
-    use clm_time_manager           , only : get_step_size, get_nstep
+    !#py use ExternalModelConstants     , only : EM_VSFM_SOIL_HYDRO_STAGE
+    !#py use ExternalModelConstants     , only : EM_ID_VSFM
+    !#py use ExternalModelInterfaceMod  , only : EMI_Driver
+    !#py use clm_time_manager           , only : get_step_size, get_nstep
     !
     ! !ARGUMENTS:
     implicit none     
@@ -101,10 +102,7 @@ contains
     integer                  , intent(in)    :: filter_urbanc(:)      ! column filter for urban points
     type(soilhydrology_type) , intent(inout) :: soilhydrology_vars
     type(soilstate_type)     , intent(inout) :: soilstate_vars
-    type(waterflux_type)     , intent(inout) :: waterflux_vars
-    type(waterstate_type)    , intent(inout) :: waterstate_vars
-    type(temperature_type)   , intent(inout) :: temperature_vars
-    class(soil_water_retention_curve_type), intent(in) :: soil_water_retention_curve
+    real(r8)                 , intent(in)    :: dt
     !
     ! !LOCAL VARIABLES:
     character(len=32)                        :: subname = 'SoilWater'       ! subroutine name
@@ -130,27 +128,26 @@ contains
     case (zengdecker_2009)
 
        call soilwater_zengdecker2009(bounds, num_hydrologyc, filter_hydrologyc, &
-            num_urbanc, filter_urbanc, soilhydrology_vars, soilstate_vars, &
-            waterflux_vars, waterstate_vars, temperature_vars, soil_water_retention_curve)
+            num_urbanc, filter_urbanc, soilhydrology_vars, soilstate_vars, dt)
 
     case (vsfm)
 #ifdef USE_PETSC_LIB
 
-       call Prepare_Data_for_EM_VSFM_Driver(bounds, num_hydrologyc, filter_hydrologyc, &
-            soilhydrology_vars, soilstate_vars, &
-            waterflux_vars, waterstate_vars, temperature_vars)
+    !#py    call Prepare_Data_for_EM_VSFM_Driver(bounds, num_hydrologyc, filter_hydrologyc, &
+    !#py         soilhydrology_vars, soilstate_vars, &
+    !#py         waterflux_vars, waterstate_vars, temperature_vars)
 
-       call EMI_Driver(EM_ID_VSFM, EM_VSFM_SOIL_HYDRO_STAGE, dt = get_step_size()*1.0_r8, &
-            number_step = get_nstep(), &
-            clump_rank  = bounds%clump_index, &
-            num_hydrologyc=num_hydrologyc, filter_hydrologyc=filter_hydrologyc, &
-            soilhydrology_vars=soilhydrology_vars, soilstate_vars=soilstate_vars, &
-            waterflux_vars=waterflux_vars, waterstate_vars=waterstate_vars, &
-            temperature_vars=temperature_vars)
+       !#py call EMI_Driver(EM_ID_VSFM, EM_VSFM_SOIL_HYDRO_STAGE, dt = get_step_size()*1.0_r8, &
+            !#py number_step = get_nstep(), &
+            !#py clump_rank  = bounds%clump_index, &
+            !#py num_hydrologyc=num_hydrologyc, filter_hydrologyc=filter_hydrologyc, &
+            !#py soilhydrology_vars=soilhydrology_vars, soilstate_vars=soilstate_vars, &
+            !#py waterflux_vars=waterflux_vars, waterstate_vars=waterstate_vars, &
+            !#py temperature_vars=temperature_vars)
 #endif
     case default
 
-       call endrun(subname // ':: a SoilWater implementation must be specified!')          
+       !#py call endrun(subname // ':: a SoilWater implementation must be specified!')
 
     end select
 
@@ -200,8 +197,7 @@ contains
 
   !-----------------------------------------------------------------------   
   subroutine soilwater_zengdecker2009(bounds, num_hydrologyc, filter_hydrologyc, &
-       num_urbanc, filter_urbanc, soilhydrology_vars, soilstate_vars, &
-       waterflux_vars, waterstate_vars, temperature_vars, soil_water_retention_curve)
+       num_urbanc, filter_urbanc, soilhydrology_vars, soilstate_vars, dtime)
     !
     ! !DESCRIPTION:
     ! Soil hydrology
@@ -266,6 +262,7 @@ contains
     ! r_j = a_j [d wat_j-1] + b_j [d wat_j] + c_j [d wat_j+1]
     !
     ! !USES:
+      !$acc routine seq
     use clm_varctl           , only : use_var_soil_thick
     use shr_kind_mod         , only : r8 => shr_kind_r8     
     use shr_const_mod        , only : SHR_CONST_TKFRZ, SHR_CONST_LATICE, SHR_CONST_G
@@ -273,16 +270,12 @@ contains
     use clm_varcon           , only : wimp,grav,hfus,tfrz
     use clm_varcon           , only : e_ice,denh2o, denice
     use clm_varpar           , only : nlevsoi, max_patch_per_col, nlevgrnd
-    use clm_time_manager     , only : get_step_size
+    !#py use clm_time_manager     , only : get_step_size
     use column_varcon        , only : icol_roof, icol_road_imperv
     use TridiagonalMod       , only : Tridiagonal
-    use abortutils           , only : endrun     
+    !#py use abortutils           , only : endrun
     use SoilStateType        , only : soilstate_type
     use SoilHydrologyType    , only : soilhydrology_type
-    use TemperatureType      , only : temperature_type
-    use WaterFluxType        , only : waterflux_type
-    use WaterStateType       , only : waterstate_type
-    use SoilWaterRetentionCurveMod, only : soil_water_retention_curve_type
     use VegetationType       , only : veg_pp
     use ColumnType           , only : col_pp
     !
@@ -295,17 +288,14 @@ contains
     integer                 , intent(in)    :: filter_urbanc(:)     ! column filter for urban points
     type(soilhydrology_type), intent(inout) :: soilhydrology_vars
     type(soilstate_type)    , intent(inout) :: soilstate_vars
-    type(waterflux_type)    , intent(inout) :: waterflux_vars
-    type(waterstate_type)   , intent(inout) :: waterstate_vars
-    type(temperature_type)  , intent(in)    :: temperature_vars
-    class(soil_water_retention_curve_type), intent(in) :: soil_water_retention_curve
+    real(r8), intent(in) :: dtime                                        ! land model time step (sec)
+
     !
     ! !LOCAL VARIABLES:
     integer  :: p,c,fc,j                                     ! do loop indices
     integer  :: nlevbed                                      ! number of layers to bedrock
     integer  :: jtop(bounds%begc:bounds%endc)                ! top level at each column
     integer  :: jbot(bounds%begc:bounds%endc)                ! bottom level at each column
-    real(r8) :: dtime                                        ! land model time step (sec)
     real(r8) :: hk(bounds%begc:bounds%endc,1:nlevgrnd)        ! hydraulic conductivity [mm h2o/s]
     real(r8) :: dhkdw(bounds%begc:bounds%endc,1:nlevgrnd)     ! d(hk)/d(vol_liq)
     real(r8) :: amx(bounds%begc:bounds%endc,1:nlevgrnd+1)     ! "a" left off diagonal of tridiagonal matrix
@@ -386,8 +376,8 @@ contains
          )
 
       ! Get time step
-      
-      dtime = get_step_size()
+
+      !#py dtime = get_step_size()
 
       ! Because the depths in this routine are in mm, use local
       ! variable arrays instead of pointers
@@ -727,23 +717,23 @@ contains
             jbot(c) = nlev2bed(c)
       	 end do
          call Tridiagonal(bounds, 1, nlevgrnd+1, &
-              jtop(bounds%begc:bounds%endc),     &
-              jbot(bounds%begc:bounds%endc),     &
+              jtop,     &
+              jbot,     &
               num_hydrologyc, filter_hydrologyc, &
-              amx(bounds%begc:bounds%endc, :),   &
-              bmx(bounds%begc:bounds%endc, :),   &
-              cmx(bounds%begc:bounds%endc, :),   &
-              rmx(bounds%begc:bounds%endc, :),   &
-              dwat2(bounds%begc:bounds%endc, :) )
+              amx,   &
+              bmx,   &
+              cmx,   &
+              rmx,   &
+              dwat2 )
       else
          call Tridiagonal(bounds, 1, nlevsoi+1, &
-              jtop(bounds%begc:bounds%endc), &
+              jtop, &
               num_hydrologyc, filter_hydrologyc, &
-              amx(bounds%begc:bounds%endc, :), &
-              bmx(bounds%begc:bounds%endc, :), &
-              cmx(bounds%begc:bounds%endc, :), &
-              rmx(bounds%begc:bounds%endc, :), &
-              dwat2(bounds%begc:bounds%endc, :) )
+              amx, &
+              bmx, &
+              cmx, &
+              rmx, &
+              dwat2 )
       end if
 
       ! Renew the mass of liquid water
@@ -1151,7 +1141,7 @@ contains
    end subroutine Compute_EffecRootFrac_And_VertTranSink
 
    subroutine Compute_EffecRootFrac_And_VertTranSink_Default(bounds, num_filterc, &
-         filterc, soilstate_vars, waterflux_vars)
+         filterc, soilstate_vars)
 
     !
     ! Generic routine to apply transpiration as a sink condition that
@@ -1160,11 +1150,11 @@ contains
     ! hydraulics.
     !
     !USES:
+      !$acc routine seq
     use decompMod        , only : bounds_type
     use shr_kind_mod     , only : r8 => shr_kind_r8
     use clm_varpar       , only : nlevsoi, max_patch_per_col
     use SoilStateType    , only : soilstate_type
-    use WaterFluxType    , only : waterflux_type
     use VegetationType   , only : veg_pp
     use ColumnType       , only : col_pp
     !
@@ -1172,7 +1162,6 @@ contains
     type(bounds_type)    , intent(in)    :: bounds                          ! bounds
     integer              , intent(in)    :: num_filterc                     ! number of column soil points in column filter
     integer              , intent(in)    :: filterc(num_filterc)            ! column filter for soil points
-    type(waterflux_type) , intent(inout) :: waterflux_vars
     type(soilstate_type) , intent(inout) :: soilstate_vars
     !
     ! !LOCAL VARIABLES:

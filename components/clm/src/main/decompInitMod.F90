@@ -418,9 +418,12 @@ contains
           call subgrid_get_gcellinfo (ln, ntopounits=itopounits, nlunits=ilunits, ncols=icols, npfts=ipfts, &
               ncohorts=icohorts, glcmask=glcmask(ln))
        else
+          write(*,*) "subgrid_get_gcellinfo",ln,itopounits,ilunits,icols,ipfts,icohorts
           call subgrid_get_gcellinfo (ln, ntopounits=itopounits, nlunits=ilunits, ncols=icols, npfts=ipfts, &
                ncohorts=icohorts )
        endif
+ 
+       write(*,*) "subgrid_get_gcellinfo",ln,itopounits,ilunits,icols,ipfts,icohorts
        allvecl(cid,glev) = allvecl(cid,glev) + 1           ! number of gridcells for local clump cid
        allvecl(cid,tlev) = allvecl(cid,tlev) + itopounits  ! number of topographic units for local clump cid
        allvecl(cid,llev) = allvecl(cid,llev) + ilunits     ! number of landunits for local clump cid
@@ -495,6 +498,8 @@ contains
     do cid = 1,nclumps
        proc_nXXX(clumps(cid)%owner) = &
         proc_nXXX(clumps(cid)%owner) + clumps(cid)%ntopounits
+        print *,"cid, ntopounits", cid, proc_nXXX(clumps(cid)%owner)
+
     enddo
 
     ! determine offset (begt) for all processes,
@@ -573,6 +578,7 @@ contains
     do cid = 1,nclumps
        proc_nXXX(clumps(cid)%owner) = &
         proc_nXXX(clumps(cid)%owner) + clumps(cid)%npfts
+        print *, "cid, num pfts", cid, proc_nXXX(clumps(cid)%owner)
     enddo
 
     ! determine offset (begp) for all processes,

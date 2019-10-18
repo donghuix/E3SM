@@ -5,8 +5,6 @@ module column_varcon
   ! Module containing landunit indices and associated variables and routines.
   !
   ! !USES:
-#include "shr_assert.h"
-  use shr_log_mod    , only : errMsg => shr_log_errMsg
   use landunit_varcon, only : isturb_MIN
   !
   ! !PUBLIC TYPES:
@@ -25,6 +23,13 @@ module column_varcon
   integer, parameter, public :: icol_shadewall   = isturb_MIN*10 + 3
   integer, parameter, public :: icol_road_imperv = isturb_MIN*10 + 4
   integer, parameter, public :: icol_road_perv   = isturb_MIN*10 + 5
+  !$acc declare copyin(icol_roof       )
+  !$acc declare copyin(icol_sunwall    )
+  !$acc declare copyin(icol_shadewall  )
+  !$acc declare copyin(icol_road_imperv)
+  !$acc declare copyin(icol_road_perv  )
+
+
 
   !
   ! !PUBLIC MEMBER FUNCTIONS:
@@ -90,8 +95,7 @@ contains
     
     character(len=*), parameter :: subname = 'icemec_class_to_col_itype'
     !-----------------------------------------------------------------------
-    
-    SHR_ASSERT((1 <= icemec_class .and. icemec_class <= maxpatch_glcmec), errMsg(__FILE__, __LINE__))
+
 
     col_itype = istice_mec*100 + icemec_class
 
@@ -120,7 +124,6 @@ contains
 
     ! The following assertion is here to ensure that col_itype is really from an
     ! istice_mec landunit
-    SHR_ASSERT((1 <= icemec_class .and. icemec_class <= maxpatch_glcmec), errMsg(__FILE__, __LINE__))
 
   end function col_itype_to_icemec_class
 

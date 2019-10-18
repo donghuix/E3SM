@@ -1,6 +1,6 @@
 module LakeTemperatureMod
 
-#include "shr_assert.h"
+!#py #include "shr_assert.h"
 
   !-----------------------------------------------------------------------
   ! !DESCRIPTION:
@@ -9,16 +9,13 @@ module LakeTemperatureMod
   !
   ! !USES
   use shr_kind_mod      , only : r8 => shr_kind_r8
-  use shr_log_mod       , only : errMsg => shr_log_errMsg
+  !#py !#py use shr_log_mod       , only : errMsg => shr_log_errMsg
   use decompMod         , only : bounds_type
   use CH4Mod            , only : ch4_type
   use EnergyFluxType    , only : energyflux_type
   use LakeStateType     , only : lakestate_type
   use SoilStateType     , only : soilstate_type
   use SolarAbsorbedType , only : solarabs_type
-  use TemperatureType   , only : temperature_type
-  use WaterfluxType     , only : waterflux_type
-  use WaterstateType    , only : waterstate_type
   use ColumnType        , only : col_pp
   use ColumnDataType    , only : col_es, col_ef, col_ws, col_wf  
   use VegetationType    , only : veg_pp
@@ -41,8 +38,9 @@ contains
 
   !-----------------------------------------------------------------------
   subroutine LakeTemperature(bounds, num_lakec, filter_lakec, num_lakep, filter_lakep, &
-       solarabs_vars, soilstate_vars, waterstate_vars, waterflux_vars, ch4_vars, &
-       energyflux_vars, temperature_vars, lakestate_vars)
+       solarabs_vars, soilstate_vars, ch4_vars, &
+       energyflux_vars, lakestate_vars, &
+       dtime)
     !
     ! !DESCRIPTION:
     ! Calculates temperatures in the 25-45 layer column of (possible) snow,
@@ -108,12 +106,13 @@ contains
     !      and dump small imbalance into sensible heat, or pass large errors to BalanceCheckMod for abort.
     !
     ! !USES:
+    !$acc routine seq
     use LakeCon           , only : betavis, za_lake, n2min, tdmax, pudz, depthcrit, mixfact
     use LakeCon           , only : lakepuddling, lake_no_ed
     use QSatMod            , only : QSat
     use TridiagonalMod     , only : Tridiagonal
     use clm_varpar         , only : nlevlak, nlevgrnd, nlevsno
-    use clm_time_manager   , only : get_step_size
+    !#py use clm_time_manager   , only : get_step_size
     use clm_varcon         , only : hfus, cpliq, cpice, tkwat, tkice, denice
     use clm_varcon         , only : vkc, grav, denh2o, tfrz, cnfac
     use clm_varctl         , only : iulog, use_lch4
@@ -126,17 +125,14 @@ contains
     integer                , intent(in)    :: filter_lakep(:) ! patch filter for non-lake points
     type(solarabs_type)    , intent(in)    :: solarabs_vars
     type(soilstate_type)   , intent(in)    :: soilstate_vars
-    type(waterstate_type)  , intent(inout) :: waterstate_vars
-    type(waterflux_type)   , intent(inout) :: waterflux_vars
     type(ch4_type)         , intent(inout) :: ch4_vars
     type(energyflux_type)  , intent(inout) :: energyflux_vars
-    type(temperature_type) , intent(inout) :: temperature_vars
     type(lakestate_type)   , intent(inout) :: lakestate_vars
+    real(r8), intent(in) :: dtime
     !
     ! !LOCAL VARIABLES:
     real(r8), parameter :: p0 = 1._r8                                      ! neutral value of turbulent prandtl number
     integer  :: i,j,fc,fp,g,c,p                                            ! do loop or array index
-    real(r8) :: dtime                                                      ! land model time step (sec)
     real(r8) :: beta(bounds%begc:bounds%endc)                              ! fraction of solar rad absorbed at surface: equal to NIR fraction
                                                                            ! of surface absorbed shortwave
     real(r8) :: eta                                                        ! light extinction coefficient (/m): depends on lake type
@@ -268,7 +264,7 @@ contains
     ! 1!) Initialization
     ! Determine step size
 
-    dtime = get_step_size()
+    !#py dtime = get_step_size()
 
     ! Initialize constants
     cwat = cpliq*denh2o ! water heat capacity per unit volume
@@ -491,11 +487,11 @@ contains
 
     ! For snow / soil
     call SoilThermProp_Lake(bounds, num_lakec, filter_lakec, &
-         tk(bounds%begc:bounds%endc, :), &
-         cv(bounds%begc:bounds%endc, :), &
-         tktopsoillay(bounds%begc:bounds%endc), &
-         soilstate_vars, waterstate_vars, temperature_vars)
-    
+         tk, &
+         cv, &
+         tktopsoillay, &
+         soilstate_vars)
+
     ! Sum cv*t_lake for energy check
     ! Include latent heat term, and use tfrz as reference temperature
     ! to prevent abrupt change in heat content due to changing heat capacity with phase change.
@@ -669,14 +665,14 @@ contains
     ! 7!) Solve for tdsolution
 
     call Tridiagonal(bounds, -nlevsno + 1, nlevlak + nlevgrnd, &
-         jtop(bounds%begc:bounds%endc), &
+         jtop, &
          num_lakec, filter_lakec, &
-         a(bounds%begc:bounds%endc, :), &
-         b(bounds%begc:bounds%endc, :), &
-         c1(bounds%begc:bounds%endc, :), &
-         r(bounds%begc:bounds%endc, :), &
-         tx(bounds%begc:bounds%endc, :))
- 
+         a, &
+         b, &
+         c1, &
+         r, &
+         tx)
+
     ! Set t_soisno and t_lake
     do j = -nlevsno+1, nlevlak + nlevgrnd
        do fc = 1, num_lakec
@@ -707,11 +703,10 @@ contains
 
     ! 9!) Phase change
     call PhaseChange_Lake(bounds, num_lakec, filter_lakec, &
-         cv(bounds%begc:bounds%endc, :), &
-         cv_lake(bounds%begc:bounds%endc, :), &
-         lhabs(bounds%begc:bounds%endc), &
-         waterstate_vars, waterflux_vars, temperature_vars, &
-         energyflux_vars, lakestate_vars)
+         cv, &
+         cv_lake, &
+         lhabs, &
+         energyflux_vars, lakestate_vars, dtime)
 
     !!!!!!!!!!!!!!!!!!!!!!!
 
@@ -985,10 +980,10 @@ contains
 
     ! For snow / soil
     call SoilThermProp_Lake(bounds, num_lakec, filter_lakec, &
-         tk(bounds%begc:bounds%endc, :), &
-         cv(bounds%begc:bounds%endc, :), &
-         tktopsoillay(bounds%begc:bounds%endc), &
-         soilstate_vars, waterstate_vars, temperature_vars)
+         tk, &
+         cv, &
+         tktopsoillay, &
+         soilstate_vars)
 
 
     ! Do as above to sum energy content
@@ -1034,7 +1029,7 @@ contains
           eflx_soil_grnd(p) = eflx_soil_grnd(p) + errsoi(c)
           eflx_gnet(p)      = eflx_gnet(p)      + errsoi(c)
           if (abs(errsoi(c)) > 1.e-3_r8) then
-             write(iulog,*)'errsoi incorporated into sensible heat in LakeTemperature: c, (W/m^2):', c, errsoi(c)
+             !#py write(iulog,*)'errsoi incorporated into sensible heat in LakeTemperature: c, (W/m^2):', c, errsoi(c)
           end if
           errsoi(c) = 0._r8
        end if
@@ -1059,7 +1054,7 @@ contains
 
    !-----------------------------------------------------------------------
    subroutine SoilThermProp_Lake (bounds,  num_lakec, filter_lakec, tk, cv, tktopsoillay, &
-        soilstate_vars, waterstate_vars, temperature_vars)
+        soilstate_vars)
      !
      ! !DESCRIPTION:
      ! Calculation of thermal conductivities and heat capacities of
@@ -1078,6 +1073,7 @@ contains
      ! For lakes, the proper soil layers (not snow) should always be saturated.
      !
      ! !USES:
+      !$acc routine seq
      use clm_varcon  , only : denh2o, denice, tfrz, tkwat, tkice, tkair
      use clm_varcon  , only : cpice,  cpliq, thk_bedrock
      use clm_varpar  , only : nlevsno, nlevsoi, nlevgrnd
@@ -1090,8 +1086,6 @@ contains
      real(r8)               , intent(out) :: tk( bounds%begc: , -nlevsno+1: ) ! thermal conductivity [W/(m K)] [col, lev]
      real(r8)               , intent(out) :: tktopsoillay( bounds%begc: )     ! thermal conductivity [W/(m K)] [col]
      type(soilstate_type)   , intent(in)  :: soilstate_vars
-     type(waterstate_type)  , intent(in)  :: waterstate_vars
-     type(temperature_type) , intent(in)  :: temperature_vars
     
      !
      ! !LOCAL VARIABLES:
@@ -1107,9 +1101,6 @@ contains
      !-----------------------------------------------------------------------
 
      ! Enforce expected array sizes
-     SHR_ASSERT_ALL((ubound(cv)           == (/bounds%endc, nlevgrnd/)), errMsg(__FILE__, __LINE__))
-     SHR_ASSERT_ALL((ubound(tk)           == (/bounds%endc, nlevgrnd/)), errMsg(__FILE__, __LINE__))
-     SHR_ASSERT_ALL((ubound(tktopsoillay) == (/bounds%endc/)),           errMsg(__FILE__, __LINE__))
 
      associate(                                           & 
           snl         => col_pp%snl                        , & ! Input:  [integer (:)]  number of snow layers                    
@@ -1239,7 +1230,7 @@ contains
 
    !-----------------------------------------------------------------------
    subroutine PhaseChange_Lake (bounds, num_lakec, filter_lakec, cv, cv_lake, lhabs, &
-        waterstate_vars, waterflux_vars, temperature_vars, energyflux_vars, lakestate_vars)
+        energyflux_vars, lakestate_vars,  dtime )
      !
      ! !DESCRIPTION:
      ! Calculation of the phase change within snow, soil, & lake layers:
@@ -1258,7 +1249,8 @@ contains
      ! Errors will be trapped at the end of LakeTemperature.
      !
      ! !USES:
-     use clm_time_manager , only : get_step_size
+     !#py use clm_time_manager , only : get_step_size
+      !$acc routine seq
      use clm_varcon       , only : tfrz, hfus, denh2o, denice, cpliq, cpice
      use clm_varpar       , only : nlevsno, nlevgrnd, nlevlak
      !
@@ -1269,16 +1261,13 @@ contains
      real(r8)               , intent(inout) :: cv( bounds%begc: , -nlevsno+1: ) ! heat capacity [J/(m2 K)] [col, lev]
      real(r8)               , intent(inout) :: cv_lake( bounds%begc: , 1: )     ! heat capacity [J/(m2 K)] [col, levlak]
      real(r8)               , intent(out)   :: lhabs( bounds%begc: )            ! total per-column latent heat abs. (J/m^2) [col]
-     type(waterstate_type)  , intent(inout) :: waterstate_vars
-     type(waterflux_type)   , intent(inout) :: waterflux_vars
-     type(temperature_type) , intent(inout) :: temperature_vars
      type(energyflux_type)  , intent(inout) :: energyflux_vars
      type(lakestate_type)   , intent(inout) :: lakestate_vars
+     real(r8), intent(in) :: dtime
      !
      ! !LOCAL VARIABLES:
      integer  :: j,c,g                              ! do loop index
      integer  :: fc                                 ! lake filtered column indices
-     real(r8) :: dtime                              ! land model time step (sec)
      real(r8) :: heatavail                          ! available energy for melting or freezing (J/m^2)
      real(r8) :: heatrem                            ! energy residual or loss after melting or freezing
      real(r8) :: melt                               ! actual melting (+) or freezing (-) [kg/m2]
@@ -1289,9 +1278,6 @@ contains
      !-----------------------------------------------------------------------
 
      ! Enforce expected array sizes
-     SHR_ASSERT_ALL((ubound(cv)      == (/bounds%endc, nlevgrnd/)), errMsg(__FILE__, __LINE__))
-     SHR_ASSERT_ALL((ubound(cv_lake) == (/bounds%endc, nlevlak/)),  errMsg(__FILE__, __LINE__))
-     SHR_ASSERT_ALL((ubound(lhabs)   == (/bounds%endc/)),           errMsg(__FILE__, __LINE__))
 
      associate(                                                   & 
           dz_lake         => col_pp%dz_lake                        , & ! Input:  [real(r8)  (:,:) ] lake layer thickness (m)              
@@ -1319,7 +1305,7 @@ contains
 
        ! Get step size
 
-       dtime = get_step_size()
+       !#py dtime = get_step_size()
 
        ! Initialization
 

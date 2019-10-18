@@ -49,13 +49,13 @@ module NitrogenDynamicsMod
   
   !
   ! !PRIVATE DATA:
-  type, private :: CNNDynamicsParamsType
+  type, public :: CNNDynamicsParamsType
      real(r8):: sf        ! soluble fraction of mineral N (unitless)
      real(r8):: sf_no3    ! soluble fraction of NO3 (unitless)
   end type CNNDynamicsParamsType
-  
-  type(CNNDynamicsParamsType),private ::  CNNDynamicsParamsInst
-  !-----------------------------------------------------------------------
+
+  type(CNNDynamicsParamsType), public ::  CNNDynamicsParamsInst
+  !$acc declare create(CNNDynamicsParamsInst)
 
 contains
 
@@ -118,7 +118,7 @@ contains
 
   !-----------------------------------------------------------------------
   subroutine NitrogenDeposition( bounds, &
-       atm2lnd_vars, nitrogenflux_vars )
+       atm2lnd_vars, dt )
     !
     ! !DESCRIPTION:
     ! On the radiation time step, update the nitrogen deposition rate
@@ -128,9 +128,10 @@ contains
     ! directly into the canopy and mineral N entering the soil pool.
     !
     ! !ARGUMENTS:
+      !$acc routine seq
     type(bounds_type)        , intent(in)    :: bounds  
     type(atm2lnd_type)       , intent(in)    :: atm2lnd_vars
-    type(nitrogenflux_type) , intent(inout) :: nitrogenflux_vars
+    real(r8),   intent(in) :: dt
     !
     ! !LOCAL VARIABLES:
     integer :: g,c                    ! indices
@@ -152,8 +153,7 @@ contains
   end subroutine NitrogenDeposition
 
   !-----------------------------------------------------------------------
-  subroutine NitrogenFixation(num_soilc, filter_soilc, waterflux_vars, &
-       carbonflux_vars, nitrogenflux_vars)
+  subroutine NitrogenFixation(num_soilc, filter_soilc, dayspyr)
     !
     ! !DESCRIPTION:
     ! On the radiation time step, update the nitrogen fixation rate
@@ -161,21 +161,20 @@ contains
     ! All N fixation goes to the soil mineral N pool.
     !
     ! !USES:
-    use clm_time_manager , only : get_days_per_year, get_step_size
-    use shr_sys_mod      , only : shr_sys_flush
+    !#py use clm_time_manager , only : get_days_per_year, get_step_size
+    !#py use shr_sys_mod      , only : shr_sys_flush
+      !$acc routine seq
     use clm_varcon       , only : secspday, spval
     !
     ! !ARGUMENTS:
     integer                 , intent(in)    :: num_soilc       ! number of soil columns in filter
     integer                 , intent(in)    :: filter_soilc(:) ! filter for soil columns
-    type(waterflux_type)     , intent(in)    :: waterflux_vars    
-    type(carbonflux_type)   , intent(inout) :: carbonflux_vars
-    type(nitrogenflux_type) , intent(inout) :: nitrogenflux_vars 
+    real(r8), intent(in) :: dayspyr               ! days per year
+
     !
     ! !LOCAL VARIABLES:
     integer  :: c,fc                  ! indices
     real(r8) :: t                     ! temporary
-    real(r8) :: dayspyr               ! days per year
     real(r8) :: secspyr              ! seconds per yr
     logical  :: do_et_bnf = .false.
     !-----------------------------------------------------------------------
@@ -190,7 +189,7 @@ contains
          nfix_to_sminn  => col_nf%nfix_to_sminn   & ! Output: [real(r8) (:)]  symbiotic/asymbiotic N fixation to soil mineral N (gN/m2/s)
          )
 
-      dayspyr = get_days_per_year()
+      !#py dayspyr = get_days_per_year()
 
       if (do_et_bnf) then
          secspyr = dayspyr * 86400._r8
@@ -231,29 +230,26 @@ contains
   end subroutine NitrogenFixation
  
   !-----------------------------------------------------------------------
-  subroutine NitrogenLeaching(bounds, num_soilc, filter_soilc, &
-       waterstate_vars, waterflux_vars, nitrogenstate_vars, nitrogenflux_vars)
+  subroutine NitrogenLeaching(bounds, num_soilc, filter_soilc, dt )
     !
     ! !DESCRIPTION:
     ! On the radiation time step, update the nitrogen leaching rate
     ! as a function of soluble mineral N and total soil water outflow.
     !
     ! !USES:
+      !$acc routine seq
     use clm_varpar       , only : nlevdecomp, nlevsoi
-    use clm_time_manager , only : get_step_size
+    !#py use clm_time_manager , only : get_step_size
     !
     ! !ARGUMENTS:
     type(bounds_type)        , intent(in)    :: bounds  
     integer                  , intent(in)    :: num_soilc       ! number of soil columns in filter
     integer                  , intent(in)    :: filter_soilc(:) ! filter for soil columns
-    type(waterstate_type)    , intent(in)    :: waterstate_vars
-    type(waterflux_type)     , intent(in)    :: waterflux_vars
-    type(nitrogenstate_type) , intent(inout) :: nitrogenstate_vars
-    type(nitrogenflux_type)  , intent(inout) :: nitrogenflux_vars 
+    real(r8)                 , intent(in)    :: dt          ! radiation time step (seconds)
+
     !
     ! !LOCAL VARIABLES:
     integer  :: j,c,fc                                 ! indices
-    real(r8) :: dt                                     ! radiation time step (seconds)
     real(r8) :: sf                                     ! soluble fraction of mineral N (unitless)
     real(r8) :: sf_no3                                 ! soluble fraction of NO3 (unitless)
     real(r8) :: disn_conc                              ! dissolved mineral N concentration (gN/kg water)
@@ -277,7 +273,7 @@ contains
          )
 
       ! set time steps
-      dt = real( get_step_size(), r8 )
+      !#py dt = real( get_step_size(), r8 )
 
       if (.not. use_nitrif_denitrif) then
          ! set constant sf 
@@ -443,8 +439,7 @@ contains
   end subroutine NitrogenLeaching
 
   !-----------------------------------------------------------------------
-  subroutine NitrogenFert(bounds, num_soilc, filter_soilc, &
-       nitrogenflux_vars)
+  subroutine NitrogenFert(bounds, num_soilc, filter_soilc )
     !
     ! !DESCRIPTION:
     ! On the radiation time step, update the nitrogen fertilizer for crops
@@ -453,10 +448,10 @@ contains
     ! !USES:
     !
     ! !ARGUMENTS:
+      !$acc routine seq
     type(bounds_type)       , intent(in)    :: bounds  
     integer                 , intent(in)    :: num_soilc       ! number of soil columns in filter
     integer                 , intent(in)    :: filter_soilc(:) ! filter for soil columns
-    type(nitrogenflux_type) , intent(inout) :: nitrogenflux_vars 
     !
     ! !LOCAL VARIABLES:
     integer :: c,fc                 ! indices
@@ -468,8 +463,8 @@ contains
          )
       
       call p2c(bounds, num_soilc, filter_soilc, &
-           fert(bounds%begp:bounds%endp), &
-           fert_to_sminn(bounds%begc:bounds%endc))
+           fert, &
+           fert_to_sminn)
 
     end associate
   end subroutine NitrogenFert
@@ -477,7 +472,7 @@ contains
   !-----------------------------------------------------------------------
   subroutine CNSoyfix (bounds, &
        num_soilc, filter_soilc, num_soilp, filter_soilp, &
-       waterstate_vars, crop_vars, cnstate_vars, nitrogenstate_vars, nitrogenflux_vars)
+       crop_vars, cnstate_vars)
     !
     ! !DESCRIPTION:
     ! This routine handles the fixation of nitrogen for soybeans based on
@@ -486,6 +481,7 @@ contains
     ! nitrogen in the soil root zone.
     !
     ! !USES:
+      !$acc routine seq
     use pftvarcon  , only : nsoybean
     !
     ! !ARGUMENTS:
@@ -494,11 +490,8 @@ contains
     integer                  , intent(in)    :: filter_soilc(:) ! filter for soil columns
     integer                  , intent(in)    :: num_soilp       ! number of soil patches in filter
     integer                  , intent(in)    :: filter_soilp(:) ! filter for soil patches
-    type(waterstate_type)    , intent(in)    :: waterstate_vars
     type(crop_type)          , intent(in)    :: crop_vars
     type(cnstate_type)       , intent(in)    :: cnstate_vars
-    type(nitrogenstate_type) , intent(in)    :: nitrogenstate_vars
-    type(nitrogenflux_type)  , intent(inout) :: nitrogenflux_vars 
     !
     ! !LOCAL VARIABLES:
     integer :: fp,p,c
@@ -606,16 +599,15 @@ contains
       end do
 
       call p2c(bounds, num_soilc, filter_soilc, &
-           soyfixn(bounds%begp:bounds%endp), &
-           soyfixn_to_sminn(bounds%begc:bounds%endc))
+           soyfixn, &
+           soyfixn_to_sminn)
 
     end associate
 
   end subroutine CNSoyfix
 
   !-----------------------------------------------------------------------
-  subroutine NitrogenFixation_balance(num_soilc, filter_soilc,cnstate_vars, carbonflux_vars, &
-             nitrogenstate_vars, nitrogenflux_vars, temperature_vars, waterstate_vars, carbonstate_vars, phosphorusstate_vars)
+  subroutine NitrogenFixation_balance(num_soilc, filter_soilc,cnstate_vars)
     !
     ! !DESCRIPTION:
     ! created, Aug 2015 by Q. Zhu
@@ -624,8 +616,8 @@ contains
     ! N2 fixation is based on Fisher 2010 GBC doi:10.1029/2009GB003621; Wang 2007 GBC doi:10.1029/2006GB002797; and Grand 2012 ecosys model
     !
     ! !USES:
-    use clm_time_manager , only : get_days_per_year, get_step_size
-    use shr_sys_mod      , only : shr_sys_flush
+    !#py use shr_sys_mod      , only : shr_sys_flush
+      !$acc routine seq
     use clm_varcon       , only : secspday, spval
     use pftvarcon        , only : noveg
         
@@ -634,13 +626,6 @@ contains
     integer                 , intent(in)    :: num_soilc       ! number of soil columns in filter
     integer                 , intent(in)    :: filter_soilc(:) ! filter for soil columns
     type(cnstate_type)      , intent(inout) :: cnstate_vars
-    type(carbonflux_type)   , intent(inout) :: carbonflux_vars
-    type(nitrogenstate_type), intent(in)    :: nitrogenstate_vars
-    type(nitrogenflux_type) , intent(inout) :: nitrogenflux_vars
-    type(temperature_type)  , intent(inout) :: temperature_vars
-    type(waterstate_type)   , intent(in)    :: waterstate_vars
-    type(carbonstate_type)  , intent(inout) :: carbonstate_vars
-    type(phosphorusstate_type)  , intent(inout) :: phosphorusstate_vars
     !
     ! !LOCAL VARIABLES:
     integer  :: c,fc,p                     ! indices

@@ -15,13 +15,7 @@ module AllocationMod
   use decompMod           , only : bounds_type
   use subgridAveMod       , only : p2c
   use CanopyStateType     , only : canopystate_type
-  use CNCarbonFluxType    , only : carbonflux_type
-  use CNCarbonStateType   , only : carbonstate_type
-  use CNNitrogenFluxType  , only : nitrogenflux_type
-  use CNNitrogenStateType , only : nitrogenstate_type
   !!! add phosphorus
-  use PhosphorusFluxType  , only : phosphorusflux_type
-  use PhosphorusStateType , only : phosphorusstate_type
   use CNStateType         , only : cnstate_type
   use PhotosynthesisType  , only : photosyns_type
   use CropType            , only : crop_type
@@ -73,6 +67,8 @@ module AllocationMod
   !
   ! AllocParamsInst is populated in readCNAllocParams which is called in 
   type(AllocParamsType),protected ::  AllocParamsInst
+  !$acc declare create(AllocParamsInst)
+
   !
   ! !PUBLIC DATA MEMBERS:
   character(len=*), parameter, public :: suplnAll='ALL'  ! Supplemental Nitrogen for all PFT's
@@ -88,9 +84,13 @@ module AllocationMod
   logical,          public :: nu_com_phosphatase = .false.
   logical,          public :: nu_com_nfix = .false.
   
+
+  !$acc declare create(nu_com_leaf_physiology)
+  !$acc declare create(nu_com_root_kinetics  )
+  !$acc declare create(nu_com_phosphatase    )
+  !$acc declare create(nu_com_nfix           )
   !
   ! !PRIVATE DATA MEMBERS:
-  real(r8)              :: dt                   !decomp timestep (seconds)
   real(r8)              :: bdnr                 !bulk denitrification rate (1/s)
   real(r8)              :: dayscrecover         !number of days to recover negative cpool
   real(r8), allocatable :: arepr(:)             !reproduction allocation coefficient
@@ -98,6 +98,13 @@ module AllocationMod
   real(r8), allocatable :: col_plant_ndemand(:) !column-level plant N demand
   real(r8), allocatable :: col_plant_pdemand(:) !column-level plant P demand
   
+  !$acc declare create(bdnr                )
+  !$acc declare create(dayscrecover        )
+  !$acc declare create(arepr(:)            )
+  !$acc declare create(aroot(:)            )
+  !$acc declare create(col_plant_ndemand(:))
+  !$acc declare create(col_plant_pdemand(:))
+
   logical :: crop_supln  = .false.             !Prognostic crop receives supplemental Nitrogen
 
   real(r8), allocatable :: decompmicc(:,:)                ! column-level soil microbial decomposer biomass gC/m3
@@ -110,6 +117,11 @@ module AllocationMod
   real(r8)              :: e_km_p                         ! temp variable of sum(E/KM) for P competition
   real(r8)              :: e_km_n                         ! temp variable of sum(E/KM) for N competition CN mode                     
 
+  !$acc declare create(decompmicc)
+  !$acc declare create(e_km_nh4)
+  !$acc declare create(e_km_no3)
+  !$acc declare create(e_km_p  )
+  !$acc declare create(e_km_n  )
   !-----------------------------------------------------------------------
 
 contains
@@ -182,7 +194,7 @@ contains
     ! !DESCRIPTION:
     !
     ! !USES:
-    use clm_varcon      , only: secspday
+    use clm_varcon      , only: secspday, spval
     use clm_time_manager, only: get_step_size, get_curr_date
     use clm_varpar      , only: crop_prog
     use clm_varctl      , only: iulog, cnallocate_carbon_only_set
@@ -194,22 +206,24 @@ contains
     ! !ARGUMENTS:
     implicit none
     type(bounds_type), intent(in) :: bounds  
+    real(r8) ::  dt
+    integer  :: yr
     !
     ! !LOCAL VARIABLES:
     character(len=32) :: subname = 'AllocationInit'
-    integer :: yr, mon, day, sec
+    integer ::  mon, day, sec
     logical :: carbon_only
     logical :: carbonnitrogen_only
     logical :: carbonphosphorus_only
     !-----------------------------------------------------------------------
 
     if ( crop_prog )then
-       allocate(arepr(bounds%begp:bounds%endp)); arepr(bounds%begp : bounds%endp) = nan
-       allocate(aroot(bounds%begp:bounds%endp)); aroot(bounds%begp : bounds%endp) = nan
+       allocate(arepr(bounds%begp:bounds%endp)); arepr(bounds%begp : bounds%endp) = spval
+       allocate(aroot(bounds%begp:bounds%endp)); aroot(bounds%begp : bounds%endp) = spval
     end if
-    allocate(col_plant_ndemand(bounds%begc:bounds%endc)); col_plant_ndemand(bounds%begc : bounds%endc) = nan
-    allocate(col_plant_pdemand(bounds%begc:bounds%endc)); col_plant_pdemand(bounds%begc : bounds%endc) = nan
-    allocate(decompmicc(bounds%begc:bounds%endc,1:nlevdecomp)); decompmicc(bounds%begc:bounds%endc,1:nlevdecomp) = nan
+    allocate(col_plant_ndemand(bounds%begc:bounds%endc)); col_plant_ndemand(bounds%begc : bounds%endc) = spval
+    allocate(col_plant_pdemand(bounds%begc:bounds%endc)); col_plant_pdemand(bounds%begc : bounds%endc) = spval
+    allocate(decompmicc(bounds%begc:bounds%endc,1:nlevdecomp)); decompmicc(bounds%begc:bounds%endc,1:nlevdecomp) = spval
 
     ! set time steps
     dt = real( get_step_size(), r8 )
@@ -294,13 +308,11 @@ contains
 
 !-------------------------------------------------------------------------------------------------
   subroutine Allocation1_PlantNPDemand (bounds, num_soilc, filter_soilc, num_soilp, filter_soilp, &
-       photosyns_vars, crop_vars, canopystate_vars, cnstate_vars,             &
-       carbonstate_vars, carbonflux_vars, c13_carbonflux_vars, c14_carbonflux_vars,  &
-       nitrogenstate_vars, nitrogenflux_vars,&
-       phosphorusstate_vars,phosphorusflux_vars)
+       photosyns_vars, crop_vars, canopystate_vars, cnstate_vars, dt, yr)
     ! PHASE-1 of Allocation: loop over patches to assess the total plant N demand and P demand
     ! !USES:
-    use shr_sys_mod      , only: shr_sys_flush
+    !#py use shr_sys_mod      , only: shr_sys_flush
+      !$acc routine seq
     use clm_varctl       , only: iulog,cnallocate_carbon_only,cnallocate_carbonnitrogen_only,&
                                  cnallocate_carbonphosphorus_only
     use pftvarcon        , only: npcropmin, declfact, bfact, aleaff, arootf, astemf, noveg
@@ -309,7 +321,7 @@ contains
     use clm_varcon       , only: nitrif_n2o_loss_frac, secspday
     use clm_varctl       , only: cnallocate_carbon_only_set
 !    use landunit_varcon  , only: istsoil, istcrop
-    use clm_time_manager , only: get_step_size, get_curr_date
+    !#py use clm_time_manager , only: get_step_size, get_curr_date
     !
     ! !ARGUMENTS:
     type(bounds_type)        , intent(in)    :: bounds
@@ -321,15 +333,9 @@ contains
     type(crop_type)          , intent(in)    :: crop_vars
     type(canopystate_type)   , intent(in)    :: canopystate_vars
     type(cnstate_type)       , intent(inout) :: cnstate_vars
-    type(carbonstate_type)   , intent(in)    :: carbonstate_vars
-    type(carbonflux_type)    , intent(inout) :: carbonflux_vars
-    type(carbonflux_type)    , intent(inout) :: c13_carbonflux_vars
-    type(carbonflux_type)    , intent(inout) :: c14_carbonflux_vars
-    type(nitrogenstate_type) , intent(inout) :: nitrogenstate_vars
-    type(nitrogenflux_type)  , intent(inout) :: nitrogenflux_vars
 !     !!  add phosphorus  -X.YANG
-    type(phosphorusstate_type) , intent(inout) :: phosphorusstate_vars
-    type(phosphorusflux_type)  , intent(inout) :: phosphorusflux_vars
+    real(r8), intent(in) :: dt
+    integer, intent(in) :: yr
     !
     ! !LOCAL VARIABLES:
     real(r8) :: compet_decomp_no3      ! (unitless) relative competitiveness of immobilizers for NO3 for BGC module
@@ -375,7 +381,7 @@ contains
     real(r8) cng                                                     !C:N ratio for grain (= cnlw for now; slevis)
     real(r8) fleaf                                                   !fraction allocated to leaf
     real(r8) t1                                                      !temporary variable
-    integer :: yr, mon, day, sec
+    integer :: mon, day, sec
 
     !! Local P variables
     real(r8):: cpl,cpfr,cplw,cpdw,cpg                                    !C:N ratios for leaf, fine root, and wood
@@ -682,10 +688,10 @@ contains
       plant_p_uptake_flux          => col_pf%plant_p_uptake_flux
 
       ! set time steps
-      dt = real( get_step_size(), r8 )
+      !#py dt = real( get_step_size(), r8 )
 
-      call get_curr_date(yr, mon, day, sec)
-      if (spinup_state == 1 .and. yr .gt. nyears_ad_carbon_only) then 
+      !#py call get_curr_date(yr, mon, day, sec)
+      if (spinup_state == 1 .and. yr .gt. nyears_ad_carbon_only) then
         call cnallocate_carbon_only_set(.false.)
       end if
 
@@ -1025,19 +1031,19 @@ contains
 
       ! now use the p2c routine to get the column-averaged plant_ndemand
       call p2c(bounds, num_soilc, filter_soilc, &
-           plant_ndemand(bounds%begp:bounds%endp), &
-           col_plant_ndemand(bounds%begc:bounds%endc))
+           plant_ndemand, &
+           col_plant_ndemand)
 
       !!! add phosphorus
       call p2c(bounds, num_soilc, filter_soilc, &
-           plant_pdemand(bounds%begp:bounds%endp), &
-           col_plant_pdemand(bounds%begc:bounds%endc))
-      
+           plant_pdemand, &
+           col_plant_pdemand)
+
       !!! Starting resolving N limitation
       !! new subroutines to calculate nuptake_prof & puptake_prof
       if (nu_com .eq. 'RD') then ! 'RD' : relative demand approach
-         call calc_nuptake_prof(bounds, num_soilc, filter_soilc, cnstate_vars, nitrogenstate_vars, nuptake_prof)
-         call calc_puptake_prof(bounds, num_soilc, filter_soilc, cnstate_vars, phosphorusstate_vars, puptake_prof)
+         call calc_nuptake_prof(bounds, num_soilc, filter_soilc, cnstate_vars, nuptake_prof)
+         call calc_puptake_prof(bounds, num_soilc, filter_soilc, cnstate_vars, puptake_prof)
       end if
 
       !! flux_type%var = local var, used in Allocation2
@@ -1067,13 +1073,11 @@ contains
  subroutine Allocation2_ResolveNPLimit (bounds, num_soilc, filter_soilc  , &
                             num_soilp, filter_soilp                         , &
                             cnstate_vars                                    , &
-                            carbonstate_vars, carbonflux_vars               , &
-                            nitrogenstate_vars, nitrogenflux_vars           , &
-                            phosphorusstate_vars,phosphorusflux_vars        , &
-                            soilstate_vars,waterstate_vars)
+                            soilstate_vars, dt )
     ! PHASE-2 of Allocation:  resolving N/P limitation
     ! !USES:
-    use shr_sys_mod      , only: shr_sys_flush
+    !#py use shr_sys_mod      , only: shr_sys_flush
+      !$acc routine seq
     use clm_varctl       , only: iulog,cnallocate_carbon_only,cnallocate_carbonnitrogen_only,&
                                  cnallocate_carbonphosphorus_only
 !    use pftvarcon        , only: npcropmin, declfact, bfact, aleaff, arootf, astemf
@@ -1082,7 +1086,7 @@ contains
     use clm_varpar       , only: nlevdecomp, ndecomp_cascade_transitions
     use clm_varcon       , only: nitrif_n2o_loss_frac, secspday
 !    use landunit_varcon  , only: istsoil, istcrop
-    use clm_time_manager , only: get_step_size
+    !#py use clm_time_manager , only: get_step_size
     use clm_varcon       , only : zisoi
     !
     ! !ARGUMENTS:
@@ -1092,16 +1096,10 @@ contains
     integer                  , intent(in)    :: num_soilp        ! number of soil patches in filter
     integer                  , intent(in)    :: filter_soilp(:)  ! filter for soil patches
     type(cnstate_type)       , intent(inout) :: cnstate_vars
-    type(carbonstate_type)   , intent(in)    :: carbonstate_vars
-    type(carbonflux_type)    , intent(inout) :: carbonflux_vars
-    type(nitrogenstate_type) , intent(inout) :: nitrogenstate_vars
-    type(nitrogenflux_type)  , intent(inout) :: nitrogenflux_vars
 !     !!  add phosphorus  -X.YANG
-    type(phosphorusstate_type) , intent(inout) :: phosphorusstate_vars
-    type(phosphorusflux_type)  , intent(inout) :: phosphorusflux_vars
 
     type(soilstate_type)     , intent(in)    :: soilstate_vars
-    type(waterstate_type)    , intent(in)    :: waterstate_vars
+    real(r8)  ,  intent(in)  :: dt
     !
     ! !LOCAL VARIABLES:
     real(r8) :: sum_pdemand_scaled(bounds%begc:bounds%endc,1:nlevdecomp)  ! sum of total P demand, scaled with relative competitiveness
@@ -1310,7 +1308,7 @@ contains
          )
 
       ! set time steps
-      dt = real( get_step_size(), r8 )
+      !#py dt = real( get_step_size(), r8 )
 
       if (nu_com .eq. 'RD') then ! 'RD' : relative demand approach
 
@@ -1323,8 +1321,8 @@ contains
 
          ! Starting resolving N/P limitation
          ! calculate nuptake & puptake profile
-         call calc_nuptake_prof(bounds, num_soilc, filter_soilc, cnstate_vars, nitrogenstate_vars, nuptake_prof)
-         call calc_puptake_prof(bounds, num_soilc, filter_soilc, cnstate_vars, phosphorusstate_vars, puptake_prof)
+         call calc_nuptake_prof(bounds, num_soilc, filter_soilc, cnstate_vars, nuptake_prof)
+         call calc_puptake_prof(bounds, num_soilc, filter_soilc, cnstate_vars, puptake_prof)
 
       end if
 
@@ -2829,15 +2827,14 @@ contains
   subroutine Allocation3_PlantCNPAlloc (bounds            , &
         num_soilc, filter_soilc, num_soilp, filter_soilp    , &
         canopystate_vars                                    , &
-        cnstate_vars, carbonstate_vars, carbonflux_vars     , &
-        c13_carbonflux_vars, c14_carbonflux_vars            , &
-        nitrogenstate_vars, nitrogenflux_vars               , &
-        phosphorusstate_vars, phosphorusflux_vars, crop_vars)
+        cnstate_vars, crop_vars , &
+        dt )
     ! PHASE-3 of Allocation: start new pft loop to distribute the available N/P between the
     ! competing patches on the basis of relative demand, and allocate C/N/P to new growth and storage
 
     ! !USES:
-    use shr_sys_mod      , only: shr_sys_flush
+    !#py use shr_sys_mod      , only: shr_sys_flush
+      !$acc routine seq
     use clm_varctl       , only: iulog,cnallocate_carbon_only,cnallocate_carbonnitrogen_only,&
                                  cnallocate_carbonphosphorus_only
 !    use pftvarcon        , only: npcropmin, declfact, bfact, aleaff, arootf, astemf
@@ -2847,7 +2844,7 @@ contains
     use clm_varpar       , only:  nlevdecomp 
     use clm_varcon       , only: nitrif_n2o_loss_frac, secspday
 !    use landunit_varcon  , only: istsoil, istcrop
-    use clm_time_manager , only: get_step_size
+    !#py use clm_time_manager , only: get_step_size
     !
     ! !ARGUMENTS:
     type(bounds_type)        , intent(in)    :: bounds
@@ -2858,16 +2855,8 @@ contains
 
     type(canopystate_type)   , intent(in)    :: canopystate_vars
     type(cnstate_type)       , intent(inout) :: cnstate_vars
-    type(carbonstate_type)   , intent(in)    :: carbonstate_vars
-    type(carbonflux_type)    , intent(inout) :: carbonflux_vars
-    type(carbonflux_type)    , intent(inout) :: c13_carbonflux_vars
-    type(carbonflux_type)    , intent(inout) :: c14_carbonflux_vars
-    type(nitrogenstate_type) , intent(inout) :: nitrogenstate_vars
-    type(nitrogenflux_type)  , intent(inout) :: nitrogenflux_vars
-!    !!  add phosphorus  -X.YANG
-    type(phosphorusstate_type) , intent(inout) :: phosphorusstate_vars
-    type(phosphorusflux_type)  , intent(inout) :: phosphorusflux_vars
     type(crop_type)          , intent(inout) :: crop_vars
+    real(r8)                  , intent(in)   :: dt
     !
     ! !LOCAL VARIABLES:
     !
@@ -2902,7 +2891,7 @@ contains
     real(r8):: cp_stoich_var=0.4    ! variability of CP ratio
     real(r8):: curmr, curmr_ratio         !xsmrpool temporary variables
     real(r8):: xsmr_ratio                 ! ratio of mr comes from non-structue carobn hydrate pool
-    real(r8):: dt
+    ! real(r8):: dt
     !-----------------------------------------------------------------------
 
     associate(                                                                                 &
@@ -3075,16 +3064,14 @@ contains
          fpi_vr                       => cnstate_vars%fpi_vr_col                               , &
          fpi_p_vr                     => cnstate_vars%fpi_p_vr_col                             , &
          supplement_to_plantn         => veg_nf%supplement_to_plantn                , &
-         supplement_to_plantp         => veg_pf%supplement_to_plantp              , &
+         supplement_to_plantp         => veg_pf%supplement_to_plantp               &
 
-         c13cf => c13_carbonflux_vars, &
-         c14cf => c14_carbonflux_vars  &
          )
 
 !
 !    !-------------------------------------------------------------------
       ! set time steps
-      dt = real( get_step_size(), r8 )
+      !#py dt = real( get_step_size(), r8 )
 
       ! debug
       do fc=1,num_soilc
@@ -3922,11 +3909,11 @@ contains
           temp_sminp_to_plant(bounds%begc:bounds%endc) = sminp_to_plant(bounds%begc:bounds%endc)
 
           call p2c(bounds,num_soilc,filter_soilc, &
-                sminn_to_npool(bounds%begp:bounds%endp), &
-                sminn_to_plant(bounds%begc:bounds%endc))
+                sminn_to_npool, &
+                sminn_to_plant)
           call p2c(bounds,num_soilc,filter_soilc,       &
-              sminp_to_ppool(bounds%begp:bounds%endp), &
-              sminp_to_plant(bounds%begc:bounds%endc))
+              sminp_to_ppool, &
+              sminp_to_plant)
 
           do j = 1, nlevdecomp
                do fc=1,num_soilc
@@ -3950,11 +3937,11 @@ contains
         if( cnallocate_carbonnitrogen_only() )then
 
           call p2c(bounds,num_soilc,filter_soilc, &
-                  sminp_to_ppool(bounds%begp:bounds%endp), &
-                  sminp_to_plant(bounds%begc:bounds%endc))
+                  sminp_to_ppool, &
+                  sminp_to_plant)
 
           call calc_puptake_prof(bounds, num_soilc, filter_soilc, &
-                  cnstate_vars, phosphorusstate_vars, puptake_prof)
+                  cnstate_vars, puptake_prof)
 
           do j = 1, nlevdecomp
              do fc=1,num_soilc
@@ -3976,32 +3963,32 @@ contains
           temp_sminp_to_plant(bounds%begc:bounds%endc) = sminp_to_plant(bounds%begc:bounds%endc)
 
             call p2c(bounds,num_soilc,filter_soilc, &
-                sminn_to_npool(bounds%begp:bounds%endp), &
-                sminn_to_plant(bounds%begc:bounds%endc))
+                sminn_to_npool, &
+                sminn_to_plant)
 
             call p2c(bounds,num_soilc,filter_soilc, &
-                sminp_to_ppool(bounds%begp:bounds%endp), &
-                sminp_to_plant(bounds%begc:bounds%endc))
+                sminp_to_ppool, &
+                sminp_to_plant)
 
-          
+
             do j = 1, nlevdecomp
                do fc=1,num_soilc
                   c = filter_soilc(fc)
-                  if ( temp_sminn_to_plant(c) > 0._r8) then 
+                  if ( temp_sminn_to_plant(c) > 0._r8) then
                      sminn_to_plant_vr(c,j)    = sminn_to_plant_vr(c,j) * ( sminn_to_plant(c)/temp_sminn_to_plant(c) )
-                     smin_nh4_to_plant_vr(c,j) = smin_nh4_to_plant_vr(c,j) * ( sminn_to_plant(c)/temp_sminn_to_plant(c) ) 
-                     smin_no3_to_plant_vr(c,j) = smin_no3_to_plant_vr(c,j) * ( sminn_to_plant(c)/temp_sminn_to_plant(c) ) 
+                     smin_nh4_to_plant_vr(c,j) = smin_nh4_to_plant_vr(c,j) * ( sminn_to_plant(c)/temp_sminn_to_plant(c) )
+                     smin_no3_to_plant_vr(c,j) = smin_no3_to_plant_vr(c,j) * ( sminn_to_plant(c)/temp_sminn_to_plant(c) )
                   else
                      sminn_to_plant_vr(c,j)    = 0._r8
                      smin_nh4_to_plant_vr(c,j) = 0._r8
                      smin_no3_to_plant_vr(c,j) = 0._r8
                   endif
-                   
-                  if ( temp_sminp_to_plant(c) > 0._r8) then 
+
+                  if ( temp_sminp_to_plant(c) > 0._r8) then
                      sminp_to_plant_vr(c,j) =  sminp_to_plant_vr(c,j) * ( sminp_to_plant(c)/temp_sminp_to_plant(c) )
                   else
                      sminp_to_plant_vr(c,j) = 0._r8
-                  endif 
+                  endif
                end do
             end do
 
@@ -4012,8 +3999,9 @@ contains
           temp_sminp_to_plant(bounds%begc:bounds%endc) = sminp_to_plant(bounds%begc:bounds%endc)
 
             call p2c(bounds,num_soilc,filter_soilc, &
-                sminp_to_ppool(bounds%begp:bounds%endp), &
-                sminp_to_plant(bounds%begc:bounds%endc))
+                sminp_to_ppool, &
+                sminp_to_plant)
+
 
           
             do j = 1, nlevdecomp
@@ -4041,17 +4029,17 @@ contains
  end subroutine Allocation3_PlantCNPAlloc
 
 !-------------------------------------------------------------------------------------------------
-  subroutine calc_nuptake_prof(bounds, num_soilc, filter_soilc, cnstate_vars, nitrogenstate_vars, nuptake_prof)
+  subroutine calc_nuptake_prof(bounds, num_soilc, filter_soilc, cnstate_vars, nuptake_prof)
     ! bgc interface & pflotran:
     ! nuptake_prof is used in Allocation1, 2, 3
     ! !USES:
+      !$acc routine seq
     use clm_varpar       , only: nlevdecomp
     ! !ARGUMENTS:
     type(bounds_type)        , intent(in)    :: bounds
     integer                  , intent(in)    :: num_soilc        ! number of soil columns in filter
     integer                  , intent(in)    :: filter_soilc(:)  ! filter for soil columns
     type(cnstate_type)       , intent(in)    :: cnstate_vars
-    type(nitrogenstate_type) , intent(in)    :: nitrogenstate_vars
     real(r8)                 , intent(inout) :: nuptake_prof(bounds%begc:bounds%endc, 1:nlevdecomp)
 
     integer :: c,j,fc                                            !indices
@@ -4115,17 +4103,17 @@ contains
  end subroutine calc_nuptake_prof
 
 !-------------------------------------------------------------------------------------------------
-  subroutine calc_puptake_prof(bounds, num_soilc, filter_soilc, cnstate_vars, phosphorusstate_vars, puptake_prof)
+  subroutine calc_puptake_prof(bounds, num_soilc, filter_soilc, cnstate_vars, puptake_prof)
     ! bgc interface & pflotran:
     ! puptake_prof is used in Allocation1, 2, & 3
     ! !USES:
+      !$acc routine seq
     use clm_varpar       , only: nlevdecomp
     ! !ARGUMENTS:
     type(bounds_type)        , intent(in)    :: bounds
     integer                  , intent(in)    :: num_soilc        ! number of soil columns in filter
     integer                  , intent(in)    :: filter_soilc(:)  ! filter for soil columns
     type(cnstate_type)       , intent(in)    :: cnstate_vars
-    type(phosphorusstate_type),intent(in)    :: phosphorusstate_vars
     real(r8)                 , intent(inout) :: puptake_prof(bounds%begc:bounds%endc, 1:nlevdecomp)
 
     integer :: c,j,fc                                            !indices
@@ -4182,6 +4170,7 @@ contains
     ! (2) nutrient/water limited, allocate more C into root
   
     ! !USES:
+      !$acc routine seq
     use pftvarcon      , only : laimax
   
     !

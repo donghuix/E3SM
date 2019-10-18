@@ -50,8 +50,8 @@ contains
             source=soil_water_retention_curve_clapp_hornberg_1978_type())
 
     case default
-       write(iulog,*) subname//' ERROR: unknown method: ', method
-       call endrun(msg=errMsg(__FILE__, __LINE__))
+       !#py write(iulog,*) subname//' ERROR: unknown method: ', method
+       !#py call endrun(msg=errMsg(__FILE__, __LINE__))
 
     end select
 

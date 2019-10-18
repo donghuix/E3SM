@@ -30,7 +30,7 @@ module CNNitrifDenitrifMod
   public :: nitrif_denitrif
   public :: readNitrifDenitrifParams
   !
-  type, private :: NitrifDenitrifParamsType
+  type, public :: NitrifDenitrifParamsType
    real(r8) :: k_nitr_max               !  maximum nitrification rate constant (1/s)
    real(r8) :: surface_tension_water    !  surface tension of water(J/m^2), Arah an and Vinten 1995
    real(r8) :: rij_kro_a                !  Arah and Vinten 1995)
@@ -40,9 +40,11 @@ module CNNitrifDenitrifMod
    real(r8) :: rij_kro_delta            !  (Arah and Vinten 1995)
   end type NitrifDenitrifParamsType
 
-  type(NitrifDenitrifParamsType),private ::  NitrifDenitrifParamsInst
+  type(NitrifDenitrifParamsType) , public ::  NitrifDenitrifParamsInst
+  !$acc declare create(NitrifDenitrifParamsInst)
 
   logical, public :: no_frozen_nitrif_denitrif = .false.  ! stop nitrification and denitrification in frozen soils
+  !$acc declare create(no_frozen_nitrif_denitrif)
   !-----------------------------------------------------------------------
 
 contains
@@ -104,14 +106,13 @@ contains
 
   !-----------------------------------------------------------------------
   subroutine nitrif_denitrif(bounds, num_soilc, filter_soilc, &
-       soilstate_vars, waterstate_vars, temperature_vars, ch4_vars, &
-       carbonflux_vars, nitrogenstate_vars, nitrogenflux_vars)
+       soilstate_vars, ch4_vars)
     !
     ! !DESCRIPTION:
     !  calculate nitrification and denitrification rates
     !
     ! !USES:
-    use clm_time_manager  , only : get_curr_date, get_step_size
+      !$acc routine seq
     use SharedParamsMod , only : anoxia_wtsat,ParamsShareInst
     !
     ! !ARGUMENTS:
@@ -119,12 +120,7 @@ contains
     integer                  , intent(in)    :: num_soilc         ! number of soil columns in filter
     integer                  , intent(in)    :: filter_soilc(:)   ! filter for soil columns
     type(soilstate_type)     , intent(in)    :: soilstate_vars
-    type(waterstate_type)    , intent(in)    :: waterstate_vars
-    type(temperature_type)   , intent(in)    :: temperature_vars
     type(ch4_type)           , intent(in)    :: ch4_vars
-    type(carbonflux_type)    , intent(in)    :: carbonflux_vars
-    type(nitrogenstate_type) , intent(in)    :: nitrogenstate_vars
-    type(nitrogenflux_type)  , intent(inout) :: nitrogenflux_vars
     !
     ! !LOCAL VARIABLES:
     integer  :: c, fc, reflev, j
@@ -153,7 +149,7 @@ contains
     real(r8) :: anaerobic_frac_sat, r_psi_sat, r_min_sat ! scalar values in sat portion for averaging
     real(r8) :: organic_max              ! organic matter content (kg/m3) where
                                          ! soil is assumed to act like peat
-    character(len=32) :: subname='nitrif_denitrif' ! subroutine name
+    !character(len=32) :: subname='nitrif_denitrif' ! subroutine name
     !-----------------------------------------------------------------------
 
     associate(                                                                                     & 

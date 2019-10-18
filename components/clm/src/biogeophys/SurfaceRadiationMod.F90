@@ -10,9 +10,8 @@ module SurfaceRadiationMod
   use clm_varctl        , only : use_snicar_frc, use_fates
   use abortutils        , only : endrun
   use decompMod         , only : bounds_type
-  use clm_varcon        , only : namec
+  use clm_varcon        , only : namec, spval, ispval
   use atm2lndType       , only : atm2lnd_type
-  use WaterstateType    , only : waterstate_type
   use CanopyStateType   , only : canopystate_type
   use SurfaceAlbedoType , only : surfalb_type
   use SolarAbsorbedType , only : solarabs_type
@@ -36,35 +35,35 @@ module SurfaceRadiationMod
   !
   ! !PRIVATE DATA:
   type, public :: surfrad_type
-     real(r8), pointer, private  :: sfc_frc_aer_patch     (:) ! patch surface forcing of snow with all aerosols (pft) [W/m2]
-     real(r8), pointer, private  :: sfc_frc_bc_patch      (:) ! patch surface forcing of snow with BC (pft) [W/m2]
-     real(r8), pointer, private  :: sfc_frc_oc_patch      (:) ! patch surface forcing of snow with OC (pft) [W/m2]
-     real(r8), pointer, private  :: sfc_frc_dst_patch     (:) ! patch surface forcing of snow with dust (pft) [W/m2]
-     real(r8), pointer, private  :: sfc_frc_aer_sno_patch (:) ! patch surface forcing of snow with all aerosols, averaged only when snow is present (pft) [W/m2]
-     real(r8), pointer, private  :: sfc_frc_bc_sno_patch  (:) ! patch surface forcing of snow with BC, averaged only when snow is present (pft) [W/m2]
-     real(r8), pointer, private  :: sfc_frc_oc_sno_patch  (:) ! patch surface forcing of snow with OC, averaged only when snow is present (pft) [W/m2]
-     real(r8), pointer, private  :: sfc_frc_dst_sno_patch (:) ! patch surface forcing of snow with dust, averaged only when snow is present (pft) [W/m2]
+     real(r8), pointer  :: sfc_frc_aer_patch     (:) => null() ! patch surface forcing of snow with all aerosols (pft) [W/m2]
+     real(r8), pointer  :: sfc_frc_bc_patch      (:) => null() ! patch surface forcing of snow with BC (pft) [W/m2]
+     real(r8), pointer  :: sfc_frc_oc_patch      (:) => null() ! patch surface forcing of snow with OC (pft) [W/m2]
+     real(r8), pointer  :: sfc_frc_dst_patch     (:) => null() ! patch surface forcing of snow with dust (pft) [W/m2]
+     real(r8), pointer  :: sfc_frc_aer_sno_patch (:) => null() ! patch surface forcing of snow with all aerosols, averaged only when snow is present (pft) [W/m2]
+     real(r8), pointer  :: sfc_frc_bc_sno_patch  (:) => null() ! patch surface forcing of snow with BC, averaged only when snow is present (pft) [W/m2]
+     real(r8), pointer  :: sfc_frc_oc_sno_patch  (:) => null() ! patch surface forcing of snow with OC, averaged only when snow is present (pft) [W/m2]
+     real(r8), pointer  :: sfc_frc_dst_sno_patch (:) => null() ! patch surface forcing of snow with dust, averaged only when snow is present (pft) [W/m2]
 
-     real(r8), pointer, private  :: parveg_ln_patch       (:) ! patch  absorbed par by vegetation at local noon (W/m**2)
+     real(r8), pointer  :: parveg_ln_patch       (:) => null() ! patch  absorbed par by vegetation at local noon (W/m**2)
 
-     real(r8), pointer, private  :: fsr_sno_vd_patch      (:) ! patch reflected direct beam vis solar radiation from snow (W/m**2)
-     real(r8), pointer, private  :: fsr_sno_nd_patch      (:) ! patch reflected direct beam NIR solar radiation from snow (W/m**2)
-     real(r8), pointer, private  :: fsr_sno_vi_patch      (:) ! patch reflected diffuse vis solar radiation from snow (W/m**2)
-     real(r8), pointer, private  :: fsr_sno_ni_patch      (:) ! patch reflected diffuse NIR solar radiation from snow (W/m**2)
+     real(r8), pointer  :: fsr_sno_vd_patch      (:) => null() ! patch reflected direct beam vis solar radiation from snow (W/m**2)
+     real(r8), pointer  :: fsr_sno_nd_patch      (:) => null() ! patch reflected direct beam NIR solar radiation from snow (W/m**2)
+     real(r8), pointer  :: fsr_sno_vi_patch      (:) => null() ! patch reflected diffuse vis solar radiation from snow (W/m**2)
+     real(r8), pointer  :: fsr_sno_ni_patch      (:) => null() ! patch reflected diffuse NIR solar radiation from snow (W/m**2)
 
-     real(r8), pointer, private  :: fsr_vis_d_patch       (:) ! patch reflected direct beam vis solar radiation (W/m**2)
-     real(r8), pointer, private  :: fsr_vis_i_patch       (:) ! patch reflected diffuse vis solar radiation (W/m**2)
-     real(r8), pointer, private  :: fsr_vis_d_ln_patch    (:) ! patch reflected direct beam vis solar radiation at local noon (W/m**2)
+     real(r8), pointer  :: fsr_vis_d_patch       (:) => null() ! patch reflected direct beam vis solar radiation (W/m**2)
+     real(r8), pointer  :: fsr_vis_i_patch       (:) => null() ! patch reflected diffuse vis solar radiation (W/m**2)
+     real(r8), pointer  :: fsr_vis_d_ln_patch    (:) => null() ! patch reflected direct beam vis solar radiation at local noon (W/m**2)
 
-     real(r8), pointer, private  :: fsds_sno_vd_patch     (:) ! patch incident visible, direct radiation on snow  (for history files)  [W/m2]
-     real(r8), pointer, private  :: fsds_sno_nd_patch     (:) ! patch incident near-IR, direct radiation on snow  (for history files)  [W/m2]
-     real(r8), pointer, private  :: fsds_sno_vi_patch     (:) ! patch incident visible, diffuse radiation on snow (for history files) [W/m2]
-     real(r8), pointer, private  :: fsds_sno_ni_patch     (:) ! patch incident near-IR, diffuse radiation on snow (for history files) [W/m2]
+     real(r8), pointer  :: fsds_sno_vd_patch     (:) => null() ! patch incident visible, direct radiation on snow  (for history files)  [W/m2]
+     real(r8), pointer  :: fsds_sno_nd_patch     (:) => null() ! patch incident near-IR, direct radiation on snow  (for history files)  [W/m2]
+     real(r8), pointer  :: fsds_sno_vi_patch     (:) => null() ! patch incident visible, diffuse radiation on snow (for history files) [W/m2]
+     real(r8), pointer  :: fsds_sno_ni_patch     (:) => null() ! patch incident near-IR, diffuse radiation on snow (for history files) [W/m2]
 
-     real(r8), pointer, private  :: fsds_vis_d_patch      (:) ! patch incident direct beam vis solar radiation (W/m**2)
-     real(r8), pointer, private  :: fsds_vis_i_patch      (:) ! patch incident diffuse vis solar radiation (W/m**2)
-     real(r8), pointer, private  :: fsds_vis_d_ln_patch   (:) ! patch incident direct beam vis solar radiation at local noon (W/m**2)
-     real(r8), pointer, private  :: fsds_vis_i_ln_patch   (:) ! patch incident diffuse beam vis solar radiation at local noon (W/m**2)
+     real(r8), pointer  :: fsds_vis_d_patch      (:) => null() ! patch incident direct beam vis solar radiation (W/m**2)
+     real(r8), pointer  :: fsds_vis_i_patch      (:) => null() ! patch incident diffuse vis solar radiation (W/m**2)
+     real(r8), pointer  :: fsds_vis_d_ln_patch   (:) => null() ! patch incident direct beam vis solar radiation at local noon (W/m**2)
+     real(r8), pointer  :: fsds_vis_i_ln_patch   (:) => null() ! patch incident diffuse beam vis solar radiation at local noon (W/m**2)
 
    contains
 
@@ -94,7 +93,7 @@ contains
   subroutine InitAllocate(this, bounds)
     !
     ! !USES:
-    use shr_infnan_mod, only : nan => shr_infnan_nan, assignment(=)
+    !use shr_infnan_mod, only : nan => shr_infnan_nan, assignment(=)
     !
     ! !ARGUMENTS:
     class(surfrad_type) :: this
@@ -106,33 +105,33 @@ contains
 
     begp = bounds%begp; endp = bounds%endp
 
-    allocate(this%sfc_frc_aer_patch     (begp:endp))              ; this%sfc_frc_aer_patch     (:)   = nan
-    allocate(this%sfc_frc_bc_patch      (begp:endp))              ; this%sfc_frc_bc_patch      (:)   = nan
-    allocate(this%sfc_frc_oc_patch      (begp:endp))              ; this%sfc_frc_oc_patch      (:)   = nan
-    allocate(this%sfc_frc_dst_patch     (begp:endp))              ; this%sfc_frc_dst_patch     (:)   = nan
-    allocate(this%sfc_frc_aer_sno_patch (begp:endp))              ; this%sfc_frc_aer_sno_patch (:)   = nan
-    allocate(this%sfc_frc_bc_sno_patch  (begp:endp))              ; this%sfc_frc_bc_sno_patch  (:)   = nan
-    allocate(this%sfc_frc_oc_sno_patch  (begp:endp))              ; this%sfc_frc_oc_sno_patch  (:)   = nan
-    allocate(this%sfc_frc_dst_sno_patch (begp:endp))              ; this%sfc_frc_dst_sno_patch (:)   = nan
+    allocate(this%sfc_frc_aer_patch     (begp:endp))              ; this%sfc_frc_aer_patch     (:)   = spval
+    allocate(this%sfc_frc_bc_patch      (begp:endp))              ; this%sfc_frc_bc_patch      (:)   = spval
+    allocate(this%sfc_frc_oc_patch      (begp:endp))              ; this%sfc_frc_oc_patch      (:)   = spval
+    allocate(this%sfc_frc_dst_patch     (begp:endp))              ; this%sfc_frc_dst_patch     (:)   = spval
+    allocate(this%sfc_frc_aer_sno_patch (begp:endp))              ; this%sfc_frc_aer_sno_patch (:)   = spval
+    allocate(this%sfc_frc_bc_sno_patch  (begp:endp))              ; this%sfc_frc_bc_sno_patch  (:)   = spval
+    allocate(this%sfc_frc_oc_sno_patch  (begp:endp))              ; this%sfc_frc_oc_sno_patch  (:)   = spval
+    allocate(this%sfc_frc_dst_sno_patch (begp:endp))              ; this%sfc_frc_dst_sno_patch (:)   = spval
 
-    allocate(this%parveg_ln_patch       (begp:endp))              ; this%parveg_ln_patch       (:)   = nan
+    allocate(this%parveg_ln_patch       (begp:endp))              ; this%parveg_ln_patch       (:)   = spval
 
-    allocate(this%fsr_vis_d_patch       (begp:endp))              ; this%fsr_vis_d_patch       (:)   = nan
-    allocate(this%fsr_vis_d_ln_patch    (begp:endp))              ; this%fsr_vis_d_ln_patch    (:)   = nan
-    allocate(this%fsr_vis_i_patch       (begp:endp))              ; this%fsr_vis_i_patch       (:)   = nan
-    allocate(this%fsr_sno_vd_patch      (begp:endp))              ; this%fsr_sno_vd_patch      (:)   = nan
-    allocate(this%fsr_sno_nd_patch      (begp:endp))              ; this%fsr_sno_nd_patch      (:)   = nan
-    allocate(this%fsr_sno_vi_patch      (begp:endp))              ; this%fsr_sno_vi_patch      (:)   = nan
-    allocate(this%fsr_sno_ni_patch      (begp:endp))              ; this%fsr_sno_ni_patch      (:)   = nan
+    allocate(this%fsr_vis_d_patch       (begp:endp))              ; this%fsr_vis_d_patch       (:)   = spval
+    allocate(this%fsr_vis_d_ln_patch    (begp:endp))              ; this%fsr_vis_d_ln_patch    (:)   = spval
+    allocate(this%fsr_vis_i_patch       (begp:endp))              ; this%fsr_vis_i_patch       (:)   = spval
+    allocate(this%fsr_sno_vd_patch      (begp:endp))              ; this%fsr_sno_vd_patch      (:)   = spval
+    allocate(this%fsr_sno_nd_patch      (begp:endp))              ; this%fsr_sno_nd_patch      (:)   = spval
+    allocate(this%fsr_sno_vi_patch      (begp:endp))              ; this%fsr_sno_vi_patch      (:)   = spval
+    allocate(this%fsr_sno_ni_patch      (begp:endp))              ; this%fsr_sno_ni_patch      (:)   = spval
 
-    allocate(this%fsds_vis_d_patch      (begp:endp))              ; this%fsds_vis_d_patch      (:)   = nan
-    allocate(this%fsds_vis_i_patch      (begp:endp))              ; this%fsds_vis_i_patch      (:)   = nan
-    allocate(this%fsds_vis_d_ln_patch   (begp:endp))              ; this%fsds_vis_d_ln_patch   (:)   = nan
-    allocate(this%fsds_vis_i_ln_patch   (begp:endp))              ; this%fsds_vis_i_ln_patch   (:)   = nan
-    allocate(this%fsds_sno_vd_patch     (begp:endp))              ; this%fsds_sno_vd_patch     (:)   = nan
-    allocate(this%fsds_sno_nd_patch     (begp:endp))              ; this%fsds_sno_nd_patch     (:)   = nan
-    allocate(this%fsds_sno_vi_patch     (begp:endp))              ; this%fsds_sno_vi_patch     (:)   = nan
-    allocate(this%fsds_sno_ni_patch     (begp:endp))              ; this%fsds_sno_ni_patch     (:)   = nan
+    allocate(this%fsds_vis_d_patch      (begp:endp))              ; this%fsds_vis_d_patch      (:)   = spval
+    allocate(this%fsds_vis_i_patch      (begp:endp))              ; this%fsds_vis_i_patch      (:)   = spval
+    allocate(this%fsds_vis_d_ln_patch   (begp:endp))              ; this%fsds_vis_d_ln_patch   (:)   = spval
+    allocate(this%fsds_vis_i_ln_patch   (begp:endp))              ; this%fsds_vis_i_ln_patch   (:)   = spval
+    allocate(this%fsds_sno_vd_patch     (begp:endp))              ; this%fsds_sno_vd_patch     (:)   = spval
+    allocate(this%fsds_sno_nd_patch     (begp:endp))              ; this%fsds_sno_nd_patch     (:)   = spval
+    allocate(this%fsds_sno_vi_patch     (begp:endp))              ; this%fsds_sno_vi_patch     (:)   = spval
+    allocate(this%fsds_sno_ni_patch     (begp:endp))              ; this%fsds_sno_ni_patch     (:)   = spval
 
   end subroutine InitAllocate
 
@@ -303,8 +302,8 @@ contains
   !------------------------------------------------------------------------------
   subroutine SurfaceRadiation(bounds, num_nourbanp, filter_nourbanp, &
        num_urbanp, filter_urbanp, num_urbanc, filter_urbanc, &
-       atm2lnd_vars, waterstate_vars, canopystate_vars, surfalb_vars, &
-       solarabs_vars, surfrad_vars)
+       atm2lnd_vars, canopystate_vars, surfalb_vars, &
+       solarabs_vars, surfrad_vars, dtime, secs)
      !
      ! !DESCRIPTION: 
      ! Solar fluxes absorbed by vegetation and ground surface
@@ -323,11 +322,11 @@ contains
      ! Output variables are parsun,parsha,sabv,sabg,fsa,fsr,ndvi
      !
      ! !USES:
+      !$acc routine seq
      use clm_varpar       , only : numrad, nlevsno
      use clm_varcon       , only : spval, degpsec, isecspday
      use landunit_varcon  , only : istsoil, istcrop 
      use clm_varctl       , only : subgridflag, use_snicar_frc, iulog
-     use clm_time_manager , only : get_curr_date, get_step_size
      use SnowSnicarMod    , only : DO_SNO_OC
      use abortutils       , only : endrun
      !
@@ -340,11 +339,12 @@ contains
      integer                , intent(in)    :: num_urbanc         ! number of urban columns in clump
      integer                , intent(in)    :: filter_urbanc(:)   ! urban column filter
      type(atm2lnd_type)     , intent(in)    :: atm2lnd_vars
-     type(waterstate_type)  , intent(in)    :: waterstate_vars
      type(surfalb_type)     , intent(in)    :: surfalb_vars
      type(canopystate_type) , intent(inout) :: canopystate_vars
      type(solarabs_type)    , intent(inout) :: solarabs_vars
      type(surfrad_type)     , intent(inout) :: surfrad_vars
+     real(r8)               , intent(in)    :: dtime
+     integer , intent(in) ::  secs
      !
      ! !LOCAL VARIABLES:
      integer , parameter :: nband = numrad           ! number of solar radiation waveband classes
@@ -366,7 +366,6 @@ contains
      real(r8) :: cad(bounds%begp:bounds%endp,numrad) ! direct beam absorbed by canopy (W/m**2)
      real(r8) :: cai(bounds%begp:bounds%endp,numrad) ! diffuse radiation absorbed by canopy (W/m**2)
      integer  :: local_secp1                         ! seconds into current date in local time
-     real(r8) :: dtime                               ! land model time step (sec)
      integer  :: year,month,day,secs                 ! calendar info for current time step
      real(r8) :: sabg_snl_sum                        ! temporary, absorbed energy in all active snow layers [W/m2]
      real(r8) :: absrad_pur                          ! temp: absorbed solar radiation by pure snow [W/m2]
@@ -474,9 +473,6 @@ contains
           )
 
        ! Determine seconds off current time step
-     
-       dtime = get_step_size()
-       call get_curr_date (year, month, day, secs)
 
        ! Initialize fluxes
 
@@ -664,22 +660,22 @@ contains
 
           ! This situation should not happen:
           if (abs(sum(sabg_lyr(p,:))-sabg_snow(p)) > 0.00001_r8) then
-             write(iulog,*)"SNICAR ERROR: Absorbed ground radiation not equal to summed snow layer radiation"
-             write(iulog,*)"Diff        = ",sum(sabg_lyr(p,:))-sabg_snow(p)
-             write(iulog,*)"sabg_snow(p)= ",sabg_snow(p)
-             write(iulog,*)"sabg_sum(p) = ",sum(sabg_lyr(p,:))
-             write(iulog,*)"snl(c)      = ",snl(c)
-             write(iulog,*)"flx_absdv1  = ",trd(p,1)*(1.-albgrd(c,1))
-             write(iulog,*)"flx_absdv2  = ",sum(flx_absdv(c,:))*trd(p,1)
-             write(iulog,*)"flx_absiv1  = ",tri(p,1)*(1.-albgri(c,1))
-             write(iulog,*)"flx_absiv2  = ",sum(flx_absiv(c,:))*tri(p,1)
-             write(iulog,*)"flx_absdn1  = ",trd(p,2)*(1.-albgrd(c,2))
-             write(iulog,*)"flx_absdn2  = ",sum(flx_absdn(c,:))*trd(p,2)
-             write(iulog,*)"flx_absin1  = ",tri(p,2)*(1.-albgri(c,2))
-             write(iulog,*)"flx_absin2  = ",sum(flx_absin(c,:))*tri(p,2)
-             write(iulog,*)"albgrd_nir  = ",albgrd(c,2)
-             write(iulog,*)"coszen      = ",coszen(c)
-             call endrun(decomp_index=c, clmlevel=namec, msg=errmsg(__FILE__, __LINE__))
+             !write(iulog,*)"SNICAR ERROR: Absorbed ground radiation not equal to summed snow layer radiation"
+             !write(iulog,*)"Diff        = ",sum(sabg_lyr(p,:))-sabg_snow(p)
+             !write(iulog,*)"sabg_snow(p)= ",sabg_snow(p)
+             !write(iulog,*)"sabg_sum(p) = ",sum(sabg_lyr(p,:))
+             !write(iulog,*)"snl(c)      = ",snl(c)
+             !write(iulog,*)"flx_absdv1  = ",trd(p,1)*(1.-albgrd(c,1))
+             !write(iulog,*)"flx_absdv2  = ",sum(flx_absdv(c,:))*trd(p,1)
+             !write(iulog,*)"flx_absiv1  = ",tri(p,1)*(1.-albgri(c,1))
+             !write(iulog,*)"flx_absiv2  = ",sum(flx_absiv(c,:))*tri(p,1)
+             !write(iulog,*)"flx_absdn1  = ",trd(p,2)*(1.-albgrd(c,2))
+             !write(iulog,*)"flx_absdn2  = ",sum(flx_absdn(c,:))*trd(p,2)
+             !write(iulog,*)"flx_absin1  = ",tri(p,2)*(1.-albgri(c,2))
+             !write(iulog,*)"flx_absin2  = ",sum(flx_absin(c,:))*tri(p,2)
+             !write(iulog,*)"albgrd_nir  = ",albgrd(c,2)
+             !write(iulog,*)"coszen      = ",coszen(c)
+             !call endrun(decomp_index=c, clmlevel=namec, msg=errmsg(__FILE__, __LINE__))
           endif
 
           ! Diagnostic: shortwave penetrating ground (e.g. top layer)
@@ -797,12 +793,12 @@ contains
         if(elai(p)==0.0_r8.and.fabd(p,1)>0._r8)then
            ! FIX(SPM, 051314) - is this necessary ?  puts lots of info in
            ! lnd.log
-           write(iulog,*) 'absorption without LAI',elai(p),tlai(p),fabd(p,1),p
+           !write(iulog,*) 'absorption without LAI',elai(p),tlai(p),fabd(p,1),p
         endif
-          ! Solar incident 
+          ! Solar incident
 
           fsds_vis_d(p) = forc_solad(t,1)
-          fsds_nir_d(p) = forc_solad(t,2)    
+          fsds_nir_d(p) = forc_solad(t,2)
           fsds_vis_i(p) = forc_solai(t,1)
           fsds_nir_i(p) = forc_solai(t,2)
 
@@ -865,12 +861,13 @@ contains
       ! variables also needs to be augmented in that routine as well.
       ! ------------------------------------------------------------------------------------
 
+      !$acc routine seq
       implicit none
 
       ! Arguments (in)
 
       integer, intent(in)                   :: num_nourbanp       ! size of the nonurban filter
-      integer, intent(in),dimension(:)      :: filter_nourbanp    ! patch filter for non-urban points
+      integer, intent(in)                   :: filter_nourbanp(:)    ! patch filter for non-urban points
       type(atm2lnd_type), intent(in)        :: atm2lnd_vars
       type(surfalb_type), intent(in)        :: surfalb_vars
       

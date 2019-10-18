@@ -36,12 +36,14 @@ module GapMortalityMod
   public :: GapMortality
   public :: readGapMortParams
 
-  type, private :: CNGapMortParamsType
+  type, public :: CNGapMortParamsType
       real(r8):: am     ! mortality rate based on annual rate, fractional mortality (1/yr)
       real(r8):: k_mort ! coeff. of growth efficiency in mortality equation
   end type CNGapMortParamsType
 
-  type(CNGapMortParamsType),private ::  CNGapMortParamsInst
+  type(CNGapMortParamsType),public ::  CNGapMortParamsInst
+  !$acc declare create(cngapmortparamsinst)
+
   !-----------------------------------------------------------------------
 
 contains
@@ -82,15 +84,14 @@ contains
   !-----------------------------------------------------------------------
   subroutine GapMortality (&
        num_soilc, filter_soilc, num_soilp, filter_soilp, &
-       cnstate_vars, &
-       carbonstate_vars, nitrogenstate_vars, carbonflux_vars,nitrogenflux_vars,&
-       phosphorusstate_vars,phosphorusflux_vars)
+       cnstate_vars,dayspyr)
     !
     ! !DESCRIPTION:
     ! Gap-phase mortality routine for coupled carbon-nitrogen code (CN)
     !
     ! !USES:
-    use clm_time_manager , only: get_days_per_year
+    !#py use clm_time_manager , only: get_days_per_year
+      !$acc routine seq
     use clm_varcon       , only: secspday
     use pftvarcon        , only: npcropmin
     use clm_varctl       , only: spinup_state, spinup_mortality_factor
@@ -101,14 +102,7 @@ contains
     integer                  , intent(in)    :: num_soilp       ! number of soil patches in filter
     integer                  , intent(in)    :: filter_soilp(:) ! patch filter for soil points
     type(cnstate_type)       , intent(inout)    :: cnstate_vars
-    type(carbonstate_type)   , intent(inout)    :: carbonstate_vars
-    type(nitrogenstate_type) , intent(in)    :: nitrogenstate_vars
-    type(carbonflux_type)    , intent(inout) :: carbonflux_vars
-    type(nitrogenflux_type)  , intent(inout) :: nitrogenflux_vars
-
-    type(phosphorusstate_type) , intent(in) :: phosphorusstate_vars
-    type(phosphorusflux_type)  , intent(inout) :: phosphorusflux_vars
-
+    real(r8)                 , intent(in)    :: dayspyr
     !
     ! !LOCAL VARIABLES:
     integer :: p             ! patch index
@@ -145,7 +139,7 @@ contains
          end if
 
 
-         m  = am/(get_days_per_year() * secspday)
+        m  = am/(dayspyr * secspday)
 
          !------------------------------------------------------
          ! patch-level gap mortality carbon fluxes
@@ -266,7 +260,7 @@ contains
       ! for litter C and N inputs
 
       call CNGapPftToColumn(num_soilc, filter_soilc, &
-           cnstate_vars, carbonflux_vars, nitrogenflux_vars,phosphorusflux_vars)
+           cnstate_vars)
 
     end associate
   end subroutine GapMortality
@@ -274,8 +268,8 @@ contains
   !-----------------------------------------------------------------------
   subroutine CNGapPftToColumn ( &
        num_soilc, filter_soilc, &
-       cnstate_vars, carbonflux_vars, nitrogenflux_vars,phosphorusflux_vars)
-    !
+       cnstate_vars)
+    !$acc routine seq
     ! !DESCRIPTION:
     ! called in the middle of CNGapMoratlity to gather all pft-level gap mortality fluxes
     ! to the column level and assign them to the three litter pools
@@ -287,9 +281,6 @@ contains
     integer                 , intent(in)    :: num_soilc       ! number of soil columns in filter
     integer                 , intent(in)    :: filter_soilc(:) ! soil column filter
     type(cnstate_type)      , intent(in)    :: cnstate_vars
-    type(carbonflux_type)   , intent(inout) :: carbonflux_vars
-    type(nitrogenflux_type) , intent(inout) :: nitrogenflux_vars
-    type(phosphorusflux_type)  , intent(inout) :: phosphorusflux_vars
     !
     ! !LOCAL VARIABLES:
     integer :: fc,c,pi,p,j               ! indices
@@ -562,6 +553,7 @@ contains
     ! !this surroutine is to calculate mortality rate based on soil order
 
     ! USES
+      !$acc routine seq
     use pftvarcon       , only: nbrdlf_evr_trp_tree, nbrdlf_dcd_trp_tree
     use soilorder_varcon, only: r_mort_soilorder
 

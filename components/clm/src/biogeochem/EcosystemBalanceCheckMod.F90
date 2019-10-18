@@ -6,17 +6,13 @@ module EcosystemBalanceCheckMod
   !
   ! !USES:
   use shr_kind_mod        , only : r8 => shr_kind_r8
-  use shr_infnan_mod      , only : nan => shr_infnan_nan, assignment(=)
-  use shr_log_mod         , only : errMsg => shr_log_errMsg
+  !#py !#py use shr_infnan_mod      , only : nan => shr_infnan_nan, assignment(=)
+  !#py !#py use shr_log_mod         , only : errMsg => shr_log_errMsg
   use decompMod           , only : bounds_type
-  use abortutils          , only : endrun
+  !#py use abortutils          , only : endrun
   use clm_varctl          , only : iulog, use_nitrif_denitrif, use_fates
-  use clm_time_manager    , only : get_step_size,get_nstep
+  !#py use clm_time_manager    , only : get_step_size,get_nstep
   use clm_varpar          , only : crop_prog
-  use CNCarbonFluxType    , only : carbonflux_type
-  use CNCarbonStateType   , only : carbonstate_type
-  use CNNitrogenFluxType  , only : nitrogenflux_type
-  use CNNitrogenStateType , only : nitrogenstate_type
   use clm_varpar          , only : nlevdecomp
   use clm_varcon          , only : dzsoi_decomp
   use clm_varctl          , only : nu_com
@@ -25,14 +21,12 @@ module EcosystemBalanceCheckMod
   use CNDecompCascadeConType , only : decomp_cascade_con
   use clm_varpar          , only: ndecomp_cascade_transitions
   use subgridAveMod       , only : p2c, c2g
-  use PhosphorusFluxType  , only : phosphorusflux_type
-  use PhosphorusStateType , only : phosphorusstate_type
   ! soil erosion
   use clm_varctl          , only : use_erosion, ero_ccycle
   ! bgc interface & pflotran:
   use clm_varctl          , only : use_pflotran, pf_cmode, pf_hmode
   ! forest fertilization experiment
-  use clm_time_manager    , only : get_curr_date
+  !#py use clm_time_manager    , only : get_curr_date
   use CNStateType         , only : fert_type , fert_continue, fert_dose, fert_start, fert_end
   use clm_varctl          , only : forest_fert_exp
   use pftvarcon           , only: noveg
@@ -116,7 +110,6 @@ contains
     type(bounds_type)        , intent(in)    :: bounds          
     integer                  , intent(in)    :: num_soilc       ! number of soil columns filter
     integer                  , intent(in)    :: filter_soilc(:) ! filter for soil columns
-    type(nitrogenstate_type) , intent(inout) :: nitrogenstate_vars
     !
     ! !LOCAL VARIABLES:
     integer :: c     ! indices
@@ -139,8 +132,7 @@ contains
   end subroutine BeginColNBalance
 
   !-----------------------------------------------------------------------
-  subroutine BeginColPBalance(bounds, num_soilc, filter_soilc, &
-       phosphorusstate_vars)
+  subroutine BeginColPBalance(bounds, num_soilc, filter_soilc)
     !
     ! !DESCRIPTION:
     ! On the radiation time step, calculate the beginning phosphorus balance for mass
@@ -150,7 +142,6 @@ contains
     type(bounds_type)        , intent(in)    :: bounds          
     integer                  , intent(in)    :: num_soilc       ! number of soil columns filter
     integer                  , intent(in)    :: filter_soilc(:) ! filter for soil columns
-    type(phosphorusstate_type) , intent(inout) :: phosphorusstate_vars
     !
     ! !LOCAL VARIABLES:
     integer :: c     ! indices
@@ -182,23 +173,24 @@ contains
   !-----------------------------------------------------------------------
   subroutine ColCBalanceCheck(bounds, &
        num_soilc, filter_soilc, &
-       col_cs, carbonflux_vars)
+       col_cs, dt)
     !
     ! !DESCRIPTION:
     ! On the radiation time step, perform carbon mass conservation check for column and pft
     !
     ! !ARGUMENTS:
+      !$acc routine seq
     type(bounds_type)         , intent(in)    :: bounds          
     integer                   , intent(in)    :: num_soilc       ! number of soil columns in filter
     integer                   , intent(in)    :: filter_soilc(:) ! filter for soil columns
     type(column_carbon_state) , intent(inout) :: col_cs
-    type(carbonflux_type)     , intent(in)    :: carbonflux_vars
+    real(r8)                  , intent(in)    :: dt             ! radiation time step (seconds)
+
     !
     ! !LOCAL VARIABLES:
     integer  :: c,err_index    ! indices
     integer  :: fc             ! lake filter indices
     logical  :: err_found      ! error flag
-    real(r8) :: dt             ! radiation time step (seconds)
     real(r8) :: col_cinputs
     real(r8) :: col_coutputs
     !-----------------------------------------------------------------------
@@ -221,7 +213,7 @@ contains
          )
 
       ! set time steps
-      dt = real( get_step_size(), r8 )
+      !#py dt = real( get_step_size(), r8 )
 
       err_found = .false.
       ! column loop
@@ -276,29 +268,29 @@ contains
       if (.not. use_fates) then
          if (err_found) then
             c = err_index
-            write(iulog,*)'column cbalance error = ', col_errcb(c), c
-            write(iulog,*)'Latdeg,Londeg         = ',grc_pp%latdeg(col_pp%gridcell(c)),grc_pp%londeg(col_pp%gridcell(c))
-            write(iulog,*)'input                 = ',col_cinputs*dt
-            write(iulog,*)'output                = ',col_coutputs*dt
-            write(iulog,*)'er                    = ',er(c)*dt,col_cf%hr(c)*dt
-            write(iulog,*)'fire                  = ',col_fire_closs(c)*dt
-            write(iulog,*)'hrv_to_atm            = ',col_hrv_xsmrpool_to_atm(c)*dt
-            write(iulog,*)'hrv_to_prod10         = ',hrv_deadstemc_to_prod10c(c)*dt
-            write(iulog,*)'hrv_to_prod100        = ',hrv_deadstemc_to_prod100c(c)*dt
-            write(iulog,*)'leach                 = ',som_c_leached(c)*dt
-            write(iulog,*)'begcb                 = ',col_begcb(c)
-            write(iulog,*)'endcb                 = ',col_endcb(c),col_cs%totsomc(c)
-            write(iulog,*)'delta store           = ',col_endcb(c)-col_begcb(c)
+            !#py write(iulog,*)'column cbalance error = ', col_errcb(c), c
+            !#py write(iulog,*)'Latdeg,Londeg         = ',grc_pp%latdeg(col_pp%gridcell(c)),grc_pp%londeg(col_pp%gridcell(c))
+            !#py write(iulog,*)'input                 = ',col_cinputs*dt
+            !#py write(iulog,*)'output                = ',col_coutputs*dt
+            !#py write(iulog,*)'er                    = ',er(c)*dt,col_cf%hr(c)*dt
+            !#py write(iulog,*)'fire                  = ',col_fire_closs(c)*dt
+            !#py write(iulog,*)'hrv_to_atm            = ',col_hrv_xsmrpool_to_atm(c)*dt
+            !#py write(iulog,*)'hrv_to_prod10         = ',hrv_deadstemc_to_prod10c(c)*dt
+            !#py write(iulog,*)'hrv_to_prod100        = ',hrv_deadstemc_to_prod100c(c)*dt
+            !#py write(iulog,*)'leach                 = ',som_c_leached(c)*dt
+            !#py write(iulog,*)'begcb                 = ',col_begcb(c)
+            !#py write(iulog,*)'endcb                 = ',col_endcb(c),col_cs%totsomc(c)
+            !#py write(iulog,*)'delta store           = ',col_endcb(c)-col_begcb(c)
 
             if (ero_ccycle) then
                write(iulog,*)'erosion               = ',som_c_yield(c)*dt
             end if
 
             if (use_pflotran .and. pf_cmode) then
-               write(iulog,*)'pf_delta_decompc      = ',col_decompc_delta(c)*dt
+               !#py write(iulog,*)'pf_delta_decompc      = ',col_decompc_delta(c)*dt
             end if
 
-            call endrun(msg=errMsg(__FILE__, __LINE__))
+            !#py !#py call endrun(msg=errMsg(__FILE__, __LINE__))
          end if
       end if !use_fates
 
@@ -308,31 +300,29 @@ contains
 
   !-----------------------------------------------------------------------
   subroutine ColNBalanceCheck(bounds, &
-       num_soilc, filter_soilc, &
-       nitrogenstate_vars, nitrogenflux_vars)
+       num_soilc, filter_soilc, dt, kyr, kmo, kda, mcsec)
     !
     ! !DESCRIPTION:
     ! On the radiation time step, perform nitrogen mass conservation check
     ! for column and pft
     !
+      !$acc routine seq
     use tracer_varcon,  only : is_active_betr_bgc
     ! !ARGUMENTS:
     type(bounds_type)         , intent(in)    :: bounds          
     integer                   , intent(in)    :: num_soilc       ! number of soil columns in filter
     integer                   , intent(in)    :: filter_soilc(:) ! filter for soil columns
-    type(nitrogenstate_type) , intent(inout) :: nitrogenstate_vars
-    type(nitrogenflux_type)  , intent(inout) :: nitrogenflux_vars
+    real(r8)                  , intent(in)    :: dt             ! radiation time step (seconds)
+    integer                   , intent(in)    :: kyr                     ! current year
+    integer                   , intent(in)    :: kmo                     ! month of year  (1, ..., 12)
+    integer                   , intent(in)    :: kda                     ! day of month   (1, ..., 31)
+    integer                   , intent(in)    :: mcsec                   ! seconds of day (0, ..., seconds/day)
     !
     ! !LOCAL VARIABLES:
     integer :: c,err_index,j,p  ! indices
     integer :: fc             ! lake filter indices
     logical :: err_found      ! error flag
-    real(r8):: dt             ! radiation time step (seconds)
 
-    integer:: kyr                     ! current year 
-    integer:: kmo                     ! month of year  (1, ..., 12)
-    integer:: kda                     ! day of month   (1, ..., 31) 
-    integer:: mcsec                   ! seconds of day (0, ..., seconds/day) 
     !-----------------------------------------------------------------------
 
     associate(                                                                             &
@@ -365,8 +355,8 @@ contains
          )
 
       ! set time steps
-      dt = real( get_step_size(), r8 )
-      call get_curr_date(kyr, kmo, kda, mcsec)
+      !#py dt = real( get_step_size(), r8 )
+      !#py call get_curr_date(kyr, kmo, kda, mcsec)
 
       err_found = .false.
       ! column loop
@@ -461,35 +451,35 @@ contains
 
       if (err_found) then
          c = err_index
-         write(iulog,*)'column nbalance error = ',col_errnb(c), c, get_nstep()
-         write(iulog,*)'Latdeg,Londeg         = ',grc_pp%latdeg(col_pp%gridcell(c)),grc_pp%londeg(col_pp%gridcell(c))
-         write(iulog,*)'begnb                 = ',col_begnb(c)
-         write(iulog,*)'endnb                 = ',col_endnb(c)
-         write(iulog,*)'delta store           = ',col_endnb(c)-col_begnb(c)
-         write(iulog,*)'input mass            = ',col_ninputs(c)*dt
-         write(iulog,*)'output mass           = ',col_noutputs(c)*dt
-         write(iulog,*)'net flux              = ',(col_ninputs(c)-col_noutputs(c))*dt
-         write(iulog,*)'denit                 = ',denit(c)*dt
-         write(iulog,*)'n2onit                = ',f_n2o_nit(c)*dt
-         write(iulog,*)'no3 leach             = ',smin_no3_leached(c)*dt 
-         write(iulog,*)'no3 runof             = ',smin_no3_runoff(c)*dt
-         write(iulog,*)'ndep                  = ',ndep_to_sminn(c)*dt
-         write(iulog,*)'nfix                  = ',nfix_to_sminn(c)*dt
-         write(iulog,*)'nsup                  = ',supplement_to_sminn(c)*dt
+         !#py !#py write(iulog,*)'column nbalance error = ',col_errnb(c), c, get_nstep()
+         !#py write(iulog,*)'Latdeg,Londeg         = ',grc_pp%latdeg(col_pp%gridcell(c)),grc_pp%londeg(col_pp%gridcell(c))
+         !#py write(iulog,*)'begnb                 = ',col_begnb(c)
+         !#py write(iulog,*)'endnb                 = ',col_endnb(c)
+         !#py write(iulog,*)'delta store           = ',col_endnb(c)-col_begnb(c)
+         !#py write(iulog,*)'input mass            = ',col_ninputs(c)*dt
+         !#py write(iulog,*)'output mass           = ',col_noutputs(c)*dt
+         !#py write(iulog,*)'net flux              = ',(col_ninputs(c)-col_noutputs(c))*dt
+         !#py write(iulog,*)'denit                 = ',denit(c)*dt
+         !#py write(iulog,*)'n2onit                = ',f_n2o_nit(c)*dt
+         !#py write(iulog,*)'no3 leach             = ',smin_no3_leached(c)*dt
+         !#py write(iulog,*)'no3 runof             = ',smin_no3_runoff(c)*dt
+         !#py write(iulog,*)'ndep                  = ',ndep_to_sminn(c)*dt
+         !#py write(iulog,*)'nfix                  = ',nfix_to_sminn(c)*dt
+         !#py write(iulog,*)'nsup                  = ',supplement_to_sminn(c)*dt
          if(crop_prog) then
-            write(iulog,*)'fertm                 = ',fert_to_sminn(c)*dt
-            write(iulog,*)'soyfx                 = ',soyfixn_to_sminn(c)*dt
+            !#py write(iulog,*)'fertm                 = ',fert_to_sminn(c)*dt
+            !#py write(iulog,*)'soyfx                 = ',soyfixn_to_sminn(c)*dt
          endif
-         write(iulog,*)'fire                  = ',col_fire_nloss(c)*dt
+         !#py write(iulog,*)'fire                  = ',col_fire_nloss(c)*dt
 
          if (ero_ccycle) then
             write(iulog,*)'erosion               = ',som_n_yield(c)*dt
          end if
 
          if (use_pflotran .and. pf_cmode) then
-            write(iulog,*)'pf_delta_decompn      = ',col_decompn_delta(c)*dt
+            !#py write(iulog,*)'pf_delta_decompn      = ',col_decompn_delta(c)*dt
          end if
-         call endrun(msg=errMsg(__FILE__, __LINE__))
+         !#py !#py call endrun(msg=errMsg(__FILE__, __LINE__))
 
 
       end if
@@ -500,35 +490,33 @@ contains
 
 
   !-----------------------------------------------------------------------
-  subroutine ColPBalanceCheck(bounds, &
-       num_soilc, filter_soilc, &
-       phosphorusstate_vars, phosphorusflux_vars)
+  subroutine ColPBalanceCheck(bounds, num_soilc, filter_soilc, dt, kyr, kmo, kda, mcsec)
     !
     ! !DESCRIPTION:
     ! On the radiation time step, perform phosphorus mass conservation check
     ! for column and pft
     !
     ! !ARGUMENTS:
+      !$acc routine seq
     type(bounds_type)         , intent(in)    :: bounds          
     integer                   , intent(in)    :: num_soilc       ! number of soil columns in filter
     integer                   , intent(in)    :: filter_soilc(:) ! filter for soil columns
-    type(phosphorusstate_type) , intent(inout) :: phosphorusstate_vars
-    type(phosphorusflux_type)  , intent(inout) :: phosphorusflux_vars
+    real(r8)                  , intent(in)    :: dt             ! radiation time step (seconds)
+    integer                   , intent(in)    :: kyr                     ! current year
+    integer                   , intent(in)    :: kmo                     ! month of year  (1, ..., 12)
+    integer                   , intent(in)    :: kda                     ! day of month   (1, ..., 31)
+    integer                   , intent(in)    :: mcsec                   ! seconds of day (0, ..., seconds/day)
+
     !
     ! !LOCAL VARIABLES:
     integer :: c,err_index,j,k,p  ! indices
     integer :: fc             ! lake filter indices
     logical :: err_found      ! error flag
-    real(r8):: dt             ! radiation time step (seconds)
 
     real(r8) :: leafp_to_litter_col(bounds%begc:bounds%endc) 
     real(r8) :: frootp_to_litter_col(bounds%begc:bounds%endc) 
     real(r8):: flux_mineralization_col(bounds%begc:bounds%endc)   !  local temperary variable
 
-    integer:: kyr                     ! current year 
-    integer:: kmo                     ! month of year  (1, ..., 12)
-    integer:: kda                     ! day of month   (1, ..., 31) 
-    integer:: mcsec                   ! seconds of day (0, ..., seconds/day) 
     !-----------------------------------------------------------------------
 
     associate(                                                                            &
@@ -562,23 +550,21 @@ contains
          leafp_to_litter           => veg_pf%leafp_to_litter         , & ! Input:  [real(r8) (:)]  soil mineral P pool loss to leaching (gP/m2/s)
          frootp_to_litter          => veg_pf%frootp_to_litter        , & ! Input:  [real(r8) (:)]  soil mineral P pool loss to leaching (gP/m2/s)
          sminp_to_plant            => col_pf%sminp_to_plant            , &
-         cascade_receiver_pool     => decomp_cascade_con%cascade_receiver_pool          , &
-         pf                        =>  phosphorusflux_vars                              , &
-         ps                        =>  phosphorusstate_vars                               &
+         cascade_receiver_pool     => decomp_cascade_con%cascade_receiver_pool     &
          )
 
       ! set time steps
-      dt = real( get_step_size(), r8 )
-      call get_curr_date(kyr, kmo, kda, mcsec)
+      !#py dt = real( get_step_size(), r8 )
+      !#py call get_curr_date(kyr, kmo, kda, mcsec)
 
       err_found = .false.
 
       call p2c(bounds,num_soilc,filter_soilc, &
-           leafp_to_litter(bounds%begp:bounds%endp), &
-           leafp_to_litter_col(bounds%begc:bounds%endc))
+           leafp_to_litter, &
+           leafp_to_litter_col)
       call p2c(bounds,num_soilc,filter_soilc, &
-           frootp_to_litter(bounds%begp:bounds%endp), &
-           frootp_to_litter_col(bounds%begc:bounds%endc))
+           frootp_to_litter, &
+           frootp_to_litter_col)
 
       !! immobilization/mineralization in litter-to-SOM and SOM-to-SOM fluxes
       ! column loop
@@ -649,12 +635,12 @@ contains
               hrv_deadstemp_to_prod10p(c) + hrv_deadstemp_to_prod100p(c)
 
          if ((nu_com .ne. 'RD') .and. ECA_Pconst_RGspin) then
-            do j = 1, nlevdecomp               
+            do j = 1, nlevdecomp
                col_poutputs(c) = col_poutputs(c) + &
                   (col_ps%solutionp_vr_cur(c,j) -  col_ps%solutionp_vr_prev(c,j)  + &
                   col_ps%labilep_vr_cur(c,j) -  col_ps%labilep_vr_prev(c,j) + &
                   col_ps%secondp_vr_cur(c,j) - col_ps%secondp_vr_prev(c,j) ) * dzsoi_decomp(j)/dt
-            end do 
+            end do
          end if
 
          col_poutputs(c) = col_poutputs(c) + col_prod1p_loss(c)
@@ -678,19 +664,19 @@ contains
 
       if (err_found) then
          c = err_index
-         write(iulog,*)'column pbalance error = ', col_errpb(c), c
-         write(iulog,*)'Latdeg,Londeg=',grc_pp%latdeg(col_pp%gridcell(c)),grc_pp%londeg(col_pp%gridcell(c))
-         write(iulog,*)'begpb       = ',col_begpb(c)
-         write(iulog,*)'endpb       = ',col_endpb(c)
-         write(iulog,*)'delta store = ',col_endpb(c)-col_begpb(c)
-         write(iulog,*)'input mass  = ',col_pinputs(c)*dt
-         write(iulog,*)'output mass = ',col_poutputs(c)*dt
-         write(iulog,*)'net flux    = ',(col_pinputs(c)-col_poutputs(c))*dt
+         !#py write(iulog,*)'column pbalance error = ', col_errpb(c), c
+         !#py write(iulog,*)'Latdeg,Londeg=',grc_pp%latdeg(col_pp%gridcell(c)),grc_pp%londeg(col_pp%gridcell(c))
+         !#py write(iulog,*)'begpb       = ',col_begpb(c)
+         !#py write(iulog,*)'endpb       = ',col_endpb(c)
+         !#py write(iulog,*)'delta store = ',col_endpb(c)-col_begpb(c)
+         !#py write(iulog,*)'input mass  = ',col_pinputs(c)*dt
+         !#py write(iulog,*)'output mass = ',col_poutputs(c)*dt
+         !#py write(iulog,*)'net flux    = ',(col_pinputs(c)-col_poutputs(c))*dt
          if (ero_ccycle) then
-            write(iulog,*)'SOP erosion = ',som_p_yield(c)*dt
-            write(iulog,*)'SIP erosion = ',(labilep_yield(c)+secondp_yield(c)+occlp_yield(c)+primp_yield(c))*dt
+            !#py write(iulog,*)'SOP erosion = ',som_p_yield(c)*dt
+            !#py write(iulog,*)'SIP erosion = ',(labilep_yield(c)+secondp_yield(c)+occlp_yield(c)+primp_yield(c))*dt
          end if
-         call endrun(msg=errMsg(__FILE__, __LINE__))
+         !#py call endrun(msg=errMsg(__FILE__, __LINE__))
       end if
 
     end associate
@@ -719,15 +705,15 @@ contains
       call c2g( bounds = bounds, &
            carr = totcolc(bounds%begc:bounds%endc), &
            garr = begcb_grc(bounds%begg:bounds%endg), &
-           c2l_scale_type = 'unity', &
-           l2g_scale_type = 'unity')
+           c2l_scale_type = 0, &
+           l2g_scale_type = 0)
 
     end associate
 
   end subroutine BeginGridCBalanceBeforeDynSubgridDriver
  
   !-----------------------------------------------------------------------
-  subroutine BeginGridNBalanceBeforeDynSubgridDriver(bounds, nitrogenstate_vars)
+  subroutine BeginGridNBalanceBeforeDynSubgridDriver(bounds)
     !
     ! !DESCRIPTION:
     ! Calculate the beginning nitrogen balance for mass conservation checks
@@ -735,7 +721,6 @@ contains
     !
     ! !ARGUMENTS:
     type(bounds_type)        , intent(in)    :: bounds
-    type(nitrogenstate_type) , intent(inout) :: nitrogenstate_vars
     !-----------------------------------------------------------------------
 
     associate(                                         &
@@ -746,15 +731,15 @@ contains
       call c2g( bounds = bounds, &
            carr = totcoln(bounds%begc:bounds%endc), &
            garr = begnb_grc(bounds%begg:bounds%endg), &
-           c2l_scale_type = 'unity', &
-           l2g_scale_type = 'unity')
+           c2l_scale_type = 0, &
+           l2g_scale_type = 0)
 
     end associate
 
   end subroutine BeginGridNBalanceBeforeDynSubgridDriver
 
   !-----------------------------------------------------------------------
-  subroutine BeginGridPBalanceBeforeDynSubgridDriver(bounds, phosphorusstate_vars)
+  subroutine BeginGridPBalanceBeforeDynSubgridDriver(bounds)
     !
     ! !DESCRIPTION:
     ! Calculate the beginning phosphorus balance for mass conservation checks
@@ -762,7 +747,6 @@ contains
     !
     ! !ARGUMENTS:
     type(bounds_type)          , intent(in)    :: bounds
-    type(phosphorusstate_type) , intent(inout) :: phosphorusstate_vars
     !
     !-----------------------------------------------------------------------
 
@@ -774,8 +758,8 @@ contains
       call c2g( bounds = bounds, &
            carr = totcolp(bounds%begc:bounds%endc), &
            garr = begpb_grc(bounds%begg:bounds%endg), &
-           c2l_scale_type = 'unity', &
-           l2g_scale_type = 'unity')
+           c2l_scale_type = 0, &
+           l2g_scale_type = 0)
 
 
     end associate
@@ -785,7 +769,7 @@ contains
   !-----------------------------------------------------------------------
   subroutine EndGridCBalanceAfterDynSubgridDriver(bounds, &
        num_soilc, filter_soilc, &
-       col_cs, grc_cs, carbonflux_vars)
+       col_cs, grc_cs, dt)
     !
     ! !DESCRIPTION:
     ! On the radiation time step, perform carbon mass conservation check
@@ -797,12 +781,12 @@ contains
     integer                    , intent(in)    :: filter_soilc(:) ! filter for soil columns
     type(column_carbon_state)  , intent(inout) :: col_cs
     type(gridcell_carbon_state), intent(inout) :: grc_cs
-    type(carbonflux_type)      , intent(in)    :: carbonflux_vars
+    real(r8)     , intent(in)   :: dt             ! radiation time step (seconds)
+
     !
     ! !LOCAL VARIABLES:
     integer  :: g,err_index    ! indices
     logical  :: err_found      ! error flag
-    real(r8) :: dt             ! radiation time step (seconds)
     real(r8) :: grc_cinputs
     real(r8) :: grc_coutputs
     !-----------------------------------------------------------------------
@@ -820,15 +804,15 @@ contains
          )
 
       ! set time steps
-      dt = real( get_step_size(), r8 )
+      !#py dt = real( get_step_size(), r8 )
 
       err_found = .false.
 
       call c2g( bounds = bounds, &
            carr = totcolc(bounds%begc:bounds%endc), &
            garr = endcb_grc(bounds%begg:bounds%endg), &
-           c2l_scale_type = 'unity', &
-           l2g_scale_type = 'unity')
+           c2l_scale_type = 0, &
+           l2g_scale_type = 0)
 
       do g = bounds%begg, bounds%endg
          endcb_grc(g) = endcb_grc(g)
@@ -855,15 +839,15 @@ contains
 
       if (err_found) then
          g = err_index
-         write(iulog,*)'Grid cbalance error   = ',errcb_grc(g), g
-         write(iulog,*)'Latdeg,Londeg         = ',grc_pp%latdeg(g),grc_pp%londeg(g)
-         write(iulog,*)'input                 = ',grc_cinputs*dt
-         write(iulog,*)'output                = ',grc_coutputs*dt
-         write(iulog,*)'error                 = ',errcb_grc(g)*dt
-         write(iulog,*)'begcb                 = ',begcb_grc(g)
-         write(iulog,*)'endcb                 = ',endcb_grc(g)
-         write(iulog,*)'delta store           = ',endcb_grc(g)-begcb_grc(g)
-         call endrun(msg=errMsg(__FILE__, __LINE__))
+         !#py write(iulog,*)'Grid cbalance error   = ',errcb_grc(g), g
+         !#py write(iulog,*)'Latdeg,Londeg         = ',grc_pp%latdeg(g),grc_pp%londeg(g)
+         !#py write(iulog,*)'input                 = ',grc_cinputs*dt
+         !#py write(iulog,*)'output                = ',grc_coutputs*dt
+         !#py write(iulog,*)'error                 = ',errcb_grc(g)*dt
+         !#py write(iulog,*)'begcb                 = ',begcb_grc(g)
+         !#py write(iulog,*)'endcb                 = ',endcb_grc(g)
+         !#py write(iulog,*)'delta store           = ',endcb_grc(g)-begcb_grc(g)
+         !#py !#py call endrun(msg=errMsg(__FILE__, __LINE__))
       end if
 
     end associate
@@ -872,8 +856,7 @@ contains
 
   !-----------------------------------------------------------------------
   subroutine EndGridNBalanceAfterDynSubgridDriver(bounds, &
-       num_soilc, filter_soilc, &
-       nitrogenstate_vars, nitrogenflux_vars)
+       num_soilc, filter_soilc, dt)
     !
     ! !DESCRIPTION:
     ! On the radiation time step, perform nitrogen mass conservation check
@@ -883,13 +866,12 @@ contains
     type(bounds_type)      , intent(in)    :: bounds          
     integer                , intent(in)    :: num_soilc       ! number of soil columns in filter
     integer                , intent(in)    :: filter_soilc(:) ! filter for soil columns
-    type(nitrogenstate_type) , intent(inout) :: nitrogenstate_vars
-    type(nitrogenflux_type)  , intent(in)    :: nitrogenflux_vars
+    real(r8) , intent(in)   :: dt             ! radiation time step (seconds)
+
     !
     ! !LOCAL VARIABLES:
     integer  :: g,err_index    ! indices
     logical  :: err_found      ! error flag
-    real(r8) :: dt             ! radiation time step (seconds)
     real(r8) :: grc_ninputs
     real(r8) :: grc_noutputs
     !-----------------------------------------------------------------------
@@ -907,15 +889,15 @@ contains
          )
 
       ! set time steps
-      dt = real( get_step_size(), r8 )
+      !#py dt = real( get_step_size(), r8 )
 
       err_found = .false.
 
       call c2g( bounds = bounds, &
            carr = totcoln(bounds%begc:bounds%endc), &
            garr = endnb_grc(bounds%begg:bounds%endg), &
-           c2l_scale_type = 'unity', &
-           l2g_scale_type = 'unity')
+           c2l_scale_type = 0, &
+           l2g_scale_type = 0)
 
       do g = bounds%begg, bounds%endg
          endnb_grc(g) = endnb_grc(g)
@@ -942,22 +924,22 @@ contains
 
       if (err_found) then
          g = err_index
-         write(iulog,*)'Grid nbalance error   = ',errnb_grc(g), g
-         write(iulog,*)'Latdeg,Londeg         = ',grc_pp%latdeg(g),grc_pp%londeg(g)
-         write(iulog,*)'input                 = ',grc_ninputs*dt
-         write(iulog,*)'output                = ',grc_noutputs*dt
-         write(iulog,*)'error                 = ',errnb_grc(g)*dt
-         write(iulog,*)'begcb                 = ',begnb_grc(g)
-         write(iulog,*)'endcb                 = ',endnb_grc(g)
-         write(iulog,*)'delta store           = ',endnb_grc(g)-begnb_grc(g)
-         write(iulog,*)''
-         write(iulog,*)'dwt_conv                ',dwt_conv_nflux_grc(g)
-         write(iulog,*)'dwt_prod10              ',dwt_prod10n_gain_grc(g)
-         write(iulog,*)'dwt_prod100             ',dwt_prod100n_gain_grc(g)
-         write(iulog,*)''
-         write(iulog,*)'dwt_seedn_leaf          ',dwt_seedn_to_leaf_grc(g)
-         write(iulog,*)'dwt_seedn_deadstem      ',dwt_seedn_to_deadstem_grc(g)
-         call endrun(msg=errMsg(__FILE__, __LINE__))
+         !#py write(iulog,*)'Grid nbalance error   = ',errnb_grc(g), g
+         !#py write(iulog,*)'Latdeg,Londeg         = ',grc_pp%latdeg(g),grc_pp%londeg(g)
+         !#py write(iulog,*)'input                 = ',grc_ninputs*dt
+         !#py write(iulog,*)'output                = ',grc_noutputs*dt
+         !#py write(iulog,*)'error                 = ',errnb_grc(g)*dt
+         !#py write(iulog,*)'begcb                 = ',begnb_grc(g)
+         !#py write(iulog,*)'endcb                 = ',endnb_grc(g)
+         !#py write(iulog,*)'delta store           = ',endnb_grc(g)-begnb_grc(g)
+         !#py write(iulog,*)''
+         !#py write(iulog,*)'dwt_conv                ',dwt_conv_nflux_grc(g)
+         !#py write(iulog,*)'dwt_prod10              ',dwt_prod10n_gain_grc(g)
+         !#py write(iulog,*)'dwt_prod100             ',dwt_prod100n_gain_grc(g)
+         !#py write(iulog,*)''
+         !#py write(iulog,*)'dwt_seedn_leaf          ',dwt_seedn_to_leaf_grc(g)
+         !#py write(iulog,*)'dwt_seedn_deadstem      ',dwt_seedn_to_deadstem_grc(g)
+         !#py !#py call endrun(msg=errMsg(__FILE__, __LINE__))
       end if
 
     end associate
@@ -967,8 +949,7 @@ contains
   !-----------------------------------------------------------------------
 
   subroutine EndGridPBalanceAfterDynSubgridDriver(bounds, &
-       num_soilc, filter_soilc, &
-       phosphorusstate_vars, phosphorusflux_vars)
+       num_soilc, filter_soilc, dt )
     !
     ! !DESCRIPTION:
     ! On the radiation time step, perform phosphorus mass conservation check
@@ -978,13 +959,11 @@ contains
     type(bounds_type)      , intent(in)    :: bounds          
     integer                , intent(in)    :: num_soilc       ! number of soil columns in filter
     integer                , intent(in)    :: filter_soilc(:) ! filter for soil columns
-    type(phosphorusstate_type) , intent(inout) :: phosphorusstate_vars
-    type(phosphorusflux_type)  , intent(in)    :: phosphorusflux_vars
+    real(r8) , intent(in)  :: dt             ! radiation time step (seconds)
     !
     ! !LOCAL VARIABLES:
     integer  :: g,err_index    ! indices
     logical  :: err_found      ! error flag
-    real(r8) :: dt             ! radiation time step (seconds)
     real(r8) :: grc_pinputs
     real(r8) :: grc_poutputs
     !-----------------------------------------------------------------------
@@ -1002,15 +981,15 @@ contains
          )
 
       ! set time steps
-      dt = real( get_step_size(), r8 )
+      !#py dt = real( get_step_size(), r8 )
 
       err_found = .false.
 
       call c2g( bounds = bounds, &
            carr = totcolp(bounds%begc:bounds%endc), &
            garr = endpb_grc(bounds%begg:bounds%endg), &
-           c2l_scale_type = 'unity', &
-           l2g_scale_type = 'unity')
+           c2l_scale_type = 0, &
+           l2g_scale_type = 0)
 
       do g = bounds%begg, bounds%endg
          endpb_grc(g) = endpb_grc(g)
@@ -1037,15 +1016,15 @@ contains
 
       if (err_found) then
          g = err_index
-         write(iulog,*)'Grid pbalance error   = ',errpb_grc(g), g
-         write(iulog,*)'Latdeg,Londeg         = ',grc_pp%latdeg(g),grc_pp%londeg(g)
-         write(iulog,*)'input                 = ',grc_pinputs*dt
-         write(iulog,*)'output                = ',grc_poutputs*dt
-         write(iulog,*)'error                 = ',errpb_grc(g)*dt
-         write(iulog,*)'begcb                 = ',begpb_grc(g)
-         write(iulog,*)'endcb                 = ',endpb_grc(g)
-         write(iulog,*)'delta store           = ',endpb_grc(g)-begpb_grc(g)
-         call endrun(msg=errMsg(__FILE__, __LINE__))
+         !#py write(iulog,*)'Grid pbalance error   = ',errpb_grc(g), g
+         !#py write(iulog,*)'Latdeg,Londeg         = ',grc_pp%latdeg(g),grc_pp%londeg(g)
+         !#py write(iulog,*)'input                 = ',grc_pinputs*dt
+         !#py write(iulog,*)'output                = ',grc_poutputs*dt
+         !#py write(iulog,*)'error                 = ',errpb_grc(g)*dt
+         !#py write(iulog,*)'begcb                 = ',begpb_grc(g)
+         !#py write(iulog,*)'endcb                 = ',endpb_grc(g)
+         !#py write(iulog,*)'delta store           = ',endpb_grc(g)-begpb_grc(g)
+         !#py !#py call endrun(msg=errMsg(__FILE__, __LINE__))
       end if
 
     end associate

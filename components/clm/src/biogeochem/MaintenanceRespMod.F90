@@ -38,7 +38,9 @@ module MaintenanceRespMod
      real(r8):: br_mr        !base rate for maintenance respiration(gC/gN/s)
   end type MaintenanceRespParamsType
 
-  type(MaintenanceRespParamsType),private ::  MaintenanceRespParamsInst
+  !type(MaintenanceRespParamsType),private ::  MaintenanceRespParamsInst
+  real(r8), public :: br_mr_Inst
+  !$acc declare create(br_mr_Inst)
   !-----------------------------------------------------------------------
 
 contains
@@ -76,14 +78,14 @@ contains
   !
   subroutine MaintenanceResp(bounds, &
        num_soilc, filter_soilc, num_soilp, filter_soilp, &
-       canopystate_vars, soilstate_vars, temperature_vars, photosyns_vars, &
-       carbonflux_vars, carbonstate_vars, nitrogenstate_vars)
+       canopystate_vars, soilstate_vars, photosyns_vars)
     !
     ! !DESCRIPTION:
     !
     ! !USES:
     !
     ! !ARGUMENTS:
+      !$acc routine seq
     type(bounds_type)        , intent(in)    :: bounds          
     integer                  , intent(in)    :: num_soilc       ! number of soil points in column filter
     integer                  , intent(in)    :: filter_soilc(:) ! column filter for soil points
@@ -91,11 +93,7 @@ contains
     integer                  , intent(in)    :: filter_soilp(:) ! patch filter for soil points
     type(canopystate_type)   , intent(in)    :: canopystate_vars
     type(soilstate_type)     , intent(in)    :: soilstate_vars
-    type(temperature_type)   , intent(in)    :: temperature_vars
     type(photosyns_type)     , intent(in)    :: photosyns_vars
-    type(carbonflux_type)    , intent(inout) :: carbonflux_vars
-    type(carbonstate_type)   , intent(in)    :: carbonstate_vars
-    type(nitrogenstate_type) , intent(in)    :: nitrogenstate_vars
     !
     ! !LOCAL VARIABLES:
     integer :: c,p,j ! indices
@@ -144,7 +142,7 @@ contains
       ! Original expression is br = 0.0106 molC/(molN h)
       ! Conversion by molecular weights of C and N gives 2.525e-6 gC/(gN s)
       ! set constants
-      br_mr = MaintenanceRespParamsInst%br_mr
+      br_mr = br_mr_Inst
 
       ! Peter Thornton: 3/13/09 
       ! Q10 was originally set to 2.0, an arbitrary choice, but reduced to 1.5 as part of the tuning

@@ -1,6 +1,6 @@
 module SimpleMathMod
 
-#include "shr_assert.h"
+!#py #include "shr_assert.h"
   !------------------------------------------------------------------------------
   !
   ! DESCRIPTIONS:
@@ -77,14 +77,14 @@ contains
   
 !--------------------------------------------------------------------------------
   subroutine array_normalization_2d_filter(lbj1, ubj1, lbj2, ubj2, numf, filter, arr2d_inout)
-  !
+  !$acc routine seq
   !DESCRIPTIONS
   !do normalization with filter for the input array along dimension 2
   
   !
   !USES
   use shr_kind_mod, only: r8 => shr_kind_r8
-  use shr_log_mod    , only : errMsg => shr_log_errMsg  
+  !#py !#py use shr_log_mod    , only : errMsg => shr_log_errMsg
   implicit none
   integer,  intent(in) :: lbj1         !left bound of dim 1
   integer,  intent(in) :: lbj2         !left bound of dim 2
@@ -102,8 +102,6 @@ contains
   real(r8) :: arr_sum(lbj1:ubj1)
 
   ! Enforce expected array sizes
-  SHR_ASSERT_ALL((ubound(arr2d_inout) == (/ubj1, ubj2/)),      errMsg(__FILE__, __LINE__))
-  
 
   arr_sum(:) = 0._r8  
   do j2 = lbj2, ubj2  
@@ -131,7 +129,7 @@ contains
   
   subroutine array_div_vector_filter(lbj1, ubj1, lbj2, ubj2, &
        arr1d_in, fn, filter,  arr2d_inout)
-  !
+  !$acc routine seq
   !DESCRIPTIONS
   !array divided by a vector, arr2d_in is divided by one
   !element in arr1d_in  
@@ -140,7 +138,7 @@ contains
   ! USES
   !
   use shr_kind_mod, only: r8 => shr_kind_r8
-  use shr_log_mod    , only : errMsg => shr_log_errMsg   
+  !#py !#py use shr_log_mod    , only : errMsg => shr_log_errMsg
   implicit none
   integer,  intent(in) :: lbj1         !left bound of dim 1
   integer,  intent(in) :: lbj2         !left bound of dim 2
@@ -155,8 +153,6 @@ contains
   integer :: j, f, p
   
   ! Enforce expected array sizes
-  SHR_ASSERT_ALL((ubound(arr2d_inout) == (/ubj1, ubj2/)),      errMsg(__FILE__, __LINE__))
-  SHR_ASSERT_ALL((ubound(arr1d_in) == (/ubj1/)),            errMsg(__FILE__, __LINE__))
 
 
   do j = lbj2, ubj2
@@ -175,7 +171,7 @@ contains
 !--------------------------------------------------------------------------------  
   
   subroutine array_div_vector_nofilter(arr1d_in, which_dim, arr2d_inout)
-  !
+  !$acc routine seq
   !DESCRIPTIONS
   !array divided by a vector, each row in arr2d_in is divided by one
   !element in arr1d_in
@@ -183,8 +179,8 @@ contains
   !USES
   !
   use shr_kind_mod, only: r8 => shr_kind_r8
-  use shr_assert_mod , only : shr_assert
-  use shr_log_mod    , only : errMsg => shr_log_errMsg  
+  !#py use shr_assert_mod , only : shr_assert
+  !#py !#py use shr_log_mod    , only : errMsg => shr_log_errMsg
   implicit none
   real(r8), intent(in) :: arr1d_in(:)     !scaling factor
   integer,  intent(in) :: which_dim        !which dimension is scaled
@@ -197,9 +193,9 @@ contains
   sz2=size(arr2d_inout,2)
   
   if(which_dim==1)then
-    ! Enforce expected array sizes   
-    call shr_assert(sz1    == size(arr1d_in), errMsg(__FILE__, __LINE__))
-    
+    ! Enforce expected array sizes
+    !#py !#py call shr_assert(sz1    == size(arr1d_in), errMsg(__FILE__, __LINE__))
+
     do j2 = 1, sz2
       do j1 = 1, sz1
         if(arr1d_in(j1)>0._r8)then
@@ -208,8 +204,8 @@ contains
       enddo
     enddo
   else
-    ! Enforce expected array sizes   
-    call shr_assert(sz2    == size(arr1d_in), errMsg(__FILE__, __LINE__))  
+    ! Enforce expected array sizes
+    !#py !#py call shr_assert(sz2    == size(arr1d_in), errMsg(__FILE__, __LINE__))
 
     do j2 = 1, sz2
       do j1 = 1, sz1

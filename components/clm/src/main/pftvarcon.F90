@@ -48,12 +48,41 @@ module pftvarcon
   integer :: npcropmax              !value for last prognostic crop in list
   integer :: nc3crop                !value for generic crop (rf)
   integer :: nc3irrig               !value for irrigated generic crop (ir)
+  !$acc declare create(noveg               )
+  !$acc declare create(ndllf_evr_tmp_tree  )
+  !$acc declare create(ndllf_evr_brl_tree  )
+  !$acc declare create(ndllf_dcd_brl_tree  )
+  !$acc declare create(nbrdlf_evr_trp_tree )
+  !$acc declare create(nbrdlf_evr_tmp_tree )
+  !$acc declare create(nbrdlf_dcd_trp_tree )
+  !$acc declare create(nbrdlf_dcd_tmp_tree )
+  !$acc declare create(nbrdlf_dcd_brl_tree )
+  !$acc declare create(ntree               )
+  !$acc declare create(nbrdlf_evr_shrub    )
+  !$acc declare create(nbrdlf_dcd_tmp_shrub)
+  !$acc declare create(nbrdlf_dcd_brl_shrub)
+  !$acc declare create(nc3_arctic_grass    )
+  !$acc declare create(nc3_nonarctic_grass )
+  !$acc declare create(nc4_grass           )
+  !$acc declare create(npcropmin           )
+  !$acc declare create(ncorn               )
+  !$acc declare create(ncornirrig          )
+  !$acc declare create(nscereal            )
+  !$acc declare create(nscerealirrig       )
+  !$acc declare create(nwcereal            )
+  !$acc declare create(nwcerealirrig       )
+  !$acc declare create(nsoybean            )
+  !$acc declare create(nsoybeanirrig       )
+  !$acc declare create(npcropmax           )
+  !$acc declare create(nc3crop             )
+  !$acc declare create(nc3irrig            )
 
   ! Number of crop functional types actually used in the model. This includes each CFT for
   ! which is_pft_known_to_model is true. Note that this includes irrigated crops even if
   ! irrigation is turned off in this run: it just excludes crop types that aren't handled
   ! at all, as given by the mergetoclmpft list.
   integer :: num_cfts_known_to_model
+  !$acc declare create(num_cfts_known_to_model)
 
   real(r8), allocatable :: dleaf(:)       !characteristic leaf dimension (m)
   real(r8), allocatable :: c3psn(:)       !photosynthetic pathway: 0. = c4, 1. = c3
@@ -71,6 +100,23 @@ module pftvarcon
   real(r8), allocatable :: smpso(:)       !soil water potential at full stomatal opening (mm)
   real(r8), allocatable :: smpsc(:)       !soil water potential at full stomatal closure (mm)
   real(r8), allocatable :: fnitr(:)       !foliage nitrogen limitation factor (-)
+  !$acc declare create(dleaf(:)    )
+  !$acc declare create(c3psn(:)    )
+  !$acc declare create(xl(:)       )
+  !$acc declare create(rhol(:,:)   )
+  !$acc declare create(rhos(:,:)   )
+  !$acc declare create(taul(:,:)   )
+  !$acc declare create(taus(:,:)   )
+  !$acc declare create(z0mr(:)     )
+  !$acc declare create(displar(:)  )
+  !$acc declare create(roota_par(:))
+  !$acc declare create(rootb_par(:))
+  !$acc declare create(crop(:)     )
+  !$acc declare create(irrigated(:))
+  !$acc declare create(smpso(:)    )
+  !$acc declare create(smpsc(:)    )
+  !$acc declare create(fnitr(:)    )
+
 
   ! begin new pft parameters for CN code
   real(r8), allocatable :: slatop(:)      !SLA at top of canopy [m^2/gC]
@@ -85,6 +131,18 @@ module pftvarcon
   real(r8), allocatable :: grperc(:)      !growth respiration parameter
   real(r8), allocatable :: grpnow(:)      !growth respiration parameter
   real(r8), allocatable :: rootprof_beta(:) !CLM rooting distribution parameter for C and N inputs [unitless]
+  !$acc declare create(slatop(:)      )
+  !$acc declare create(dsladlai(:)    )
+  !$acc declare create(leafcn(:)      )
+  !$acc declare create(flnr(:)        )
+  !$acc declare create(woody(:)       )
+  !$acc declare create(lflitcn(:)     )
+  !$acc declare create(frootcn(:)     )
+  !$acc declare create(livewdcn(:)    )
+  !$acc declare create(deadwdcn(:)    )
+  !$acc declare create(grperc(:)      )
+  !$acc declare create(grpnow(:)      )
+  !$acc declare create(rootprof_beta(:))
 
   ! add pft dependent parameters for phosphorus -X.YANG
   real(r8), allocatable :: leafcp(:)      !leaf C:P [gC/gP]
@@ -92,7 +150,11 @@ module pftvarcon
   real(r8), allocatable :: frootcp(:)     !fine root C:P (gC/gP)
   real(r8), allocatable :: livewdcp(:)    !live wood (phloem and ray parenchyma) C:P (gC/gP)
   real(r8), allocatable :: deadwdcp(:)    !dead wood (xylem and heartwood) C:P (gC/gP)
-
+  !$acc declare create(leafcp(:)  )
+  !$acc declare create(lflitcp(:) )
+  !$acc declare create(frootcp(:) )
+  !$acc declare create(livewdcp(:))
+  !$acc declare create(deadwdcp(:))
   ! for crop
 
   ! These arrays give information about the merge of unused crop types to the types CLM
@@ -103,6 +165,9 @@ module pftvarcon
   ! given simulation - that is handled separately.
   integer , allocatable :: mergetoclmpft         (:)
   logical , allocatable :: is_pft_known_to_model (:)
+  !$acc declare create(mergetoclmpft         (:))
+  !$acc declare create(is_pft_known_to_model (:))
+
 
   real(r8), allocatable :: graincn(:)      !grain C:N (gC/gN)
   real(r8), allocatable :: graincp(:)      !grain C:N (gC/gN)
@@ -150,6 +215,54 @@ module pftvarcon
   real(r8), allocatable :: pprod10(:)      !proportion of deadstem to 10-yr product pool
   real(r8), allocatable :: pprod100(:)     !proportion of deadstem to 100-yr product pool
   real(r8), allocatable :: pprodharv10(:)  !harvest mortality proportion of deadstem to 10-yr pool
+
+  !$acc declare create(graincn(:)      )
+  !$acc declare create(graincp(:)      )
+  !$acc declare create(mxtmp(:)        )
+  !$acc declare create(baset(:)        )
+  !$acc declare create(declfact(:)     )
+  !$acc declare create(bfact(:)        )
+  !$acc declare create(aleaff(:)       )
+  !$acc declare create(arootf(:)       )
+  !$acc declare create(astemf(:)       )
+  !$acc declare create(arooti(:)       )
+  !$acc declare create(fleafi(:)       )
+  !$acc declare create(allconsl(:)     )
+  !$acc declare create(allconss(:)     )
+  !$acc declare create(ztopmx(:)       )
+  !$acc declare create(laimx(:)        )
+  !$acc declare create(gddmin(:)       )
+  !$acc declare create(hybgdd(:)       )
+  !$acc declare create(lfemerg(:)      )
+  !$acc declare create(grnfill(:)      )
+  !$acc declare create(mxmat(:)        )
+  !$acc declare create(mnNHplantdate(:))
+  !$acc declare create(mxNHplantdate(:))
+  !$acc declare create(mnSHplantdate(:))
+  !$acc declare create(mxSHplantdate(:))
+  !$acc declare create(planttemp(:)    )
+  !$acc declare create(minplanttemp(:) )
+  !$acc declare create(froot_leaf(:)   )
+  !$acc declare create(stem_leaf(:)    )
+  !$acc declare create(croot_stem(:)   )
+  !$acc declare create(flivewd(:)      )
+  !$acc declare create(fcur(:)         )
+  !$acc declare create(lf_flab(:)      )
+  !$acc declare create(lf_fcel(:)      )
+  !$acc declare create(lf_flig(:)      )
+  !$acc declare create(fr_flab(:)      )
+  !$acc declare create(fr_fcel(:)      )
+  !$acc declare create(fr_flig(:)      )
+  !$acc declare create(leaf_long(:)    )
+  !$acc declare create(froot_long(:)   )
+  !$acc declare create(evergreen(:)    )
+  !$acc declare create(stress_decid(:) )
+  !$acc declare create(season_decid(:) )
+  !$acc declare create(pconv(:)        )
+  !$acc declare create(pprod10(:)      )
+  !$acc declare create(pprod100(:)     )
+  !$acc declare create(pprodharv10(:)  )
+
   ! pft paraemeters for fire code
   real(r8), allocatable :: cc_leaf(:)
   real(r8), allocatable :: cc_lstem(:)
@@ -164,6 +277,20 @@ module pftvarcon
   real(r8), allocatable :: fm_droot(:)
   real(r8), allocatable :: fsr_pft(:)
   real(r8), allocatable :: fd_pft(:)
+  !$acc declare create(cc_leaf(:) )
+  !$acc declare create(cc_lstem(:))
+  !$acc declare create(cc_dstem(:))
+  !$acc declare create(cc_other(:))
+  !$acc declare create(fm_leaf(:) )
+  !$acc declare create(fm_lstem(:))
+  !$acc declare create(fm_dstem(:))
+  !$acc declare create(fm_other(:))
+  !$acc declare create(fm_root(:) )
+  !$acc declare create(fm_lroot(:))
+  !$acc declare create(fm_droot(:))
+  !$acc declare create(fsr_pft(:) )
+  !$acc declare create(fd_pft(:)  )
+
   ! pft parameters for crop code
   real(r8), allocatable :: fertnitro(:)    !fertilizer
   real(r8), allocatable :: fleafcn(:)      !C:N during grain fill; leaf
@@ -174,16 +301,33 @@ module pftvarcon
   real(r8), allocatable :: fyield(:)       !fraction of grain that is actually harvested
   real(r8), allocatable :: root_dmx(:)     !maximum root depth
 
-  integer, parameter :: pftname_len = 40    ! max length of pftname       
+  !$acc declare create(fertnitro(:))
+  !$acc declare create(fleafcn(:)  )
+  !$acc declare create(ffrootcn(:) )
+  !$acc declare create(fstemcn(:)  )
+  !$acc declare create(presharv(:) )
+  !$acc declare create(convfact(:) )
+  !$acc declare create(fyield(:)   )
+  !$acc declare create(root_dmx(:) )
+
+  integer, parameter :: pftname_len = 40    ! max length of pftname
   character(len=pftname_len) :: pftname(0:mxpft) !PFT description
 
-  real(r8), parameter :: reinickerp = 1.6_r8 !parameter in allometric equation
-  real(r8), parameter :: dwood  = 2.5e5_r8   !cn wood density (gC/m3); lpj:2.0e5
-  real(r8), parameter :: allom1 = 100.0_r8   !parameters in
-  real(r8), parameter :: allom2 =  40.0_r8   !...allometric
-  real(r8), parameter :: allom3 =   0.5_r8   !...equations
-  real(r8), parameter :: allom1s = 250.0_r8  !modified for shrubs by
-  real(r8), parameter :: allom2s =   8.0_r8  !X.D.Z
+  real(r8), parameter :: reinickerp = 1.6_r8     !parameter in allometric equation
+  real(r8), parameter :: dwood      = 2.5e5_r8   !cn wood density (gC/m3); lpj:2.0e5
+  real(r8), parameter :: allom1     = 100.0_r8   !parameters in
+  real(r8), parameter :: allom2     =  40.0_r8   !...allometric
+  real(r8), parameter :: allom3     =   0.5_r8   !...equations
+  real(r8), parameter :: allom1s    = 250.0_r8  !modified for shrubs by
+  real(r8), parameter :: allom2s    =   8.0_r8  !X.D.Z
+
+  !$acc declare copyin(reinickerp)
+  !$acc declare copyin(dwood     )
+  !$acc declare copyin(allom1    )
+  !$acc declare copyin(allom2    )
+  !$acc declare copyin(allom3    )
+  !$acc declare copyin(allom1s   )
+  !$acc declare copyin(allom2s   )
 
   ! Q. Zhu add pft dependent parameters for phosphorus for nutrient competition
   real(r8), allocatable :: VMAX_PLANT_NH4(:)   ! VMAX for plant NH4 uptake
@@ -213,6 +357,35 @@ module pftvarcon
   real(r8)              :: lamda_ptase         ! critical value that incur biochemical production
   real(r8), allocatable :: i_vc(:)             ! intercept of photosynthesis vcmax ~ leaf N content regression model
   real(r8), allocatable :: s_vc(:)             ! slope of photosynthesis vcmax ~ leaf N content regression model
+  !$acc declare create(VMAX_PLANT_NH4(:)   )
+  !$acc declare create(VMAX_PLANT_NO3(:)   )
+  !$acc declare create(VMAX_PLANT_P(:)     )
+  !$acc declare create(VMAX_MINSURF_P_vr(:,:) )
+  !$acc declare create(KM_PLANT_NH4(:)     )
+  !$acc declare create(KM_PLANT_NO3(:)     )
+  !$acc declare create(KM_PLANT_P(:)       )
+  !$acc declare create(KM_MINSURF_P_vr(:,:))
+  !$acc declare create(KM_DECOMP_NH4       )
+  !$acc declare create(KM_DECOMP_NO3       )
+  !$acc declare create(KM_DECOMP_P         )
+  !$acc declare create(KM_NIT              )
+  !$acc declare create(KM_DEN              )
+  !$acc declare create(decompmicc_patch_vr(:,:))
+  !$acc declare create(alpha_nfix(:)           )
+  !$acc declare create(alpha_ptase(:)          )
+  !$acc declare create(ccost_nfix(:)           )
+  !$acc declare create(pcost_nfix(:)           )
+  !$acc declare create(ccost_ptase(:)          )
+  !$acc declare create(ncost_ptase(:)          )
+  !$acc declare create(VMAX_NFIX(:)        )
+  !$acc declare create(KM_NFIX(:)          )
+  !$acc declare create(VMAX_PTASE(:)       )
+  !$acc declare create(KM_PTASE            )
+  !$acc declare create(lamda_ptase         )
+  !$acc declare create(i_vc(:)             )
+  !$acc declare create(s_vc(:)             )
+
+
   ! new stoichiometry
   real(r8), allocatable :: leafcn_obs(:)       !leaf C:N [gC/gN]
   real(r8), allocatable :: frootcn_obs(:)      !fine root C:N (gC/gN)
@@ -230,6 +403,23 @@ module pftvarcon
   real(r8), allocatable :: frootcp_obs_flex(:,:)      !upper and lower range of fine root C:P (gC/gP)
   real(r8), allocatable :: livewdcp_obs_flex(:,:)     !upper and lower range of live wood (phloem and ray parenchyma) C:P (gC/gP)
   real(r8), allocatable :: deadwdcp_obs_flex(:,:)     !upper and lower range of dead wood (xylem and heartwood) C:P (gC/gP)
+  !$acc declare create(leafcn_obs(:)         )
+  !$acc declare create(frootcn_obs(:)        )
+  !$acc declare create(livewdcn_obs(:)       )
+  !$acc declare create(deadwdcn_obs(:)       )
+  !$acc declare create(leafcp_obs(:)         )
+  !$acc declare create(frootcp_obs(:)        )
+  !$acc declare create(livewdcp_obs(:)       )
+  !$acc declare create(deadwdcp_obs(:)       )
+  !$acc declare create(leafcn_obs_flex(:,:)  )
+  !$acc declare create(frootcn_obs_flex(:,:) )
+  !$acc declare create(livewdcn_obs_flex(:,:))
+  !$acc declare create(deadwdcn_obs_flex(:,:))
+  !$acc declare create(leafcp_obs_flex(:,:)  )
+  !$acc declare create(frootcp_obs_flex(:,:) )
+  !$acc declare create(livewdcp_obs_flex(:,:))
+  !$acc declare create(deadwdcp_obs_flex(:,:))
+
   ! Photosynthesis parameters
   real(r8), allocatable :: fnr(:)              !fraction of nitrogen in RuBisCO
   real(r8), allocatable :: act25(:)           
@@ -260,11 +450,43 @@ module pftvarcon
   real(r8)              :: jmax_np2            !jmax~np relationship coefficient
   real(r8)              :: jmax_np3            !jmax~np relationship coefficient
   real(r8)              :: laimax
+  !$acc declare create(fnr(:)      )
+  !$acc declare create(act25(:)    )
+  !$acc declare create(kcha(:)     )
+  !$acc declare create(koha(:)     )
+  !$acc declare create(cpha(:)     )
+  !$acc declare create(vcmaxha(:)  )
+  !$acc declare create(jmaxha(:)   )
+  !$acc declare create(tpuha(:)    )
+  !$acc declare create(lmrha(:)    )
+  !$acc declare create(vcmaxhd(:)  )
+  !$acc declare create(jmaxhd(:)   )
+  !$acc declare create(tpuhd(:)    )
+  !$acc declare create(lmrhd(:)    )
+  !$acc declare create(lmrse(:)    )
+  !$acc declare create(qe(:)       )
+  !$acc declare create(theta_cj(:) )
+  !$acc declare create(bbbopt(:)   )
+  !$acc declare create(mbbopt(:)   )
+  !$acc declare create(nstor(:)    )
+  !$acc declare create(br_xr(:)    )
+  !$acc declare create(tc_stress   )
+  !$acc declare create(vcmax_np1(:))
+  !$acc declare create(vcmax_np2(:))
+  !$acc declare create(vcmax_np3(:))
+  !$acc declare create(vcmax_np4(:))
+  !$acc declare create(jmax_np1    )
+  !$acc declare create(jmax_np2    )
+  !$acc declare create(jmax_np3    )
+  !$acc declare create(laimax      )
   ! Hydrology
   real(r8)              :: rsub_top_globalmax
+  !$acc declare create(rsub_top_globalmax)
   ! Soil erosion ground cover
   real(r8), allocatable :: gcpsi(:)            !bare ground LAI-decay parameter
   real(r8), allocatable :: pftcc(:)            !plant cover reduction factor for transport capacity
+  !$acc declare create(gcpsi      )
+  !$acc declare create(pftcc      )
 
   !
   ! !PUBLIC MEMBER FUNCTIONS:

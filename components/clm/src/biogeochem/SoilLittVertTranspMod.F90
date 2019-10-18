@@ -4,11 +4,11 @@ module SoilLittVertTranspMod
   ! calculate vertical mixing of all decomposing C and N pools
   !
   use shr_kind_mod           , only : r8 => shr_kind_r8
-  use shr_log_mod            , only : errMsg => shr_log_errMsg
+    use shr_log_mod            , only : errMsg => shr_log_errMsg
   use clm_varctl             , only : iulog, use_c13, use_c14, spinup_state, use_vertsoilc, use_fates
   use clm_varcon             , only : secspday
   use decompMod              , only : bounds_type
-  use abortutils             , only : endrun
+   use abortutils             , only : endrun
   use CNDecompCascadeConType , only : decomp_cascade_con
   use CanopyStateType        , only : canopystate_type
   use CNCarbonFluxType       , only : carbonflux_type
@@ -37,93 +37,87 @@ module SoilLittVertTranspMod
   end type SoilLittVertTranspParamsType
 
   type(SoilLittVertTranspParamsType),     private ::  SoilLittVertTranspParamsInst
+  !$acc declare create(SoilLittVertTranspParamsInst)
 
   !
   real(r8), public :: som_adv_flux =  0._r8
+  !$acc declare copyin(som_adv_flux)
   real(r8), public :: max_depth_cryoturb = 3._r8   ! (m) this is the maximum depth of cryoturbation
+  !$acc declare copyin(max_depth_cryoturb)
   real(r8) :: som_diffus                   ! [m^2/sec] = 1 cm^2 / yr
   real(r8) :: cryoturb_diffusion_k         ! [m^2/sec] = 5 cm^2 / yr = 1m^2 / 200 yr
   real(r8) :: max_altdepth_cryoturbation   ! (m) maximum active layer thickness for cryoturbation to occur
+  !$acc declare create(som_diffus                )
+  !$acc declare create(cryoturb_diffusion_k      )
+  !$acc declare create(max_altdepth_cryoturbation)
   !-----------------------------------------------------------------------
 
 contains
 
-  !-----------------------------------------------------------------------  
-  subroutine readSoilLittVertTranspParams ( ncid )
-    !
-    use ncdio_pio   , only : file_desc_t,ncd_io
-    !
-    type(file_desc_t),intent(inout) :: ncid   ! pio netCDF file id
-    !
-    character(len=32)  :: subname = 'SoilLittVertTranspType'
-    character(len=100) :: errCode = '-Error reading in parameters file:'
-    logical            :: readv ! has variable been read in or not
-    real(r8)           :: tempr ! temporary to read in constant
-    character(len=100) :: tString ! temp. var for reading
-    !-----------------------------------------------------------------------
-    !
-    ! read in parameters
-    !
-     tString='som_diffus'
-     call ncd_io(trim(tString),tempr, 'read', ncid, readvar=readv)
-     if ( .not. readv ) call endrun(msg=trim(errCode)//trim(tString)//errMsg(__FILE__, __LINE__))
-     !SoilLittVertTranspParamsInst%som_diffus=tempr
-     ! FIX(SPM,032414) - can't be pulled out since division makes things not bfb
-     SoilLittVertTranspParamsInst%som_diffus = 1e-4_r8 / (secspday * 365._r8)  
+  !-----------------------------------------------------------------------
+   subroutine readSoilLittVertTranspParams ( ncid )
+     !
+     use ncdio_pio   , only : file_desc_t,ncd_io
+     !
+     type(file_desc_t),intent(inout) :: ncid   ! pio netCDF file id
+     !
+     character(len=32)  :: subname = 'SoilLittVertTranspType'
+     character(len=100) :: errCode = '-Error reading in parameters file:'
+     logical            :: readv ! has variable been read in or not
+     real(r8)           :: tempr ! temporary to read in constant
+     character(len=100) :: tString ! temp. var for reading
+     !-----------------------------------------------------------------------
+     !
+     ! read in parameters
+     !
+      tString='som_diffus'
+      call ncd_io(trim(tString),tempr, 'read', ncid, readvar=readv)
+      if ( .not. readv ) call endrun(msg=trim(errCode)//trim(tString)//errMsg(__FILE__, __LINE__))
+      !SoilLittVertTranspParamsInst%som_diffus=tempr
+      ! FIX(SPM,032414) - can't be pulled out since division makes things not bfb
+      SoilLittVertTranspParamsInst%som_diffus = 1e-4_r8 / (secspday * 365._r8)
 
-     tString='cryoturb_diffusion_k'
-     call ncd_io(trim(tString),tempr, 'read', ncid, readvar=readv)
-     if ( .not. readv ) call endrun(msg=trim(errCode)//trim(tString)//errMsg(__FILE__, __LINE__))
-     !SoilLittVertTranspParamsInst%cryoturb_diffusion_k=tempr
-     !FIX(SPM,032414) Todo.  This constant cannot be on file since the divide makes things
-     !SPM Todo.  This constant cannot be on file since the divide makes things
-     !not bfb
-     SoilLittVertTranspParamsInst%cryoturb_diffusion_k = 5e-4_r8 / (secspday * 365._r8)  ! [m^2/sec] = 5 cm^2 / yr = 1m^2 / 200 yr
+      tString='cryoturb_diffusion_k'
+      call ncd_io(trim(tString),tempr, 'read', ncid, readvar=readv)
+      if ( .not. readv ) call endrun(msg=trim(errCode)//trim(tString)//errMsg(__FILE__, __LINE__))
+      !SoilLittVertTranspParamsInst%cryoturb_diffusion_k=tempr
+      !FIX(SPM,032414) Todo.  This constant cannot be on file since the divide makes things
+      !SPM Todo.  This constant cannot be on file since the divide makes things
+      !not bfb
+      SoilLittVertTranspParamsInst%cryoturb_diffusion_k = 5e-4_r8 / (secspday * 365._r8)  ! [m^2/sec] = 5 cm^2 / yr = 1m^2 / 200 yr
 
-     tString='max_altdepth_cryoturbation'
-     call ncd_io(trim(tString),tempr, 'read', ncid, readvar=readv)
-     if ( .not. readv ) call endrun(msg=trim(errCode)//trim(tString)//errMsg(__FILE__, __LINE__))
-     SoilLittVertTranspParamsInst%max_altdepth_cryoturbation=tempr
-    
-  end subroutine readSoilLittVertTranspParams
+      tString='max_altdepth_cryoturbation'
+      call ncd_io(trim(tString),tempr, 'read', ncid, readvar=readv)
+      if ( .not. readv ) call endrun(msg=trim(errCode)//trim(tString)//errMsg(__FILE__, __LINE__))
+      SoilLittVertTranspParamsInst%max_altdepth_cryoturbation=tempr
+
+   end subroutine readSoilLittVertTranspParams
 
   !-----------------------------------------------------------------------
   subroutine SoilLittVertTransp(bounds, num_soilc, filter_soilc,   &
-       canopystate_vars, cnstate_vars,                               &
-       carbonstate_vars, c13_carbonstate_vars, c14_carbonstate_vars, &
-       carbonflux_vars, c13_carbonflux_vars, c14_carbonflux_vars,    &
-       nitrogenstate_vars,nitrogenflux_vars,&
-       phosphorusstate_vars,phosphorusflux_vars)
+       canopystate_vars, cnstate_vars, dtime, year, mon, day, sec  )
     !
     ! !DESCRIPTION:
-    ! Calculate vertical mixing of soil and litter pools.  Also reconcile sources and sinks of these pools 
+    ! Calculate vertical mixing of soil and litter pools.  Also reconcile sources and sinks of these pools
     ! calculated in the CarbonStateUpdate1 and NStateUpdate1 subroutines.
     ! Advection-diffusion code based on algorithm in Patankar (1980)
     ! Initial code by C. Koven and W. Riley
     !
     ! !USES:
-    use clm_time_manager , only : get_step_size, get_curr_date
+    !#py use clm_time_manager , only : get_step_size, get_curr_date
+      !$acc routine seq
     use clm_varpar       , only : nlevdecomp, ndecomp_pools, nlevdecomp_full
     use clm_varcon       , only : zsoi, dzsoi_decomp, zisoi
     use TridiagonalMod   , only : Tridiagonal
     !
     ! !ARGUMENTS:
-    type(bounds_type)        , intent(in)    :: bounds 
+    type(bounds_type)        , intent(in)    :: bounds
     integer                  , intent(in)    :: num_soilc        ! number of soil columns in filter
     integer                  , intent(in)    :: filter_soilc(:)  ! filter for soil columns
     type(canopystate_type)   , intent(in)    :: canopystate_vars
     type(cnstate_type)       , intent(inout) :: cnstate_vars
-    type(carbonstate_type)   , intent(inout) :: carbonstate_vars
-    type(carbonstate_type)   , intent(inout) :: c13_carbonstate_vars
-    type(carbonstate_type)   , intent(inout) :: c14_carbonstate_vars
-    type(carbonflux_type)    , intent(inout) :: carbonflux_vars
-    type(carbonflux_type)    , intent(inout) :: c13_carbonflux_vars
-    type(carbonflux_type)    , intent(inout) :: c14_carbonflux_vars
-    type(nitrogenstate_type) , intent(inout) :: nitrogenstate_vars
-    type(nitrogenflux_type)  , intent(inout) :: nitrogenflux_vars
-
-    type(phosphorusstate_type) , intent(inout) :: phosphorusstate_vars
-    type(phosphorusflux_type)  , intent(inout) :: phosphorusflux_vars
+    real(r8), intent(in) :: dtime
+    integer, intent(in)  :: year, mon, day, sec                      ! land model time step (sec)
     !
     ! !LOCAL VARIABLES:
     real(r8) :: diffus (bounds%begc:bounds%endc,1:nlevdecomp+1)    ! diffusivity (m2/s)  (includes spinup correction, if any)
@@ -153,11 +147,10 @@ contains
     integer  :: ntype
     integer  :: i_type,s,fc,c,j,l             ! indices
     integer  :: jtop(bounds%begc:bounds%endc) ! top level at each column
-    real(r8) :: dtime                         ! land model time step (sec)
     integer  :: zerolev_diffus
     real(r8) :: spinup_term                   ! spinup accelerated decomposition factor, used to accelerate transport as well
     real(r8) :: epsilon                       ! small number
-    integer  :: year, mon, day, sec
+
 
     !-----------------------------------------------------------------------
 
@@ -180,7 +173,7 @@ contains
       cryoturb_diffusion_k       = SoilLittVertTranspParamsInst%cryoturb_diffusion_k 
       max_altdepth_cryoturbation = SoilLittVertTranspParamsInst%max_altdepth_cryoturbation 
 
-      dtime = get_step_size()
+      !#py dtime = get_step_size()
 
       ntype = 3
       if ( use_c13 ) then
@@ -272,12 +265,12 @@ contains
                source            => c14_col_cf%decomp_cpools_sourcesink
                trcr_tendency_ptr => c14_col_cf%decomp_cpools_transport_tendency
             else
-               write(iulog,*) 'error.  ncase = 5, but c13 and c14 not both enabled.'
-               call endrun(msg=errMsg(__FILE__, __LINE__))
+               !#py write(iulog,*) 'error.  ncase = 5, but c13 and c14 not both enabled.'
+               !#py !#py call endrun(msg=errMsg(__FILE__, __LINE__))
             endif
          end select
 
-	 call get_curr_date(year, mon, day, sec)
+	 !#py call get_curr_date(year, mon, day, sec)
 
          if (use_vertsoilc) then
 
@@ -439,13 +432,13 @@ contains
 
                   ! Solve for the concentration profile for this time step
                   call Tridiagonal(bounds, 0, nlevdecomp+1, &
-                       jtop(bounds%begc:bounds%endc), &
+                       jtop, &
                        num_soilc, filter_soilc, &
-                       a_tri(bounds%begc:bounds%endc, :), &
-                       b_tri(bounds%begc:bounds%endc, :), &
-                       c_tri(bounds%begc:bounds%endc, :), &
-                       r_tri(bounds%begc:bounds%endc, :), &
-                       conc_trcr(bounds%begc:bounds%endc,0:nlevdecomp+1))
+                       a_tri, &
+                       b_tri, &
+                       c_tri, &
+                       r_tri, &
+                       conc_trcr)
 
 
                   ! add post-transport concentration to calculate tendency term

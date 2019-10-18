@@ -80,7 +80,7 @@ Module DryDepVelocity
    contains
 
      procedure , public  :: Init 
-     procedure , private :: InitAllocate 
+     procedure , public :: InitAllocate
 
   end type drydepvel_type
   !----------------------------------------------------------------------- 
@@ -101,8 +101,8 @@ CONTAINS
   subroutine InitAllocate(this, bounds)
     !
     ! !USES:
-    use shr_infnan_mod , only : nan => shr_infnan_nan, assignment(=)
-    use seq_drydep_mod , only : n_drydep, drydep_method, DD_XLND
+    use seq_drydep_mod_elm , only : n_drydep, drydep_method, DD_XLND
+    use clm_varcon , only : spval
     !
     ! !ARGUMENTS:
     class(drydepvel_type) :: this
@@ -116,23 +116,24 @@ CONTAINS
 
     ! Dry Deposition Velocity 
     if ( n_drydep > 0 .and. drydep_method == DD_XLND )then
-       allocate(this%velocity_patch(begp:endp, n_drydep));  this%velocity_patch(:,:) = nan 
+       allocate(this%velocity_patch(begp:endp, n_drydep));  this%velocity_patch(:,:) = spval
     end if
 
   end subroutine InitAllocate
 
   !----------------------------------------------------------------------- 
   subroutine depvel_compute( bounds, &
-       atm2lnd_vars, canopystate_vars, waterstate_vars, frictionvel_vars, &
+       atm2lnd_vars, canopystate_vars, frictionvel_vars, &
        photosyns_vars, drydepvel_vars)
     !
     ! !DESCRIPTION:
     ! computes the dry deposition velocity of tracers
     !
     ! !USES:
+      !$acc routine seq
     use shr_const_mod  , only : tmelt => shr_const_tkfrz
-    use seq_drydep_mod , only : seq_drydep_setHCoeff, mapping, drat, foxd
-    use seq_drydep_mod , only : rcls, h2_a, h2_b, h2_c, ri, rac, rclo, rlu, rgss, rgso
+    use seq_drydep_mod_elm , only : seq_drydep_setHCoeff, mapping, drat, foxd
+    use seq_drydep_mod_elm , only : rcls, h2_a, h2_b, h2_c, ri, rac, rclo, rlu, rgss, rgso
     use landunit_varcon, only : istsoil, istice, istice_mec, istdlak, istwet
     use clm_varctl     , only : iulog
     use pftvarcon      , only : noveg, ndllf_evr_tmp_tree, ndllf_evr_brl_tree
@@ -148,7 +149,6 @@ CONTAINS
     type(bounds_type)      , intent(in)    :: bounds  
     type(atm2lnd_type)     , intent(in)    :: atm2lnd_vars
     type(canopystate_type) , intent(in)    :: canopystate_vars
-    type(waterstate_type)  , intent(in)    :: waterstate_vars
     type(frictionvel_type) , intent(in)    :: frictionvel_vars
     type(photosyns_type)   , intent(in)    :: photosyns_vars
     type(drydepvel_type)   , intent(inout) :: drydepvel_vars
@@ -285,10 +285,10 @@ CONTAINS
             if (clmveg == nc3irrig                            ) wesveg = 2 
             if (clmveg >= npcropmin .and. clmveg <= npcropmax ) wesveg = 2 
             if (wesveg == wveg_unset )then
-               write(iulog,*) 'clmveg = ', clmveg, 'lun_pp%itype = ', lun_pp%itype(l)
-               call endrun(decomp_index=pi, clmlevel=namep, &
-                    msg='ERROR: Not able to determine Wesley vegetation type'//&
-                    errMsg(__FILE__, __LINE__))
+               !#py write(iulog,*) 'clmveg = ', clmveg, 'lun_pp%itype = ', lun_pp%itype(l)
+               !#py call endrun(decomp_index=pi, clmlevel=namep, &
+                    !#py msg='ERROR: Not able to determine Wesley vegetation type'//&
+                    !#py !#py errMsg(__FILE__, __LINE__))
             end if
 
             ! creat seasonality index used to index wesely data tables from LAI,  Bascially 
@@ -351,8 +351,8 @@ CONTAINS
                endif
             endif
 
-            if (index_season<0) then 
-               call endrun('ERROR: not able to determine season'//errmsg(__FILE__, __LINE__))
+            if (index_season<0) then
+               !#py call endrun('ERROR: not able to determine season'//errmsg(__FILE__, __LINE__))
             endif
 
             ! saturation specific humidity 

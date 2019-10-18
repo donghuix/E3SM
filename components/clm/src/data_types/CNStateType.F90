@@ -2,7 +2,7 @@ module CNStateType
 
   use shr_kind_mod   , only : r8 => shr_kind_r8
   use shr_log_mod    , only : errMsg => shr_log_errMsg
-  use shr_infnan_mod , only : nan => shr_infnan_nan, assignment(=)
+  !use shr_infnan_mod , only : nan => shr_infnan_nan, assignment(=)
   use decompMod      , only : bounds_type
   use abortutils     , only : endrun
   use spmdMod        , only : masterproc
@@ -32,140 +32,145 @@ module CNStateType
   real(r8)   , pointer, public :: fert_dose         (:,:)
   integer    , pointer, public :: fert_start        (:)
   integer    , pointer, public :: fert_end          (:)
-  ! 
+  !$acc declare create(fert_type    )
+  !$acc declare create(fert_continue)
+  !$acc declare create(fert_dose    )
+  !$acc declare create(fert_start   )
+  !$acc declare create(fert_end     )
+  !
   ! !PUBLIC TYPES:
   type, public :: cnstate_type
 
-     integer  , pointer :: burndate_patch              (:)     ! patch crop burn date
-     real(r8) , pointer :: lfpftd_patch                (:)     ! patch decrease of pft weight (0-1) on the column for the timestep 
+     integer  , pointer :: burndate_patch              (:)  => null()   ! patch crop burn date
+     real(r8) , pointer :: lfpftd_patch                (:)  => null()   ! patch decrease of pft weight (0-1) on the column for the timestep
 
      ! Prognostic crop model -  Note that cropplant and harvdate could be 2D to facilitate rotation
-     real(r8) , pointer :: hdidx_patch                 (:)     ! patch cold hardening index?
-     real(r8) , pointer :: cumvd_patch                 (:)     ! patch cumulative vernalization d?ependence?
-     real(r8) , pointer :: gddmaturity_patch           (:)     ! patch growing degree days (gdd) needed to harvest (ddays)
-     real(r8) , pointer :: huileaf_patch               (:)     ! patch heat unit index needed from planting to leaf emergence
-     real(r8) , pointer :: huigrain_patch              (:)     ! patch heat unit index needed to reach vegetative maturity
-     real(r8) , pointer :: aleafi_patch                (:)     ! patch saved leaf allocation coefficient from phase 2
-     real(r8) , pointer :: astemi_patch                (:)     ! patch saved stem allocation coefficient from phase 2
-     real(r8) , pointer :: aleaf_patch                 (:)     ! patch leaf allocation coefficient
-     real(r8) , pointer :: astem_patch                 (:)     ! patch stem allocation coefficient
-     real(r8) , pointer :: htmx_patch                  (:)     ! patch max hgt attained by a crop during yr (m)
-     integer  , pointer :: peaklai_patch               (:)     ! patch 1: max allowed lai; 0: not at max
+     real(r8) , pointer :: hdidx_patch                 (:)  => null()   ! patch cold hardening index?
+     real(r8) , pointer :: cumvd_patch                 (:)  => null()   ! patch cumulative vernalization d?ependence?
+     real(r8) , pointer :: gddmaturity_patch           (:)  => null()   ! patch growing degree days (gdd) needed to harvest (ddays)
+     real(r8) , pointer :: huileaf_patch               (:)  => null()   ! patch heat unit index needed from planting to leaf emergence
+     real(r8) , pointer :: huigrain_patch              (:)  => null()   ! patch heat unit index needed to reach vegetative maturity
+     real(r8) , pointer :: aleafi_patch                (:)  => null()   ! patch saved leaf allocation coefficient from phase 2
+     real(r8) , pointer :: astemi_patch                (:)  => null()   ! patch saved stem allocation coefficient from phase 2
+     real(r8) , pointer :: aleaf_patch                 (:)  => null()   ! patch leaf allocation coefficient
+     real(r8) , pointer :: astem_patch                 (:)  => null()   ! patch stem allocation coefficient
+     real(r8) , pointer :: htmx_patch                  (:)  => null()   ! patch max hgt attained by a crop during yr (m)
+     integer  , pointer :: peaklai_patch               (:)  => null()   ! patch 1: max allowed lai; 0: not at max
 
-     integer  , pointer :: idop_patch                  (:)     ! patch date of planting
-     real(r8) , pointer :: leaf_prof_patch             (:,:)   ! patch (1/m) profile of leaves (vertical profiles for calculating fluxes)
-     real(r8) , pointer :: froot_prof_patch            (:,:)   ! patch (1/m) profile of fine roots (vertical profiles for calculating fluxes)
-     real(r8) , pointer :: croot_prof_patch            (:,:)   ! patch (1/m) profile of coarse roots (vertical profiles for calculating fluxes)
-     real(r8) , pointer :: stem_prof_patch             (:,:)   ! patch (1/m) profile of stems (vertical profiles for calculating fluxes)
+     integer  , pointer :: idop_patch                  (:)   => null()  ! patch date of planting
+     real(r8) , pointer :: leaf_prof_patch             (:,:) => null()  ! patch (1/m) profile of leaves (vertical profiles for calculating fluxes)
+     real(r8) , pointer :: froot_prof_patch            (:,:) => null()  ! patch (1/m) profile of fine roots (vertical profiles for calculating fluxes)
+     real(r8) , pointer :: croot_prof_patch            (:,:) => null()  ! patch (1/m) profile of coarse roots (vertical profiles for calculating fluxes)
+     real(r8) , pointer :: stem_prof_patch             (:,:) => null()  ! patch (1/m) profile of stems (vertical profiles for calculating fluxes)
 
-     real(r8) , pointer :: gdp_lf_col                  (:)     ! col global real gdp data (k US$/capita)
-     real(r8) , pointer :: peatf_lf_col                (:)     ! col global peatland fraction data (0-1)
-     integer  , pointer :: abm_lf_col                  (:)     ! col global peak month of crop fire emissions 
+     real(r8) , pointer :: gdp_lf_col                  (:)  => null()   ! col global real gdp data (k US$/capita)
+     real(r8) , pointer :: peatf_lf_col                (:)  => null()   ! col global peatland fraction data (0-1)
+     integer  , pointer :: abm_lf_col                  (:)  => null()   ! col global peak month of crop fire emissions
 
-     real(r8) , pointer :: lgdp_col                    (:)     ! col gdp limitation factor for fire occurrence (0-1)
-     real(r8) , pointer :: lgdp1_col                   (:)     ! col gdp limitation factor for fire spreading (0-1)
-     real(r8) , pointer :: lpop_col                    (:)     ! col pop limitation factor for fire spreading (0-1)
+     real(r8) , pointer :: lgdp_col                    (:)  => null()   ! col gdp limitation factor for fire occurrence (0-1)
+     real(r8) , pointer :: lgdp1_col                   (:)  => null()   ! col gdp limitation factor for fire spreading (0-1)
+     real(r8) , pointer :: lpop_col                    (:)  => null()   ! col pop limitation factor for fire spreading (0-1)
 
-     real(r8) , pointer :: fpi_vr_col                  (:,:)   ! col fraction of potential immobilization (no units) 
-     real(r8) , pointer :: fpi_col                     (:)     ! col fraction of potential immobilization (no units) 
-     real(r8),  pointer :: fpg_col                     (:)     ! col fraction of potential gpp (no units)
+     real(r8) , pointer :: fpi_vr_col                  (:,:) => null()  ! col fraction of potential immobilization (no units)
+     real(r8) , pointer :: fpi_col                     (:)   => null()  ! col fraction of potential immobilization (no units)
+     real(r8),  pointer :: fpg_col                     (:)   => null()  ! col fraction of potential gpp (no units)
 
      !!! add phosphorus  -X. YANG
 
-     integer  ,pointer  :: isoilorder                  (:)     ! col global soil order data
-     real(r8) , pointer :: fpi_p_vr_col                (:,:)   ! col fraction of potential immobilization (no units) 
-     real(r8) , pointer :: fpi_p_col                   (:)     ! col fraction of potential immobilization (no units) 
-     real(r8),  pointer :: fpg_p_col                   (:)     ! col fraction of potential gpp (no units)
+     integer  ,pointer  :: isoilorder                  (:)    => null() ! col global soil order data
+     real(r8) , pointer :: fpi_p_vr_col                (:,:)  => null() ! col fraction of potential immobilization (no units)
+     real(r8) , pointer :: fpi_p_col                   (:)    => null() ! col fraction of potential immobilization (no units)
+     real(r8),  pointer :: fpg_p_col                   (:)    => null() ! col fraction of potential gpp (no units)
 
-     real(r8) , pointer :: rf_decomp_cascade_col       (:,:,:) ! col respired fraction in decomposition step (frac)
-     real(r8) , pointer :: pathfrac_decomp_cascade_col (:,:,:) ! col what fraction of C leaving a given pool passes through a given transition (frac) 
-     real(r8) , pointer :: nfixation_prof_col          (:,:)   ! col (1/m) profile for N fixation additions 
-     real(r8) , pointer :: ndep_prof_col               (:,:)   ! col (1/m) profile for N fixation additions
-     real(r8) , pointer :: pdep_prof_col               (:,:)   ! col (1/m) profile for P deposition additions 
-     real(r8) , pointer :: som_adv_coef_col            (:,:)   ! col SOM advective flux (m/s) 
-     real(r8) , pointer :: som_diffus_coef_col         (:,:)   ! col SOM diffusivity due to bio/cryo-turbation (m2/s) 
+     real(r8) , pointer :: rf_decomp_cascade_col       (:,:,:) => null()! col respired fraction in decomposition step (frac)
+     real(r8) , pointer :: pathfrac_decomp_cascade_col (:,:,:) => null()! col what fraction of C leaving a given pool passes through a given transition (frac)
+     real(r8) , pointer :: nfixation_prof_col          (:,:)   => null()! col (1/m) profile for N fixation additions
+     real(r8) , pointer :: ndep_prof_col               (:,:)   => null()! col (1/m) profile for N fixation additions
+     real(r8) , pointer :: pdep_prof_col               (:,:)   => null()! col (1/m) profile for P deposition additions
+     real(r8) , pointer :: som_adv_coef_col            (:,:)   => null()! col SOM advective flux (m/s)
+     real(r8) , pointer :: som_diffus_coef_col         (:,:)   => null()! col SOM diffusivity due to bio/cryo-turbation (m2/s)
 
-     real(r8) , pointer :: tempavg_t2m_patch           (:)     ! patch temporary average 2m air temperature (K)
-     real(r8) , pointer :: annavg_t2m_patch            (:)     ! patch annual average 2m air temperature (K)
-     real(r8) , pointer :: annavg_t2m_col              (:)     ! col annual average of 2m air temperature, averaged from pft-level (K)
-     real(r8) , pointer :: scalaravg_col               (:,:)   ! column average scalar for decompostion (for ad_spinup)
-     real(r8) , pointer :: annsum_counter_col          (:)     ! col seconds since last annual accumulator turnover
+     real(r8) , pointer :: tempavg_t2m_patch           (:)   => null()  ! patch temporary average 2m air temperature (K)
+     real(r8) , pointer :: annavg_t2m_patch            (:)   => null()  ! patch annual average 2m air temperature (K)
+     real(r8) , pointer :: annavg_t2m_col              (:)   => null()  ! col annual average of 2m air temperature, averaged from pft-level (K)
+     real(r8) , pointer :: scalaravg_col               (:,:) => null()  ! column average scalar for decompostion (for ad_spinup)
+     real(r8) , pointer :: annsum_counter_col          (:)   => null()  ! col seconds since last annual accumulator turnover
 
      ! Fire
-     real(r8) , pointer :: nfire_col                   (:)     ! col fire counts (count/km2/sec), valid only in Reg. C
-     real(r8) , pointer :: fsr_col                     (:)     ! col fire spread rate at column level (m/s)
-     real(r8) , pointer :: fd_col                      (:)     ! col fire duration at column level (hr)
-     real(r8) , pointer :: lfc_col                     (:)     ! col conversion area fraction of BET and BDT that haven't burned before (/timestep)
-     real(r8) , pointer :: lfc2_col                    (:)     ! col conversion area fraction of BET and BDT that burned (/sec)
-     real(r8) , pointer :: dtrotr_col                  (:)     ! col annual decreased fraction coverage of BET on the gridcell (0-1)
-     real(r8) , pointer :: trotr1_col                  (:)     ! col patch weight of BET and BDT on the gridcell(0-1)
-     real(r8) , pointer :: trotr2_col                  (:)     ! col patch weight of BDT on the gridcell (0-1)
-     real(r8) , pointer :: cropf_col                   (:)     ! col crop fraction in veg column (0-1)
-     real(r8) , pointer :: baf_crop_col                (:)     ! col baf for cropland(/sec)
-     real(r8) , pointer :: baf_peatf_col               (:)     ! col baf for peatland (/sec)
-     real(r8) , pointer :: fbac_col                    (:)     ! col total burned area out of conversion (/sec)
-     real(r8) , pointer :: fbac1_col                   (:)     ! col burned area out of conversion region due to land use fire (/sec)
-     real(r8) , pointer :: wtlf_col                    (:)     ! col fractional coverage of non-crop Patches (0-1)
-     real(r8) , pointer :: lfwt_col                    (:)     ! col fractional coverage of non-crop and non-bare-soil Patches (0-1)
-     real(r8) , pointer :: farea_burned_col            (:)     ! col fractional area burned (/sec) 
+     real(r8) , pointer :: nfire_col                   (:)  => null()   ! col fire counts (count/km2/sec), valid only in Reg. C
+     real(r8) , pointer :: fsr_col                     (:)  => null()   ! col fire spread rate at column level (m/s)
+     real(r8) , pointer :: fd_col                      (:)  => null()   ! col fire duration at column level (hr)
+     real(r8) , pointer :: lfc_col                     (:)  => null()   ! col conversion area fraction of BET and BDT that haven't burned before (/timestep)
+     real(r8) , pointer :: lfc2_col                    (:)  => null()   ! col conversion area fraction of BET and BDT that burned (/sec)
+     real(r8) , pointer :: dtrotr_col                  (:)  => null()   ! col annual decreased fraction coverage of BET on the gridcell (0-1)
+     real(r8) , pointer :: trotr1_col                  (:)  => null()   ! col patch weight of BET and BDT on the gridcell(0-1)
+     real(r8) , pointer :: trotr2_col                  (:)  => null()   ! col patch weight of BDT on the gridcell (0-1)
+     real(r8) , pointer :: cropf_col                   (:)  => null()   ! col crop fraction in veg column (0-1)
+     real(r8) , pointer :: baf_crop_col                (:)  => null()   ! col baf for cropland(/sec)
+     real(r8) , pointer :: baf_peatf_col               (:)  => null()   ! col baf for peatland (/sec)
+     real(r8) , pointer :: fbac_col                    (:)  => null()   ! col total burned area out of conversion (/sec)
+     real(r8) , pointer :: fbac1_col                   (:)  => null()   ! col burned area out of conversion region due to land use fire (/sec)
+     real(r8) , pointer :: wtlf_col                    (:)  => null()   ! col fractional coverage of non-crop Patches (0-1)
+     real(r8) , pointer :: lfwt_col                    (:)  => null()   ! col fractional coverage of non-crop and non-bare-soil Patches (0-1)
+     real(r8) , pointer :: farea_burned_col            (:)  => null()   ! col fractional area burned (/sec)
 
-     real(r8), pointer :: dormant_flag_patch           (:)     ! patch dormancy flag
-     real(r8), pointer :: days_active_patch            (:)     ! patch number of days since last dormancy
-     real(r8), pointer :: onset_flag_patch             (:)     ! patch onset flag
-     real(r8), pointer :: onset_counter_patch          (:)     ! patch onset days counter
-     real(r8), pointer :: onset_gddflag_patch          (:)     ! patch onset flag for growing degree day sum
-     real(r8), pointer :: onset_fdd_patch              (:)     ! patch onset freezing degree days counter
-     real(r8), pointer :: onset_gdd_patch              (:)     ! patch onset growing degree days
-     real(r8), pointer :: onset_swi_patch              (:)     ! patch onset soil water index
-     real(r8), pointer :: offset_flag_patch            (:)     ! patch offset flag
-     real(r8), pointer :: offset_counter_patch         (:)     ! patch offset days counter
-     real(r8), pointer :: offset_fdd_patch             (:)     ! patch offset freezing degree days counter
-     real(r8), pointer :: offset_swi_patch             (:)     ! patch offset soil water index
-     real(r8), pointer :: grain_flag_patch             (:)     ! patch 1: grain fill stage; 0: not
-     real(r8), pointer :: lgsf_patch                   (:)     ! patch long growing season factor [0-1]
-     real(r8), pointer :: bglfr_patch                  (:)     ! patch background litterfall rate (1/s)
-     real(r8), pointer :: bglfr_leaf_patch             (:)     ! patch background leaf litterfall rate (1/s)
-     real(r8), pointer :: bglfr_froot_patch            (:)     ! patch background fine root litterfall rate (1/s)
-     real(r8), pointer :: bgtr_patch                   (:)     ! patch background transfer growth rate (1/s)
-     real(r8), pointer :: alloc_pnow_patch             (:)     ! patch fraction of current allocation to display as new growth (DIM)
-     real(r8), pointer :: c_allometry_patch            (:)     ! patch C allocation index (DIM)
-     real(r8), pointer :: n_allometry_patch            (:)     ! patch N allocation index (DIM)
-     real(r8), pointer :: tempsum_potential_gpp_patch  (:)     ! patch temporary annual sum of potential GPP
-     real(r8), pointer :: annsum_potential_gpp_patch   (:)     ! patch annual sum of potential GPP
-     real(r8), pointer :: tempmax_retransn_patch       (:)     ! patch temporary annual max of retranslocated N pool (gN/m2)
-     real(r8), pointer :: annmax_retransn_patch        (:)     ! patch annual max of retranslocated N pool (gN/m2)
-     real(r8), pointer :: downreg_patch                (:)     ! patch fractional reduction in GPP due to N limitation (DIM)
-     real(r8), pointer :: rc14_atm_patch               (:)     ! patch C14O2/C12O2 in atmosphere
+     real(r8), pointer :: dormant_flag_patch           (:)  => null()   ! patch dormancy flag
+     real(r8), pointer :: days_active_patch            (:)  => null()   ! patch number of days since last dormancy
+     real(r8), pointer :: onset_flag_patch             (:)  => null()   ! patch onset flag
+     real(r8), pointer :: onset_counter_patch          (:)  => null()   ! patch onset days counter
+     real(r8), pointer :: onset_gddflag_patch          (:)  => null()   ! patch onset flag for growing degree day sum
+     real(r8), pointer :: onset_fdd_patch              (:)  => null()   ! patch onset freezing degree days counter
+     real(r8), pointer :: onset_gdd_patch              (:)  => null()   ! patch onset growing degree days
+     real(r8), pointer :: onset_swi_patch              (:)  => null()   ! patch onset soil water index
+     real(r8), pointer :: offset_flag_patch            (:)  => null()   ! patch offset flag
+     real(r8), pointer :: offset_counter_patch         (:)  => null()   ! patch offset days counter
+     real(r8), pointer :: offset_fdd_patch             (:)  => null()   ! patch offset freezing degree days counter
+     real(r8), pointer :: offset_swi_patch             (:)  => null()   ! patch offset soil water index
+     real(r8), pointer :: grain_flag_patch             (:)  => null()   ! patch 1: grain fill stage; 0: not
+     real(r8), pointer :: lgsf_patch                   (:)  => null()   ! patch long growing season factor [0-1]
+     real(r8), pointer :: bglfr_patch                  (:)  => null()   ! patch background litterfall rate (1/s)
+     real(r8), pointer :: bglfr_leaf_patch             (:)  => null()   ! patch background leaf litterfall rate (1/s)
+     real(r8), pointer :: bglfr_froot_patch            (:)  => null()   ! patch background fine root litterfall rate (1/s)
+     real(r8), pointer :: bgtr_patch                   (:)  => null()   ! patch background transfer growth rate (1/s)
+     real(r8), pointer :: alloc_pnow_patch             (:)  => null()   ! patch fraction of current allocation to display as new growth (DIM)
+     real(r8), pointer :: c_allometry_patch            (:)  => null()   ! patch C allocation index (DIM)
+     real(r8), pointer :: n_allometry_patch            (:)  => null()   ! patch N allocation index (DIM)
+     real(r8), pointer :: tempsum_potential_gpp_patch  (:)  => null()   ! patch temporary annual sum of potential GPP
+     real(r8), pointer :: annsum_potential_gpp_patch   (:)  => null()   ! patch annual sum of potential GPP
+     real(r8), pointer :: tempmax_retransn_patch       (:)  => null()   ! patch temporary annual max of retranslocated N pool (gN/m2)
+     real(r8), pointer :: annmax_retransn_patch        (:)  => null()   ! patch annual max of retranslocated N pool (gN/m2)
+     real(r8), pointer :: downreg_patch                (:)  => null()   ! patch fractional reduction in GPP due to N limitation (DIM)
+     real(r8), pointer :: rc14_atm_patch               (:)  => null()   ! patch C14O2/C12O2 in atmosphere
 
 
      !!! add phosphorus  -X. YANG
-     real(r8), pointer :: p_allometry_patch            (:)     ! patch P allocation index (DIM)
-     real(r8), pointer :: tempmax_retransp_patch       (:)     ! patch temporary annual max of retranslocated P pool (gP/m2)
-     real(r8), pointer :: annmax_retransp_patch        (:)     ! patch annual max of retranslocated P pool (gP/m2)
+     real(r8), pointer :: p_allometry_patch            (:)  => null()   ! patch P allocation index (DIM)
+     real(r8), pointer :: tempmax_retransp_patch       (:)  => null()   ! patch temporary annual max of retranslocated P pool (gP/m2)
+     real(r8), pointer :: annmax_retransp_patch        (:)  => null()   ! patch annual max of retranslocated P pool (gP/m2)
 
-     real(r8), pointer :: frootc_nfix_scalar_col       (:)     ! col scalar for nitrogen fixation
-     real(r8), pointer :: decomp_litpool_rcn_col       (:,:,:) ! cn ratios of the decomposition pools
+     real(r8), pointer :: frootc_nfix_scalar_col       (:)     => null()! col scalar for nitrogen fixation
+     real(r8), pointer :: decomp_litpool_rcn_col       (:,:,:) => null()! cn ratios of the decomposition pools
 
-     real(r8), pointer :: fpg_nh4_vr_col               (:,:)   ! fraction of plant nh4 demand that is satisfied (no units) BGC mode
-     real(r8), pointer :: fpg_no3_vr_col               (:,:)   ! fraction of plant no3 demand that is satisfied (no units) BGC mode
-     real(r8), pointer :: fpg_vr_col                   (:,:)   ! fraction of plant N demand that is satisfied (no units) CN mode
-     real(r8), pointer :: fpg_p_vr_col                 (:,:)   ! fraction of plant p demand that is satisfied (no units) 
-     real(r8), pointer :: cn_scalar                    (:)     ! cn scaling factor for root n uptake kinetics (no units) 
-     real(r8), pointer :: cp_scalar                    (:)     ! cp scaling factor for root p uptake kinetics (no units)
-     real(r8), pointer :: np_scalar                    (:)     ! np scaling factor for root n/p uptake kinetics (no units)
-     real(r8), pointer :: cost_ben_scalar              (:)     ! cost benefit analysis scaling factor for root n uptake kinetics (no units)
-     real(r8), pointer :: cn_scalar_runmean            (:)     ! long term average of cn scaling factor for root n uptake kinetics (no units) 
-     real(r8), pointer :: cp_scalar_runmean            (:)     ! long term average of cp scaling factor for root p uptake kinetics (no units)
+     real(r8), pointer :: fpg_nh4_vr_col               (:,:)  => null() ! fraction of plant nh4 demand that is satisfied (no units) BGC mode
+     real(r8), pointer :: fpg_no3_vr_col               (:,:)  => null() ! fraction of plant no3 demand that is satisfied (no units) BGC mode
+     real(r8), pointer :: fpg_vr_col                   (:,:)  => null() ! fraction of plant N demand that is satisfied (no units) CN mode
+     real(r8), pointer :: fpg_p_vr_col                 (:,:)  => null() ! fraction of plant p demand that is satisfied (no units)
+     real(r8), pointer :: cn_scalar                    (:)    => null() ! cn scaling factor for root n uptake kinetics (no units)
+     real(r8), pointer :: cp_scalar                    (:)    => null() ! cp scaling factor for root p uptake kinetics (no units)
+     real(r8), pointer :: np_scalar                    (:)    => null() ! np scaling factor for root n/p uptake kinetics (no units)
+     real(r8), pointer :: cost_ben_scalar              (:)    => null() ! cost benefit analysis scaling factor for root n uptake kinetics (no units)
+     real(r8), pointer :: cn_scalar_runmean            (:)    => null() ! long term average of cn scaling factor for root n uptake kinetics (no units)
+     real(r8), pointer :: cp_scalar_runmean            (:)    => null() ! long term average of cp scaling factor for root p uptake kinetics (no units)
 
-     real(r8), pointer :: frac_loss_lit_to_fire_col        (:)
-     real(r8), pointer :: frac_loss_cwd_to_fire_col        (:)
+     real(r8), pointer :: frac_loss_lit_to_fire_col        (:) => null()
+     real(r8), pointer :: frac_loss_cwd_to_fire_col        (:) => null()
 
      ! soil phosphorus pools Qing Z. 2017
-     real(r8), pointer :: labp_col             (:)   ! labile phosphorus g/m2
-     real(r8), pointer :: secp_col             (:)   ! secondary phosphorus g/m2
-     real(r8), pointer :: occp_col             (:)   ! occluded phosphorus g/m2
-     real(r8), pointer :: prip_col             (:)   ! parent material phosphorus g/m2
-     logical           :: pdatasets_present          ! surface dataset has p pools info
+     real(r8), pointer :: labp_col             (:) => null()  ! labile phosphorus g/m2
+     real(r8), pointer :: secp_col             (:) => null()  ! secondary phosphorus g/m2
+     real(r8), pointer :: occp_col             (:) => null()  ! occluded phosphorus g/m2
+     real(r8), pointer :: prip_col             (:) => null()  ! parent material phosphorus g/m2
+     logical, pointer  :: pdatasets_present  => null()        ! surface dataset has p pools info
      !!! annual mortality rate dynamically calcaulted at patch
      real(r8), pointer :: r_mort_cal_patch                 (:)     ! patch annual mortality rate  
 
@@ -223,15 +228,15 @@ contains
     allocate(this%burndate_patch      (begp:endp))                   ; this%burndate_patch      (:)   = ispval
     allocate(this%lfpftd_patch        (begp:endp))                   ;
 
-    allocate(this%hdidx_patch         (begp:endp))                   ; this%hdidx_patch         (:)   = nan
-    allocate(this%cumvd_patch         (begp:endp))                   ; this%cumvd_patch         (:)   = nan
+    allocate(this%hdidx_patch         (begp:endp))                   ; this%hdidx_patch         (:)   = ispval
+    allocate(this%cumvd_patch         (begp:endp))                   ; this%cumvd_patch         (:)   = ispval
     allocate(this%gddmaturity_patch   (begp:endp))                   ; this%gddmaturity_patch   (:)   = spval
-    allocate(this%huileaf_patch       (begp:endp))                   ; this%huileaf_patch       (:)   = nan
+    allocate(this%huileaf_patch       (begp:endp))                   ; this%huileaf_patch       (:)   = ispval
     allocate(this%huigrain_patch      (begp:endp))                   ; this%huigrain_patch      (:)   = 0.0_r8
-    allocate(this%aleafi_patch        (begp:endp))                   ; this%aleafi_patch        (:)   = nan
-    allocate(this%astemi_patch        (begp:endp))                   ; this%astemi_patch        (:)   = nan
-    allocate(this%aleaf_patch         (begp:endp))                   ; this%aleaf_patch         (:)   = nan
-    allocate(this%astem_patch         (begp:endp))                   ; this%astem_patch         (:)   = nan
+    allocate(this%aleafi_patch        (begp:endp))                   ; this%aleafi_patch        (:)   = ispval
+    allocate(this%astemi_patch        (begp:endp))                   ; this%astemi_patch        (:)   = ispval
+    allocate(this%aleaf_patch         (begp:endp))                   ; this%aleaf_patch         (:)   = ispval
+    allocate(this%astem_patch         (begp:endp))                   ; this%astem_patch         (:)   = ispval
     allocate(this%htmx_patch          (begp:endp))                   ; this%htmx_patch          (:)   = 0.0_r8
     allocate(this%peaklai_patch       (begp:endp))                   ; this%peaklai_patch       (:)   = 0
 
@@ -249,21 +254,21 @@ contains
     allocate(this%lgdp1_col           (begc:endc))                   ; 
     allocate(this%lpop_col            (begc:endc))                   ;  
 
-    allocate(this%fpi_vr_col          (begc:endc,1:nlevdecomp_full)) ; this%fpi_vr_col          (:,:) = nan
-    allocate(this%fpi_col             (begc:endc))                   ; this%fpi_col             (:)   = nan
-    allocate(this%fpg_col             (begc:endc))                   ; this%fpg_col             (:)   = nan
+    allocate(this%fpi_vr_col          (begc:endc,1:nlevdecomp_full)) ; this%fpi_vr_col          (:,:) = ispval
+    allocate(this%fpi_col             (begc:endc))                   ; this%fpi_col             (:)   = ispval
+    allocate(this%fpg_col             (begc:endc))                   ; this%fpg_col             (:)   = ispval
     !!! add phosphours related variables
     allocate(this%isoilorder            (begc:endc))                   ; 
-    allocate(this%fpi_p_vr_col          (begc:endc,1:nlevdecomp_full)) ; this%fpi_p_vr_col          (:,:) = nan
-    allocate(this%fpi_p_col             (begc:endc))                   ; this%fpi_p_col             (:)   = nan
-    allocate(this%fpg_p_col             (begc:endc))                   ; this%fpg_p_col             (:)   = nan
     allocate(this%pdep_prof_col         (begc:endc,1:nlevdecomp_full)) ; this%pdep_prof_col       (:,:) = spval
+    allocate(this%fpi_p_vr_col          (begc:endc,1:nlevdecomp_full)) ; this%fpi_p_vr_col          (:,:) = ispval
+    allocate(this%fpi_p_col             (begc:endc))                   ; this%fpi_p_col             (:)   = ispval
+    allocate(this%fpg_p_col             (begc:endc))                   ; this%fpg_p_col             (:)   = ispval
 
     allocate(this%rf_decomp_cascade_col(begc:endc,1:nlevdecomp_full,1:ndecomp_cascade_transitions)); 
-    this%rf_decomp_cascade_col(:,:,:) = nan
+    this%rf_decomp_cascade_col(:,:,:) = ispval
 
     allocate(this%pathfrac_decomp_cascade_col(begc:endc,1:nlevdecomp_full,1:ndecomp_cascade_transitions));     
-    this%pathfrac_decomp_cascade_col(:,:,:) = nan
+    this%pathfrac_decomp_cascade_col(:,:,:) = ispval
 
     allocate(this%nfixation_prof_col  (begc:endc,1:nlevdecomp_full)) ; this%nfixation_prof_col  (:,:) = spval
     allocate(this%ndep_prof_col       (begc:endc,1:nlevdecomp_full)) ; this%ndep_prof_col       (:,:) = spval
@@ -271,69 +276,71 @@ contains
     allocate(this%som_adv_coef_col    (begc:endc,1:nlevdecomp_full)) ; this%som_adv_coef_col    (:,:) = spval
     allocate(this%som_diffus_coef_col (begc:endc,1:nlevdecomp_full)) ; this%som_diffus_coef_col (:,:) = spval
 
-    allocate(this%tempavg_t2m_patch   (begp:endp))                   ; this%tempavg_t2m_patch   (:)   = nan
-    allocate(this%annsum_counter_col  (begc:endc))                   ; this%annsum_counter_col  (:)   = nan
-    allocate(this%annavg_t2m_col      (begc:endc))                   ; this%annavg_t2m_col      (:)   = nan
+    allocate(this%tempavg_t2m_patch   (begp:endp))                   ; this%tempavg_t2m_patch   (:)   = ispval
+    allocate(this%annsum_counter_col  (begc:endc))                   ; this%annsum_counter_col  (:)   = ispval
+    allocate(this%annavg_t2m_col      (begc:endc))                   ; this%annavg_t2m_col      (:)   = ispval
     allocate(this%scalaravg_col       (begc:endc,1:nlevdecomp_full)) ; this%scalaravg_col       (:,:) = spval
-    allocate(this%annavg_t2m_patch    (begp:endp))                   ; this%annavg_t2m_patch    (:)   = nan
+    allocate(this%annavg_t2m_patch    (begp:endp))                   ; this%annavg_t2m_patch    (:)   = ispval
 
     allocate(this%nfire_col           (begc:endc))                   ; this%nfire_col           (:)   = spval
-    allocate(this%fsr_col             (begc:endc))                   ; this%fsr_col             (:)   = nan
-    allocate(this%fd_col              (begc:endc))                   ; this%fd_col              (:)   = nan
+    allocate(this%fsr_col             (begc:endc))                   ; this%fsr_col             (:)   = ispval
+    allocate(this%fd_col              (begc:endc))                   ; this%fd_col              (:)   = ispval
     allocate(this%lfc_col             (begc:endc))                   ; this%lfc_col             (:)   = spval
     allocate(this%lfc2_col            (begc:endc))                   ; this%lfc2_col            (:)   = 0._r8
     allocate(this%dtrotr_col          (begc:endc))                   ; this%dtrotr_col          (:)   = 0._r8
     allocate(this%trotr1_col          (begc:endc))                   ; this%trotr1_col          (:)   = 0._r8
     allocate(this%trotr2_col          (begc:endc))                   ; this%trotr2_col          (:)   = 0._r8
-    allocate(this%cropf_col           (begc:endc))                   ; this%cropf_col           (:)   = nan
-    allocate(this%baf_crop_col        (begc:endc))                   ; this%baf_crop_col        (:)   = nan
-    allocate(this%baf_peatf_col       (begc:endc))                   ; this%baf_peatf_col       (:)   = nan
-    allocate(this%fbac_col            (begc:endc))                   ; this%fbac_col            (:)   = nan
-    allocate(this%fbac1_col           (begc:endc))                   ; this%fbac1_col           (:)   = nan
-    allocate(this%wtlf_col            (begc:endc))                   ; this%wtlf_col            (:)   = nan
-    allocate(this%lfwt_col            (begc:endc))                   ; this%lfwt_col            (:)   = nan
-    allocate(this%farea_burned_col    (begc:endc))                   ; this%farea_burned_col    (:)   = nan
-    allocate(this%decomp_litpool_rcn_col (begc:endc, 1:nlevdecomp_full, 4)); this%decomp_litpool_rcn_col (:,:,:) = nan
-    allocate(this%frootc_nfix_scalar_col (begc:endc))                ; this%frootc_nfix_scalar_col(:) = nan
+    allocate(this%cropf_col           (begc:endc))                   ; this%cropf_col           (:)   = ispval
+    allocate(this%baf_crop_col        (begc:endc))                   ; this%baf_crop_col        (:)   = ispval
+    allocate(this%baf_peatf_col       (begc:endc))                   ; this%baf_peatf_col       (:)   = ispval
+    allocate(this%fbac_col            (begc:endc))                   ; this%fbac_col            (:)   = ispval
+    allocate(this%fbac1_col           (begc:endc))                   ; this%fbac1_col           (:)   = ispval
+    allocate(this%wtlf_col            (begc:endc))                   ; this%wtlf_col            (:)   = ispval
+    allocate(this%lfwt_col            (begc:endc))                   ; this%lfwt_col            (:)   = ispval
+    allocate(this%farea_burned_col    (begc:endc))                   ; this%farea_burned_col    (:)   = ispval
+    allocate(this%decomp_litpool_rcn_col (begc:endc, 1:nlevdecomp_full, 4)); this%decomp_litpool_rcn_col (:,:,:) = ispval
+    allocate(this%frootc_nfix_scalar_col (begc:endc))                ; this%frootc_nfix_scalar_col(:) = ispval
 
-    allocate(this%dormant_flag_patch          (begp:endp)) ;    this%dormant_flag_patch          (:) = nan
-    allocate(this%days_active_patch           (begp:endp)) ;    this%days_active_patch           (:) = nan
-    allocate(this%onset_flag_patch            (begp:endp)) ;    this%onset_flag_patch            (:) = nan
-    allocate(this%onset_counter_patch         (begp:endp)) ;    this%onset_counter_patch         (:) = nan
-    allocate(this%onset_gddflag_patch         (begp:endp)) ;    this%onset_gddflag_patch         (:) = nan
-    allocate(this%onset_fdd_patch             (begp:endp)) ;    this%onset_fdd_patch             (:) = nan
-    allocate(this%onset_gdd_patch             (begp:endp)) ;    this%onset_gdd_patch             (:) = nan
-    allocate(this%onset_swi_patch             (begp:endp)) ;    this%onset_swi_patch             (:) = nan
-    allocate(this%offset_flag_patch           (begp:endp)) ;    this%offset_flag_patch           (:) = nan
-    allocate(this%offset_counter_patch        (begp:endp)) ;    this%offset_counter_patch        (:) = nan
-    allocate(this%offset_fdd_patch            (begp:endp)) ;    this%offset_fdd_patch            (:) = nan
-    allocate(this%offset_swi_patch            (begp:endp)) ;    this%offset_swi_patch            (:) = nan
-    allocate(this%grain_flag_patch            (begp:endp)) ;    this%grain_flag_patch            (:) = nan
-    allocate(this%lgsf_patch                  (begp:endp)) ;    this%lgsf_patch                  (:) = nan
-    allocate(this%bglfr_patch                 (begp:endp)) ;    this%bglfr_patch                 (:) = nan
-    allocate(this%bglfr_leaf_patch            (begp:endp)) ;    this%bglfr_leaf_patch            (:) = nan
-    allocate(this%bglfr_froot_patch           (begp:endp)) ;    this%bglfr_froot_patch           (:) = nan
-    allocate(this%bgtr_patch                  (begp:endp)) ;    this%bgtr_patch                  (:) = nan
-    allocate(this%alloc_pnow_patch            (begp:endp)) ;    this%alloc_pnow_patch            (:) = nan
-    allocate(this%c_allometry_patch           (begp:endp)) ;    this%c_allometry_patch           (:) = nan
-    allocate(this%n_allometry_patch           (begp:endp)) ;    this%n_allometry_patch           (:) = nan
-    allocate(this%tempsum_potential_gpp_patch (begp:endp)) ;    this%tempsum_potential_gpp_patch (:) = nan
-    allocate(this%annsum_potential_gpp_patch  (begp:endp)) ;    this%annsum_potential_gpp_patch  (:) = nan
-    allocate(this%tempmax_retransn_patch      (begp:endp)) ;    this%tempmax_retransn_patch      (:) = nan
-    allocate(this%annmax_retransn_patch       (begp:endp)) ;    this%annmax_retransn_patch       (:) = nan
-    allocate(this%downreg_patch               (begp:endp)) ;    this%downreg_patch               (:) = nan
-    allocate(this%rc14_atm_patch              (begp:endp)) ;    this%rc14_atm_patch              (:) = nan    
+    allocate(this%dormant_flag_patch          (begp:endp)) ;    this%dormant_flag_patch          (:) = ispval
+    allocate(this%days_active_patch           (begp:endp)) ;    this%days_active_patch           (:) = ispval
+    allocate(this%onset_flag_patch            (begp:endp)) ;    this%onset_flag_patch            (:) = ispval
+    allocate(this%onset_counter_patch         (begp:endp)) ;    this%onset_counter_patch         (:) = ispval
+    allocate(this%onset_gddflag_patch         (begp:endp)) ;    this%onset_gddflag_patch         (:) = ispval
+    allocate(this%onset_fdd_patch             (begp:endp)) ;    this%onset_fdd_patch             (:) = ispval
+    allocate(this%onset_gdd_patch             (begp:endp)) ;    this%onset_gdd_patch             (:) = ispval
+    allocate(this%onset_swi_patch             (begp:endp)) ;    this%onset_swi_patch             (:) = ispval
+    allocate(this%offset_flag_patch           (begp:endp)) ;    this%offset_flag_patch           (:) = ispval
+    allocate(this%offset_counter_patch        (begp:endp)) ;    this%offset_counter_patch        (:) = ispval
+    allocate(this%offset_fdd_patch            (begp:endp)) ;    this%offset_fdd_patch            (:) = ispval
+    allocate(this%offset_swi_patch            (begp:endp)) ;    this%offset_swi_patch            (:) = ispval
+    allocate(this%grain_flag_patch            (begp:endp)) ;    this%grain_flag_patch            (:) = ispval
+    allocate(this%lgsf_patch                  (begp:endp)) ;    this%lgsf_patch                  (:) = ispval
+    allocate(this%bglfr_patch                 (begp:endp)) ;    this%bglfr_patch                 (:) = ispval
+    allocate(this%bglfr_leaf_patch            (begp:endp)) ;    this%bglfr_leaf_patch            (:) = ispval
+    allocate(this%bglfr_froot_patch           (begp:endp)) ;    this%bglfr_froot_patch           (:) = ispval
+    allocate(this%bgtr_patch                  (begp:endp)) ;    this%bgtr_patch                  (:) = ispval
+    allocate(this%alloc_pnow_patch            (begp:endp)) ;    this%alloc_pnow_patch            (:) = ispval
+    allocate(this%c_allometry_patch           (begp:endp)) ;    this%c_allometry_patch           (:) = ispval
+    allocate(this%n_allometry_patch           (begp:endp)) ;    this%n_allometry_patch           (:) = ispval
+    allocate(this%tempsum_potential_gpp_patch (begp:endp)) ;    this%tempsum_potential_gpp_patch (:) = ispval
+    allocate(this%annsum_potential_gpp_patch  (begp:endp)) ;    this%annsum_potential_gpp_patch  (:) = ispval
+    allocate(this%tempmax_retransn_patch      (begp:endp)) ;    this%tempmax_retransn_patch      (:) = ispval
+    allocate(this%annmax_retransn_patch       (begp:endp)) ;    this%annmax_retransn_patch       (:) = ispval
+    allocate(this%downreg_patch               (begp:endp)) ;    this%downreg_patch               (:) = ispval
+    allocate(this%rc14_atm_patch              (begp:endp)) ;    this%rc14_atm_patch              (:) = ispval
 
+
+    allocate(this%CropRestYear); this%CropRestYear = 0
 
     !! add phosphorus -X.YANG
-    allocate(this%p_allometry_patch           (begp:endp)) ;    this%p_allometry_patch           (:) = nan
-    allocate(this%tempmax_retransp_patch      (begp:endp)) ;    this%tempmax_retransp_patch      (:) = nan
-    allocate(this%annmax_retransp_patch       (begp:endp)) ;    this%annmax_retransp_patch       (:) = nan
+    allocate(this%p_allometry_patch           (begp:endp)) ;    this%p_allometry_patch           (:) = spval
+    allocate(this%tempmax_retransp_patch      (begp:endp)) ;    this%tempmax_retransp_patch      (:) = spval
+    allocate(this%annmax_retransp_patch       (begp:endp)) ;    this%annmax_retransp_patch       (:) = spval
 
-    allocate(this%fpg_nh4_vr_col              (begc:endc,1:nlevdecomp_full)) ; this%fpg_nh4_vr_col(:,:) = nan 
-    allocate(this%fpg_no3_vr_col              (begc:endc,1:nlevdecomp_full)) ; this%fpg_no3_vr_col(:,:) = nan
-    allocate(this%fpg_vr_col                  (begc:endc,1:nlevdecomp_full)) ; this%fpg_vr_col    (:,:) = nan
-    allocate(this%fpg_p_vr_col                (begc:endc,1:nlevdecomp_full)) ; this%fpg_p_vr_col  (:,:) = nan
+    allocate(this%fpg_nh4_vr_col              (begc:endc,1:nlevdecomp_full)) ; this%fpg_nh4_vr_col(:,:) = spval
+    allocate(this%fpg_no3_vr_col              (begc:endc,1:nlevdecomp_full)) ; this%fpg_no3_vr_col(:,:) = spval
+    allocate(this%fpg_vr_col                  (begc:endc,1:nlevdecomp_full)) ; this%fpg_vr_col    (:,:) = spval
+    allocate(this%fpg_p_vr_col                (begc:endc,1:nlevdecomp_full)) ; this%fpg_p_vr_col  (:,:) = spval
     allocate(this%cn_scalar                   (begp:endp))                   ; this%cn_scalar     (:) = 0.0
     allocate(this%cp_scalar                   (begp:endp))                   ; this%cp_scalar     (:) = 0.0
     allocate(this%np_scalar                   (begp:endp))                   ; this%np_scalar     (:) = 0.0
@@ -343,21 +350,20 @@ contains
     allocate(this%frac_loss_lit_to_fire_col       (begc:endc))               ; this%frac_loss_lit_to_fire_col(:) =0._r8
     allocate(this%frac_loss_cwd_to_fire_col       (begc:endc))               ; this%frac_loss_cwd_to_fire_col(:) =0._r8
     allocate(fert_type                        (begc:endc))                   ; fert_type     (:) = 0
-    allocate(fert_continue                    (begc:endc))                   ; fert_continue (:) =0
-    allocate(fert_dose                        (begc:endc,1:12))              ; fert_dose     (:,:) = nan
+    allocate(fert_continue                    (begc:endc))                   ; fert_continue (:) = 0
+    allocate(fert_dose                        (begc:endc,1:12))              ; fert_dose     (:,:) = spval
 
     ! soil phosphorus pools Qing Z. 2017
-    allocate(this%labp_col                    (begc:endc))                   ; this%labp_col(:) = nan
-    allocate(this%secp_col                    (begc:endc))                   ; this%secp_col(:) = nan
-    allocate(this%occp_col                    (begc:endc))                   ; this%occp_col(:) = nan
-    allocate(this%prip_col                    (begc:endc))                   ; this%prip_col(:) = nan
-    
+    allocate(this%labp_col                    (begc:endc))                   ; this%labp_col(:) = spval
+    allocate(this%secp_col                    (begc:endc))                   ; this%secp_col(:) = spval
+    allocate(this%occp_col                    (begc:endc))                   ; this%occp_col(:) = spval
+    allocate(this%prip_col                    (begc:endc))                   ; this%prip_col(:) = spval
+
     allocate(fert_start                       (begc:endc))                   ; fert_start    (:) = 0
     allocate(fert_end                         (begc:endc))                   ; fert_end      (:) = 0
-    allocate(this%r_mort_cal_patch                (begp:endp))               ; this%r_mort_cal_patch   (:) = nan
+    allocate(this%r_mort_cal_patch                (begp:endp))               ; this%r_mort_cal_patch   (:) = spval
 
   end subroutine InitAllocate
-
   !------------------------------------------------------------------------
   subroutine InitHistory(this, bounds)
     !
@@ -1565,5 +1571,96 @@ contains
 
   end subroutine UpdateAccVars
 
+  !-----------------------------------------------------------------------
+  subroutine CropRestIncYear (this)
+    !
+    ! !DESCRIPTION:
+    ! Increment the crop restart year, if appropriate
+    !
+    ! This routine should be called every time step, but only once per clump (to avoid
+    ! inadvertently updating nyrs multiple times)
+    !
+    ! !USES:
+    use clm_varpar       , only : crop_prog
+    !use clm_time_manager , only : get_curr_date, is_first_step
+    !
+    ! !ARGUMENTS:
+    class(cnstate_type) :: this
+    !
+    ! !LOCAL VARIABLES:
+    integer kyr   ! current year
+    integer kmo   ! month of year  (1, ..., 12)
+    integer kda   ! day of month   (1, ..., 31)
+    integer mcsec ! seconds of day (0, ..., seconds/day)
+    !-----------------------------------------------------------------------
+
+    ! Update restyear only when running with prognostic crop
+    if ( crop_prog )then
+
+       ! Update restyear when it's the start of a new year - but don't do that at the
+       ! very start of the run
+       !call get_curr_date (   kyr, kmo, kda, mcsec)
+
+       if ((kmo == 1 .and. kda == 1 .and. mcsec == 0) .and. .not. .true. )then !is_first_step()) then
+          this%CropRestYear = this%CropRestYear + 1
+       end if
+
+    end if
+
+  end subroutine CropRestIncYear
+
+  !-----------------------------------------------------------------------
+  subroutine checkDates( )
+    !
+    ! !DESCRIPTION:
+    ! Make sure the dates are compatible. The date given to startup the model
+    ! and the date on the restart file must be the same although years can be
+    ! different. The dates need to be checked when the restart file is being
+    ! read in for a startup or branch case (they are NOT allowed to be different
+    ! for a restart case).
+    !
+    ! For the prognostic crop model the date of planting is tracked and growing
+    ! degree days is tracked (with a 20 year mean) -- so shifting the start dates
+    ! messes up these bits of saved information.
+    !
+    ! !ARGUMENTS:
+    use clm_time_manager, only : get_driver_start_ymd, get_start_date
+    use clm_varctl      , only : iulog
+    use clm_varctl      , only : nsrest, nsrBranch, nsrStartup
+    !
+    ! !LOCAL VARIABLES:
+    integer :: stymd       ! Start date YYYYMMDD from driver
+    integer :: styr        ! Start year from driver
+    integer :: stmon_day   ! Start date MMDD from driver
+    integer :: rsmon_day   ! Restart date MMDD from restart file
+    integer :: rsyr        ! Restart year from restart file
+    integer :: rsmon       ! Restart month from restart file
+    integer :: rsday       ! Restart day from restart file
+    integer :: tod         ! Restart time of day from restart file
+    character(len=*), parameter :: formDate = '(A,i4.4,"/",i2.2,"/",i2.2)' ! log output format
+    character(len=32) :: subname = 'CropRest::checkDates'
+    !-----------------------------------------------------------------------
+    !
+    ! If branch or startup make sure the startdate is compatible with the date
+    ! on the restart file.
+    !
+    if ( nsrest == nsrBranch .or. nsrest == nsrStartup )then
+       stymd       = get_driver_start_ymd()
+       styr        = stymd / 10000
+       stmon_day   = stymd - styr*10000
+       call get_start_date( rsyr, rsmon, rsday, tod )
+       rsmon_day = rsmon*100 + rsday
+       if ( masterproc ) &
+            write(iulog,formDate) 'Date on the restart file is: ', rsyr, rsmon, rsday
+       if ( stmon_day /= rsmon_day )then
+          write(iulog,formDate) 'Start date is: ', styr, stmon_day/100, &
+               (stmon_day - stmon_day/100)
+          call endrun(msg=' ERROR: For prognostic crop to work correctly, the start date (month and day)'// &
+               ' and the date on the restart file needs to match (years can be different)'//&
+               errMsg(__FILE__, __LINE__))
+       end if
+    end if
+
+  end subroutine checkDates
 
 end module CNStateType

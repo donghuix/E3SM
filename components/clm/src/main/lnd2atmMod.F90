@@ -52,7 +52,7 @@ contains
 
   !------------------------------------------------------------------------
   subroutine lnd2atm_minimal(bounds, &
-      waterstate_vars, surfalb_vars, energyflux_vars, lnd2atm_vars)
+      surfalb_vars, energyflux_vars, lnd2atm_vars)
     !
     ! !DESCRIPTION:
     ! Compute clm_l2a_vars component of gridcell derived type. This routine computes
@@ -65,7 +65,6 @@ contains
     !
     ! !ARGUMENTS:
     type(bounds_type)     , intent(in)    :: bounds  
-    type(waterstate_type) , intent(in)    :: waterstate_vars
     type(surfalb_type)    , intent(in)    :: surfalb_vars
     type(energyflux_type) , intent(in)    :: energyflux_vars
     type(lnd2atm_type)    , intent(inout) :: lnd2atm_vars 
@@ -113,8 +112,8 @@ contains
   !------------------------------------------------------------------------
   subroutine lnd2atm(bounds, &
        atm2lnd_vars, surfalb_vars, frictionvel_vars, &
-       waterstate_vars, waterflux_vars, energyflux_vars, &
-       solarabs_vars, carbonflux_vars, drydepvel_vars, &
+       energyflux_vars, &
+       solarabs_vars, drydepvel_vars, &
        vocemis_vars, dust_vars, ch4_vars, soilhydrology_vars, lnd2atm_vars) 
     !
     ! !DESCRIPTION:
@@ -128,11 +127,8 @@ contains
     type(atm2lnd_type)     , intent(in)     :: atm2lnd_vars
     type(surfalb_type)     , intent(in)     :: surfalb_vars
     type(frictionvel_type) , intent(in)     :: frictionvel_vars
-    type(waterstate_type)  , intent(inout)  :: waterstate_vars
-    type(waterflux_type)   , intent(in)     :: waterflux_vars
     type(energyflux_type)  , intent(in)     :: energyflux_vars
     type(solarabs_type)    , intent(in)     :: solarabs_vars
-    type(carbonflux_type)  , intent(in)     :: carbonflux_vars
     type(drydepvel_type)   , intent(in)     :: drydepvel_vars
     type(vocemis_type)     , intent(in)     :: vocemis_vars
     type(dust_type)        , intent(in)     :: dust_vars
@@ -155,7 +151,7 @@ contains
     
     ! First, compute the "minimal" set of fields.
     call lnd2atm_minimal(bounds, &
-         waterstate_vars, surfalb_vars, energyflux_vars, lnd2atm_vars)
+         surfalb_vars, energyflux_vars, lnd2atm_vars)
 
     call p2g(bounds, &
          veg_es%t_ref2m (bounds%begp:bounds%endp), &

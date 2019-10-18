@@ -1,6 +1,6 @@
 module SnowSnicarMod
 
-#include "shr_assert.h"
+ #include "shr_assert.h"
 
   !-----------------------------------------------------------------------
   ! !DESCRIPTION:
@@ -17,9 +17,6 @@ module SnowSnicarMod
   use abortutils      , only : endrun
   use decompMod       , only : bounds_type
   use AerosolMod      , only : snw_rds_min
-  use WaterStateType  , only : waterstate_type
-  use WaterFluxType   , only : waterflux_type
-  use TemperatureType , only : temperature_type
   use GridcellType    , only : grc_pp       
   use LandunitType    , only : lun_pp       
   use ColumnType      , only : col_pp
@@ -88,6 +85,7 @@ module SnowSnicarMod
 
   ! scaling of the snow aging rate (tuning option):
   logical :: flg_snoage_scl    = .false.                 ! flag for scaling the snow aging rate by some arbitrary factor
+  !$acc declare copyin(flg_snoage_scl)
   real(r8), parameter :: xdrdt = 1.0_r8                  ! arbitrary factor applied to snow aging rate
 
   ! snow and aerosol Mie parameters:
@@ -104,6 +102,14 @@ module SnowSnicarMod
   real(r8) :: asm_prm_snw_dfs(idx_Mie_snw_mx,numrad_snw)
   real(r8) :: ext_cff_mss_snw_dfs(idx_Mie_snw_mx,numrad_snw)
 
+  !$acc declare create(ss_alb_snw_drc     )
+  !$acc declare create(asm_prm_snw_drc    )
+  !$acc declare create(ext_cff_mss_snw_drc)
+
+  !$acc declare create(ss_alb_snw_dfs     )
+  !$acc declare create(asm_prm_snw_dfs    )
+  !$acc declare create(ext_cff_mss_snw_dfs)
+
 #ifdef MODAL_AER
   !mgf++
   ! Size-dependent BC optical properties. Currently a fixed BC size is
@@ -115,22 +121,35 @@ module SnowSnicarMod
   real(r8) :: ss_alb_bc1(numrad_snw,idx_bc_nclrds_max)
   real(r8) :: asm_prm_bc1(numrad_snw,idx_bc_nclrds_max)
   real(r8) :: ext_cff_mss_bc1(numrad_snw,idx_bc_nclrds_max)
+  !$acc declare create(ss_alb_bc1     )
+  !$acc declare create(asm_prm_bc1    )
+  !$acc declare create(ext_cff_mss_bc1)
 
   ! external BC
   real(r8) :: ss_alb_bc2(numrad_snw,idx_bc_nclrds_max)
   real(r8) :: asm_prm_bc2(numrad_snw,idx_bc_nclrds_max)
   real(r8) :: ext_cff_mss_bc2(numrad_snw,idx_bc_nclrds_max)
+  !$acc declare create(ss_alb_bc2     )
+  !$acc declare create(asm_prm_bc2    )
+  !$acc declare create(ext_cff_mss_bc2)
   !mgf--
 #else
   ! hydrophiliic BC
   real(r8) :: ss_alb_bc1(numrad_snw)
   real(r8) :: asm_prm_bc1(numrad_snw)
   real(r8) :: ext_cff_mss_bc1(numrad_snw)
+  !$acc declare create(ss_alb_bc1     )
+  !$acc declare create(asm_prm_bc1    )
+  !$acc declare create(ext_cff_mss_bc1)
 
   ! hydrophobic BC
   real(r8) :: ss_alb_bc2(numrad_snw)
   real(r8) :: asm_prm_bc2(numrad_snw)
   real(r8) :: ext_cff_mss_bc2(numrad_snw)
+  !$acc declare create(ss_alb_bc2     )
+  !$acc declare create(asm_prm_bc2    )
+  !$acc declare create(ext_cff_mss_bc2)
+
 #endif
 
 !  ! hydrophiliic BC
@@ -147,36 +166,55 @@ module SnowSnicarMod
   real(r8) :: ss_alb_oc1(numrad_snw)
   real(r8) :: asm_prm_oc1(numrad_snw)
   real(r8) :: ext_cff_mss_oc1(numrad_snw)
+  !$acc declare create(ss_alb_oc1     )
+  !$acc declare create(asm_prm_oc1    )
+  !$acc declare create(ext_cff_mss_oc1)
 
   ! hydrophilic OC
   real(r8) :: ss_alb_oc2(numrad_snw)
   real(r8) :: asm_prm_oc2(numrad_snw)
   real(r8) :: ext_cff_mss_oc2(numrad_snw)
+  !$acc declare create(ss_alb_oc2     )
+  !$acc declare create(asm_prm_oc2    )
+  !$acc declare create(ext_cff_mss_oc2)
 
   ! dust species 1:
   real(r8) :: ss_alb_dst1(numrad_snw)
   real(r8) :: asm_prm_dst1(numrad_snw)
   real(r8) :: ext_cff_mss_dst1(numrad_snw)
+  !$acc declare create(ss_alb_dst1     )
+  !$acc declare create(asm_prm_dst1    )
+  !$acc declare create(ext_cff_mss_dst1)
 
   ! dust species 2:
   real(r8) :: ss_alb_dst2(numrad_snw)
   real(r8) :: asm_prm_dst2(numrad_snw)
   real(r8) :: ext_cff_mss_dst2(numrad_snw)
+  !$acc declare create(ss_alb_dst2     )
+  !$acc declare create(asm_prm_dst2    )
+  !$acc declare create(ext_cff_mss_dst2)
 
   ! dust species 3:
   real(r8) :: ss_alb_dst3(numrad_snw)
   real(r8) :: asm_prm_dst3(numrad_snw)
   real(r8) :: ext_cff_mss_dst3(numrad_snw)
+  !$acc declare create(ss_alb_dst3     )
+  !$acc declare create(asm_prm_dst3    )
+  !$acc declare create(ext_cff_mss_dst3)
 
   ! dust species 4:
   real(r8) :: ss_alb_dst4(numrad_snw)
   real(r8) :: asm_prm_dst4(numrad_snw)
   real(r8) :: ext_cff_mss_dst4(numrad_snw)
+  !$acc declare create(ss_alb_dst4     )
+  !$acc declare create(asm_prm_dst4    )
+  !$acc declare create(ext_cff_mss_dst4)
 
 #ifdef MODAL_AER
   !mgf++
   ! Absorption enhancement factors for within-ice BC
   real(r8) :: bcenh(numrad_snw,idx_bc_nclrds_max,idx_bcint_icerds_max)
+  !$acc declare create(bcenh)
   !mgf--
 #endif
 
@@ -185,9 +223,12 @@ module SnowSnicarMod
   !  31 temperature gradients from 0 to 300 K/m
   !   8 snow densities from 0 to 350 kg/m3
   ! (arrays declared here, but are set in iniTimeConst)
-  real(r8), pointer :: snowage_tau(:,:,:) ! (idx_rhos_max,idx_Tgrd_max,idx_T_max)
-  real(r8), pointer :: snowage_kappa(:,:,:) ! (idx_rhos_max,idx_Tgrd_max,idx_T_max)
-  real(r8), pointer :: snowage_drdt0(:,:,:) ! idx_rhos_max,idx_Tgrd_max,idx_T_max)
+  real(r8), pointer :: snowage_tau(:,:,:)   => null()! (idx_rhos_max,idx_Tgrd_max,idx_T_max)
+  real(r8), pointer :: snowage_kappa(:,:,:) => null()! (idx_rhos_max,idx_Tgrd_max,idx_T_max)
+  real(r8), pointer :: snowage_drdt0(:,:,:) => null()! idx_rhos_max,idx_Tgrd_max,idx_T_max)
+  !$acc declare create(snowage_tau(:,:,:)  )
+  !$acc declare create(snowage_kappa(:,:,:))
+  !$acc declare create(snowage_drdt0(:,:,:))
   !
   ! !REVISION HISTORY:
   ! Created by Mark Flanner
@@ -198,7 +239,7 @@ contains
   !-----------------------------------------------------------------------
   subroutine SNICAR_RT (flg_snw_ice, bounds, num_nourbanc, filter_nourbanc,  &
                         coszen, flg_slr_in, h2osno_liq, h2osno_ice, snw_rds,   &
-                        mss_cnc_aer_in, albsfc, albout, flx_abs, waterstate_vars)
+                        mss_cnc_aer_in, albsfc, albout, flx_abs)
     !
     ! !DESCRIPTION:
     ! Determine reflectance of, and vertically-resolved solar absorption in, 
@@ -219,8 +260,9 @@ contains
     ! J. Geophys. Res., 112, D11202, doi: 10.1029/2006JD008003
     !
     ! !USES:
+      !$acc routine seq
     use clm_varpar       , only : nlevsno, numrad
-    use clm_time_manager , only : get_nstep
+    !#py use clm_time_manager , only : get_nstep
     use shr_const_mod    , only : SHR_CONST_PI
     !
     ! !ARGUMENTS:
@@ -237,7 +279,6 @@ contains
     real(r8)          , intent(in)  :: albsfc         ( bounds%begc: , 1: )               ! albedo of surface underlying snow (col,bnd) [frc]
     real(r8)          , intent(out) :: albout         ( bounds%begc: , 1: )               ! snow albedo, averaged into 2 bands (=0 if no sun or no snow) (col,bnd) [frc]
     real(r8)          , intent(out) :: flx_abs        ( bounds%begc: , -nlevsno+1: , 1: ) ! absorbed flux in each layer per unit flux incident (col, lyr, bnd)
-    type(waterstate_type) , intent(in)  :: waterstate_vars
     !
     ! !LOCAL VARIABLES:
     !
@@ -370,14 +411,6 @@ contains
 #endif
 
     ! Enforce expected array sizes
-    SHR_ASSERT_ALL((ubound(coszen)         == (/bounds%endc/)),                 errMsg(__FILE__, __LINE__))
-    SHR_ASSERT_ALL((ubound(h2osno_liq)     == (/bounds%endc, 0/)),              errMsg(__FILE__, __LINE__))
-    SHR_ASSERT_ALL((ubound(h2osno_ice)     == (/bounds%endc, 0/)),              errMsg(__FILE__, __LINE__))
-    SHR_ASSERT_ALL((ubound(snw_rds)        == (/bounds%endc, 0/)),              errMsg(__FILE__, __LINE__))
-    SHR_ASSERT_ALL((ubound(mss_cnc_aer_in) == (/bounds%endc, 0, sno_nbr_aer/)), errMsg(__FILE__, __LINE__))
-    SHR_ASSERT_ALL((ubound(albsfc)         == (/bounds%endc, numrad/)),         errMsg(__FILE__, __LINE__))
-    SHR_ASSERT_ALL((ubound(albout)         == (/bounds%endc, numrad/)),         errMsg(__FILE__, __LINE__))
-    SHR_ASSERT_ALL((ubound(flx_abs)        == (/bounds%endc, 1, numrad/)),      errMsg(__FILE__, __LINE__))
 
     associate(& 
          snl         =>   col_pp%snl                           , & ! Input:  [integer (:)]  negative number of snow layers (col) [nbr]
@@ -393,7 +426,7 @@ contains
       DELTA = 1
 
       ! Get current timestep
-      nstep = get_nstep()
+      !#py nstep = get_nstep()
 
       ! Loop over all non-urban columns
       ! (when called from CSIM, there is only one column)
@@ -491,13 +524,13 @@ contains
             ! Error check for snow grain size:
             do i=snl_top,snl_btm,1
                if ((snw_rds_lcl(i) < snw_rds_min_tbl) .or. (snw_rds_lcl(i) > snw_rds_max_tbl)) then
-                  write (iulog,*) "SNICAR ERROR: snow grain radius of ", snw_rds_lcl(i), " out of bounds."
-                  write (iulog,*) "NSTEP= ", nstep
-                  write (iulog,*) "flg_snw_ice= ", flg_snw_ice
-                  write (iulog,*) "column: ", c_idx, " level: ", i, " snl(c)= ", snl_lcl
-                  write (iulog,*) "lat= ", lat_coord, " lon= ", lon_coord
-                  write (iulog,*) "h2osno(c)= ", h2osno_lcl
-                  call endrun(decomp_index=c_idx, clmlevel=namec, msg=errmsg(__FILE__, __LINE__))
+                  !#py write (iulog,*) "SNICAR ERROR: snow grain radius of ", snw_rds_lcl(i), " out of bounds."
+                  !#py write (iulog,*) "NSTEP= ", nstep
+                  !#py write (iulog,*) "flg_snw_ice= ", flg_snw_ice
+                  !#py write (iulog,*) "column: ", c_idx, " level: ", i, " snl(c)= ", snl_lcl
+                  !#py write (iulog,*) "lat= ", lat_coord, " lon= ", lon_coord
+                  !#py write (iulog,*) "h2osno(c)= ", h2osno_lcl
+                  !#py !#py call endrun(decomp_index=c_idx, clmlevel=namec, msg=errmsg(__FILE__, __LINE__))
                endif
             enddo
 
@@ -1020,21 +1053,21 @@ contains
                      err_idx = err_idx + 1
                   elseif((trip == 1).and.(flg_dover == 4).and.(err_idx >= 20)) then
                      flg_dover = 0
-                     write(iulog,*) "SNICAR ERROR: FOUND A WORMHOLE. STUCK IN INFINITE LOOP! Called from: ", flg_snw_ice
-                     write(iulog,*) "SNICAR STATS: snw_rds(0)= ", snw_rds(c_idx,0)
-                     write(iulog,*) "SNICAR STATS: L_snw(0)= ", L_snw(0)
-                     write(iulog,*) "SNICAR STATS: h2osno= ", h2osno_lcl, " snl= ", snl_lcl
-                     write(iulog,*) "SNICAR STATS: soot1(0)= ", mss_cnc_aer_lcl(0,1)
-                     write(iulog,*) "SNICAR STATS: soot2(0)= ", mss_cnc_aer_lcl(0,2)
-                     write(iulog,*) "SNICAR STATS: dust1(0)= ", mss_cnc_aer_lcl(0,3)
-                     write(iulog,*) "SNICAR STATS: dust2(0)= ", mss_cnc_aer_lcl(0,4)
-                     write(iulog,*) "SNICAR STATS: dust3(0)= ", mss_cnc_aer_lcl(0,5)
-                     write(iulog,*) "SNICAR STATS: dust4(0)= ", mss_cnc_aer_lcl(0,6)
+                     !#py write(iulog,*) "SNICAR ERROR: FOUND A WORMHOLE. STUCK IN INFINITE LOOP! Called from: ", flg_snw_ice
+                     !#py write(iulog,*) "SNICAR STATS: snw_rds(0)= ", snw_rds(c_idx,0)
+                     !#py write(iulog,*) "SNICAR STATS: L_snw(0)= ", L_snw(0)
+                     !#py write(iulog,*) "SNICAR STATS: h2osno= ", h2osno_lcl, " snl= ", snl_lcl
+                     !#py write(iulog,*) "SNICAR STATS: soot1(0)= ", mss_cnc_aer_lcl(0,1)
+                     !#py write(iulog,*) "SNICAR STATS: soot2(0)= ", mss_cnc_aer_lcl(0,2)
+                     !#py write(iulog,*) "SNICAR STATS: dust1(0)= ", mss_cnc_aer_lcl(0,3)
+                     !#py write(iulog,*) "SNICAR STATS: dust2(0)= ", mss_cnc_aer_lcl(0,4)
+                     !#py write(iulog,*) "SNICAR STATS: dust3(0)= ", mss_cnc_aer_lcl(0,5)
+                     !#py write(iulog,*) "SNICAR STATS: dust4(0)= ", mss_cnc_aer_lcl(0,6)
                      l_idx     = col_pp%landunit(c_idx)
-                     write(iulog,*) "column index: ", c_idx
-                     write(iulog,*) "landunit type", lun_pp%itype(l_idx)
-                     write(iulog,*) "frac_sno: ", frac_sno(c_idx)
-                     call endrun(decomp_index=c_idx, clmlevel=namec, msg=errmsg(__FILE__, __LINE__))
+                     !#py write(iulog,*) "column index: ", c_idx
+                     !#py write(iulog,*) "landunit type", lun_pp%itype(l_idx)
+                     !#py write(iulog,*) "frac_sno: ", frac_sno(c_idx)
+                     !#py !#py call endrun(decomp_index=c_idx, clmlevel=namec, msg=errmsg(__FILE__, __LINE__))
                   else
                      flg_dover = 0
                   endif
@@ -1045,9 +1078,9 @@ contains
                ! Incident direct+diffuse radiation equals (absorbed+bulk_transmitted+bulk_reflected)
                energy_sum = (mu_not*pi*flx_slrd_lcl(bnd_idx)) + flx_slri_lcl(bnd_idx) - (F_abs_sum + F_btm_net + F_sfc_pls)
                if (abs(energy_sum) > 0.00001_r8) then
-                  write (iulog,"(a,e13.6,a,i6,a,i6)") "SNICAR ERROR: Energy conservation error of : ", energy_sum, &
-                       " at timestep: ", nstep, " at column: ", c_idx
-                  call endrun(decomp_index=c_idx, clmlevel=namec, msg=errmsg(__FILE__, __LINE__))
+                  !#py write (iulog,"(a,e13.6,a,i6,a,i6)") "SNICAR ERROR: Energy conservation error of : ", energy_sum, &
+                       !#py " at timestep: ", nstep, " at column: ", c_idx
+                  !#py !#py call endrun(decomp_index=c_idx, clmlevel=namec, msg=errmsg(__FILE__, __LINE__))
                endif
 
                albout_lcl(bnd_idx) = albedo
@@ -1055,33 +1088,33 @@ contains
                ! Check that albedo is less than 1
                if (albout_lcl(bnd_idx) > 1.0) then
 
-                  write (iulog,*) "SNICAR ERROR: Albedo > 1.0 at c: ", c_idx, " NSTEP= ",nstep
-                  write (iulog,*) "SNICAR STATS: bnd_idx= ",bnd_idx
-                  write (iulog,*) "SNICAR STATS: albout_lcl(bnd)= ",albout_lcl(bnd_idx), &
-                       " albsfc_lcl(bnd_idx)= ",albsfc_lcl(bnd_idx)
-                  write (iulog,*) "SNICAR STATS: landtype= ", sfctype
-                  write (iulog,*) "SNICAR STATS: h2osno= ", h2osno_lcl, " snl= ", snl_lcl
-                  write (iulog,*) "SNICAR STATS: coszen= ", coszen(c_idx), " flg_slr= ", flg_slr_in
+                  !#py write (iulog,*) "SNICAR ERROR: Albedo > 1.0 at c: ", c_idx, " NSTEP= ",nstep
+                  !#py write (iulog,*) "SNICAR STATS: bnd_idx= ",bnd_idx
+                  !#py write (iulog,*) "SNICAR STATS: albout_lcl(bnd)= ",albout_lcl(bnd_idx), &
+                       !#py " albsfc_lcl(bnd_idx)= ",albsfc_lcl(bnd_idx)
+                  !#py write (iulog,*) "SNICAR STATS: landtype= ", sfctype
+                  !#py write (iulog,*) "SNICAR STATS: h2osno= ", h2osno_lcl, " snl= ", snl_lcl
+                  !#py write (iulog,*) "SNICAR STATS: coszen= ", coszen(c_idx), " flg_slr= ", flg_slr_in
 
-                  write (iulog,*) "SNICAR STATS: soot(-4)= ", mss_cnc_aer_lcl(-4,1)
-                  write (iulog,*) "SNICAR STATS: soot(-3)= ", mss_cnc_aer_lcl(-3,1)
-                  write (iulog,*) "SNICAR STATS: soot(-2)= ", mss_cnc_aer_lcl(-2,1)
-                  write (iulog,*) "SNICAR STATS: soot(-1)= ", mss_cnc_aer_lcl(-1,1)
-                  write (iulog,*) "SNICAR STATS: soot(0)= ", mss_cnc_aer_lcl(0,1)
+                  !#py write (iulog,*) "SNICAR STATS: soot(-4)= ", mss_cnc_aer_lcl(-4,1)
+                  !#py write (iulog,*) "SNICAR STATS: soot(-3)= ", mss_cnc_aer_lcl(-3,1)
+                  !#py write (iulog,*) "SNICAR STATS: soot(-2)= ", mss_cnc_aer_lcl(-2,1)
+                  !#py write (iulog,*) "SNICAR STATS: soot(-1)= ", mss_cnc_aer_lcl(-1,1)
+                  !#py write (iulog,*) "SNICAR STATS: soot(0)= ", mss_cnc_aer_lcl(0,1)
 
-                  write (iulog,*) "SNICAR STATS: L_snw(-4)= ", L_snw(-4)
-                  write (iulog,*) "SNICAR STATS: L_snw(-3)= ", L_snw(-3)
-                  write (iulog,*) "SNICAR STATS: L_snw(-2)= ", L_snw(-2)
-                  write (iulog,*) "SNICAR STATS: L_snw(-1)= ", L_snw(-1)
-                  write (iulog,*) "SNICAR STATS: L_snw(0)= ", L_snw(0)
+                  !#py write (iulog,*) "SNICAR STATS: L_snw(-4)= ", L_snw(-4)
+                  !#py write (iulog,*) "SNICAR STATS: L_snw(-3)= ", L_snw(-3)
+                  !#py write (iulog,*) "SNICAR STATS: L_snw(-2)= ", L_snw(-2)
+                  !#py write (iulog,*) "SNICAR STATS: L_snw(-1)= ", L_snw(-1)
+                  !#py write (iulog,*) "SNICAR STATS: L_snw(0)= ", L_snw(0)
 
-                  write (iulog,*) "SNICAR STATS: snw_rds(-4)= ", snw_rds(c_idx,-4)
-                  write (iulog,*) "SNICAR STATS: snw_rds(-3)= ", snw_rds(c_idx,-3)
-                  write (iulog,*) "SNICAR STATS: snw_rds(-2)= ", snw_rds(c_idx,-2)
-                  write (iulog,*) "SNICAR STATS: snw_rds(-1)= ", snw_rds(c_idx,-1)
-                  write (iulog,*) "SNICAR STATS: snw_rds(0)= ", snw_rds(c_idx,0)
+                  !#py write (iulog,*) "SNICAR STATS: snw_rds(-4)= ", snw_rds(c_idx,-4)
+                  !#py write (iulog,*) "SNICAR STATS: snw_rds(-3)= ", snw_rds(c_idx,-3)
+                  !#py write (iulog,*) "SNICAR STATS: snw_rds(-2)= ", snw_rds(c_idx,-2)
+                  !#py write (iulog,*) "SNICAR STATS: snw_rds(-1)= ", snw_rds(c_idx,-1)
+                  !#py write (iulog,*) "SNICAR STATS: snw_rds(0)= ", snw_rds(c_idx,0)
 
-                  call endrun(decomp_index=c_idx, clmlevel=namec, msg=errmsg(__FILE__, __LINE__))
+                  !#py !#py call endrun(decomp_index=c_idx, clmlevel=namec, msg=errmsg(__FILE__, __LINE__))
                endif
 
             enddo   ! loop over wvl bands
@@ -1124,8 +1157,7 @@ contains
 
   !-----------------------------------------------------------------------
   subroutine SnowAge_grain(bounds, &
-       num_snowc, filter_snowc, num_nosnowc, filter_nosnowc, &
-       waterflux_vars, waterstate_vars, temperature_vars)
+       num_snowc, filter_snowc, num_nosnowc, filter_nosnowc, dtime)
     !
     ! !DESCRIPTION:
     ! Updates the snow effective grain size (radius). 
@@ -1161,7 +1193,8 @@ contains
     !   I am aware.
     !
     ! !USES:
-    use clm_time_manager , only : get_step_size, get_nstep
+    !#py use clm_time_manager , only : get_step_size, get_nstep
+      !$acc routine seq
     use clm_varpar       , only : nlevsno
     use clm_varcon       , only : spval
     use shr_const_mod    , only : SHR_CONST_RHOICE, SHR_CONST_PI
@@ -1172,9 +1205,7 @@ contains
     integer                , intent(in)    :: filter_snowc(:)   ! column filter for snow points
     integer                , intent(in)    :: num_nosnowc       ! number of column non-snow points in column filter
     integer                , intent(in)    :: filter_nosnowc(:) ! column filter for non-snow points
-    type(waterflux_type)   , intent(in)    :: waterflux_vars
-    type(waterstate_type)  , intent(inout) :: waterstate_vars
-    type(temperature_type) , intent(inout) :: temperature_vars
+    real(r8), intent(in) :: dtime                       ! land model time step [sec]
     !
     ! !LOCAL VARIABLES:
     integer :: snl_top                      ! top snow layer index [idx]
@@ -1200,7 +1231,6 @@ contains
     real(r8) :: frc_oldsnow                 ! fraction of layer mass that is old snow [frc]
     real(r8) :: frc_refrz                   ! fraction of layer mass that is re-frozen snow [frc]
     real(r8) :: frc_liq                     ! fraction of layer mass that is liquid water[frc]    
-    real(r8) :: dtime                       ! land model time step [sec]
     real(r8) :: rhos                        ! snow density [kg m-3]
     real(r8) :: h2osno_lyr                  ! liquid + solid H2O in snow layer [kg m-2]
     real(r8) :: cdz(-nlevsno+1:0)           ! column average layer thickness [m]
@@ -1231,7 +1261,7 @@ contains
   
 
       ! set timestep and step interval
-      dtime = get_step_size()
+      !#py dtime = get_step_size()
 
       ! loop over columns that have at least one snow layer
       do fc = 1, num_snowc
@@ -1312,8 +1342,8 @@ contains
             if (      abs(dr_fresh) < 1.0e-8_r8 ) then
                dr_fresh = 0.0_r8
             else if ( dr_fresh < 0.0_r8 ) then
-               write(iulog,*) "dr_fresh = ", dr_fresh
-               call endrun( "dr_fresh < 0" )
+               !#py write(iulog,*) "dr_fresh = ", dr_fresh
+               !#py call endrun( "dr_fresh < 0" )
             end if
 
             dr = (bst_drdt0*(bst_tau/(dr_fresh+bst_tau))**(1._r8/bst_kappa)) * (dtime/3600._r8)

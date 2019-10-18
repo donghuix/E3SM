@@ -56,6 +56,11 @@ module SatellitePhenologyMod
   real(r8), private, allocatable :: msai2t(:,:) ! sai for interpolation (2 months)
   real(r8), private, allocatable :: mhvt2t(:,:) ! top vegetation height for interpolation (2 months)
   real(r8), private, allocatable :: mhvb2t(:,:) ! bottom vegetation height for interpolation(2 months)
+  !$acc declare create(timwt )
+  !$acc declare create(mlai2t)
+  !$acc declare create(msai2t)
+  !$acc declare create(mhvt2t)
+  !$acc declare create(mhvb2t)
   !-----------------------------------------------------------------------
 
 contains
@@ -294,20 +299,20 @@ contains
 
   !-----------------------------------------------------------------------
   subroutine SatellitePhenology(bounds, num_nolakep, filter_nolakep, &
-       waterstate_vars, canopystate_vars)
+       canopystate_vars)
     !
     ! !DESCRIPTION:
     ! Ecosystem dynamics: phenology, vegetation
     ! Calculates leaf areas (tlai, elai),  stem areas (tsai, esai) and height (htop).
     !
     ! !USES:
+      !$acc routine seq
     use pftvarcon, only : noveg, nbrdlf_dcd_brl_shrub
     !
     ! !ARGUMENTS:
     type(bounds_type)      , intent(in)    :: bounds                          
     integer                , intent(in)    :: num_nolakep                               ! number of column non-lake points in pft filter
     integer                , intent(in)    :: filter_nolakep(bounds%endp-bounds%begp+1) ! patch filter for non-lake points
-    type(waterstate_type)  , intent(in)    :: waterstate_vars
     type(canopystate_type) , intent(inout) :: canopystate_vars
     !
     ! !LOCAL VARIABLES:
@@ -328,9 +333,9 @@ contains
          frac_veg_nosno_alb => canopystate_vars%frac_veg_nosno_alb_patch & ! Output: [integer  (:) ] fraction of vegetation not covered by snow (0 OR 1) [-]
          )
 
-      if (use_lai_streams) then
-         call lai_interp(bounds, canopystate_vars)
-      endif
+      !#py if (use_lai_streams) then
+      !#py    call lai_interp(bounds, canopystate_vars)
+      !#py endif
 
       do fp = 1, num_nolakep
          p = filter_nolakep(fp)

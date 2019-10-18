@@ -169,6 +169,7 @@ contains
 
     select case (trim(domain_decomp_type))
     case ("round_robin")
+       write(*,*) "calling decompInit_lnd:",ni,nj,amask
        call decompInit_lnd(ni, nj, amask)
        deallocate(amask)
     case ("graph_partitioning")
@@ -278,9 +279,20 @@ contains
     ! ------------------------------------------------------------------------
 
     if (create_glacier_mec_landunit) then
+       write(*,*) "calling decompInit_clumps witg glcmask:",ldomain%glcmask
        call decompInit_clumps(ldomain%glcmask)
        call decompInit_ghosts(ldomain%glcmask)
     else
+       write(*,*) "no glcmask:"
+      
+      write(*,*) "wt_lunit    ", shape( wt_lunit    ),  wt_lunit     
+      write(*,*) "urban_valid ", shape( urban_valid ),  urban_valid  
+      write(*,*) "wt_nat_patch", shape( wt_nat_patch),  wt_nat_patch 
+      write(*,*) "wt_cft      ", shape( wt_cft      ),  wt_cft       
+      write(*,*) "fert_cft    ", shape( fert_cft    ),  fert_cft
+      write(*,*) " wt_glc_mec ", shape( wt_glc_mec  ),  wt_glc_mec  
+      write(*,*) " topo_glc_mec",shape( topo_glc_mec),  topo_glc_mec
+       
        call decompInit_clumps()
        call decompInit_ghosts()
     endif
@@ -338,6 +350,12 @@ contains
     call t_stopf('init_filters')
 
     nclumps = get_proc_clumps()
+
+  !!  do nc = 1, nclumps
+  !!     call get_clump_bounds(nc, bounds_clump)
+  !!     call print_grid(bounds_clump)
+  !!  end do
+
     !$OMP PARALLEL DO PRIVATE (nc, bounds_clump)
     do nc = 1, nclumps
        call get_clump_bounds(nc, bounds_clump)
@@ -919,12 +937,6 @@ contains
     ! topo_glc_mec was allocated in initialize1, but needed to be kept around through
     ! initialize2 because it is used to initialize other variables; now it can be
     ! deallocated
-    
-
-
-    ! topo_glc_mec was allocated in initialize1, but needed to be kept around through
-    ! initialize2 because it is used to initialize other variables; now it can be
-    ! deallocated
 
     deallocate(topo_glc_mec)
 
@@ -1092,5 +1104,36 @@ contains
 
   end subroutine clm_petsc_init
 
+ subroutine print_grid(bounds)
+
+   use VegetationType,  only : veg_pp
+   use ColumnType,      only : col_pp
+   use decompMod,       only : bounds_type
+
+
+   implicit none
+
+   type(bounds_type) :: bounds
+   integer :: p, c , l ,g, nc, i, npfts
+   integer :: coli,colf, pfti, pftf
+
+   nc = bounds%clump_index
+   print *, " "
+   print *, "++++++++++ Clump ",nc," +++++++++++"
+
+   do l = bounds%begl, bounds%endl
+     print *, "=============================="
+     print *,"g   " , lun_pp%gridcell(l)
+     print *,"c   " , lun_pp%ncolumns(l)
+     print *,"p   " , lun_pp%npfts(l)
+     print *,"i   " , lun_pp%itype(l)
+     print *,"coli" , lun_pp%coli(l)
+     print *,"colf" , lun_pp%colf(l)
+     print *,"pfti" , lun_pp%pfti(l)
+     print *,"pftf" , lun_pp%pftf(l)
+     print *, "=============================="
+   end do
+
+ end subroutine print_grid
 
 end module clm_initializeMod

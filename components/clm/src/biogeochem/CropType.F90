@@ -33,23 +33,23 @@ module CropType
   type, public :: crop_type
 
      ! Note that cropplant and harvdate could be 2D to facilitate rotation
-     integer , pointer :: nyrs_crop_active_patch  (:)   ! number of years this crop patch has been active (0 for non-crop patches)
-     logical , pointer :: croplive_patch          (:)   ! patch Flag, true if planted, not harvested
-     logical , pointer :: cropplant_patch         (:)   ! patch Flag, true if planted
-     integer , pointer :: harvdate_patch          (:)   ! patch harvest date
-     real(r8), pointer :: fertnitro_patch         (:)   ! patch fertilizer nitrogen
+     integer , pointer :: nyrs_crop_active_patch  (:) => null()  ! number of years this crop patch has been active (0 for non-crop patches)
+     logical , pointer :: croplive_patch          (:) => null()  ! patch Flag, true if planted, not harvested
+     logical , pointer :: cropplant_patch         (:) => null()  ! patch Flag, true if planted
+     integer , pointer :: harvdate_patch          (:) => null()  ! patch harvest date
+     real(r8), pointer :: fertnitro_patch         (:) => null()  ! patch fertilizer nitrogen
 
-     real(r8), pointer :: gddplant_patch          (:)   ! patch accum gdd past planting date for crop       (ddays)
-     real(r8), pointer :: gddtsoi_patch           (:)   ! patch growing degree-days from planting (top two soil layers) (ddays)
-     real(r8), pointer :: crpyld_patch            (:)   ! patch crop yield (bu/acre)
-     real(r8), pointer :: dmyield_patch           (:)   ! patch crop yield (t/ha)
+     real(r8), pointer :: gddplant_patch          (:) => null()  ! patch accum gdd past planting date for crop       (ddays)
+     real(r8), pointer :: gddtsoi_patch           (:) => null()  ! patch growing degree-days from planting (top two soil layers) (ddays)
+     real(r8), pointer :: crpyld_patch            (:) => null()  ! patch crop yield (bu/acre)
+     real(r8), pointer :: dmyield_patch           (:) => null()  ! patch crop yield (t/ha)
 
-     real(r8), pointer :: vf_patch                (:)   ! patch vernalization factor for cereal
-     real(r8), pointer :: cphase_patch            (:)   ! phenology phase
-     real(r8), pointer :: latbaset_patch          (:)   ! Latitude vary baset for gddplant (degree C)
-     character(len=20) :: baset_mapping
-     real(r8)          :: baset_latvary_intercept
-     real(r8)          :: baset_latvary_slope
+     real(r8), pointer :: vf_patch                (:) => null()  ! patch vernalization factor for cereal
+     real(r8), pointer :: cphase_patch            (:) => null()  ! phenology phase
+     real(r8), pointer :: latbaset_patch          (:) => null()  ! Latitude vary baset for gddplant (degree C)
+     character(len=20), pointer :: baset_mapping            => null()
+     real(r8), pointer          :: baset_latvary_intercept  => null()
+     real(r8), pointer          :: baset_latvary_slope      => null()
 
      real(r8), pointer :: cvt_patch               (:)   ! patch temperture coefficient of variance
      real(r8), pointer :: cvp_patch               (:)   ! patch precipitation coefficient of variance
@@ -76,7 +76,7 @@ module CropType
      procedure, public  :: UpdateAccVars
      procedure, public  :: CropIncrementYear
 
-     procedure, private :: InitAllocate 
+     procedure, public :: InitAllocate
      procedure, private :: InitHistory
      procedure, private, nopass :: checkDates
 
@@ -120,6 +120,10 @@ contains
     !-----------------------------------------------------------------------
 
     begp = bounds%begp; endp = bounds%endp
+
+    allocate(this%baset_mapping          )
+    allocate(this%baset_latvary_intercept)
+    allocate(this%baset_latvary_slope    )
 
     allocate(this%nyrs_crop_active_patch (begp:endp)) ; this%nyrs_crop_active_patch (:) = 0
     allocate(this%croplive_patch         (begp:endp)) ; this%croplive_patch         (:) = .false.

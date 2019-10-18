@@ -45,7 +45,7 @@ contains
   subroutine BeginColWaterBalance(bounds, &
        num_nolakec, filter_nolakec, num_lakec, filter_lakec, &
        num_hydrologyc, filter_hydrologyc, &
-       soilhydrology_vars, waterstate_vars)
+       soilhydrology_vars)
     !
     ! !DESCRIPTION:
     ! Initialize column-level water balance at beginning of time step
@@ -66,7 +66,6 @@ contains
     integer                   , intent(in)    :: num_hydrologyc       ! number of column soil points in column filter
     integer                   , intent(in)    :: filter_hydrologyc(:) ! column filter for soil points
     type(soilhydrology_type)  , intent(inout) :: soilhydrology_vars
-    type(waterstate_type)     , intent(inout) :: waterstate_vars
     !
     ! !LOCAL VARIABLES:
     integer :: c, p, f, j, fc                  ! indices
@@ -146,8 +145,8 @@ contains
 
    !-----------------------------------------------------------------------
    subroutine ColWaterBalanceCheck( bounds, num_do_smb_c, filter_do_smb_c, &
-        atm2lnd_vars, glc2lnd_vars, solarabs_vars, waterflux_vars, waterstate_vars, &
-        energyflux_vars, canopystate_vars)
+        atm2lnd_vars, glc2lnd_vars, solarabs_vars, &
+        energyflux_vars, canopystate_vars, surfalb_vars, dtime, nstep)
      !
      ! !DESCRIPTION:
      ! This subroutine accumulates the numerical truncation errors of the water
@@ -164,17 +163,17 @@ contains
      ! error = abs(precipitation - change of water storage - evaporation - runoff)
      !
      ! !USES:
+      !$acc routine seq
      use clm_varcon        , only : spval
      use column_varcon     , only : icol_roof, icol_sunwall, icol_shadewall
      use column_varcon     , only : icol_road_perv, icol_road_imperv
      use landunit_varcon   , only : istice_mec, istdlak, istsoil,istcrop,istwet
      use clm_varctl        , only : create_glacier_mec_landunit
-     use clm_time_manager  , only : get_step_size, get_nstep
-     use clm_initializeMod , only : surfalb_vars
+     !#py use clm_time_manager  , only : get_step_size, get_nstep
+     !#py use clm_initializeMod , only : surfalb_vars
      use domainMod         , only : ldomain
      use CanopyStateType   , only : canopystate_type
      use subgridAveMod
-     use clm_time_manager  , only : get_curr_date, get_nstep
      !
      ! !ARGUMENTS:
      type(bounds_type)     , intent(in)    :: bounds  
@@ -183,23 +182,22 @@ contains
      type(atm2lnd_type)    , intent(in)    :: atm2lnd_vars
      type(glc2lnd_type)    , intent(in)    :: glc2lnd_vars
      type(solarabs_type)   , intent(in)    :: solarabs_vars
-     type(waterflux_type)  , intent(inout) :: waterflux_vars
-     type(waterstate_type) , intent(inout) :: waterstate_vars
      type(energyflux_type) , intent(inout) :: energyflux_vars
      type(canopystate_type), intent(inout) :: canopystate_vars
+     type(surfalb_type)    , intent(inout) :: surfalb_vars
+     real(r8), intent(in) :: dtime                                  ! land model time step (sec)
+     integer , intent(in) :: nstep                                  ! time step number
+
      !
      ! !LOCAL VARIABLES:
      integer  :: p,c,l,t,g,fc                           ! indices
-     real(r8) :: dtime                                  ! land model time step (sec)
-     integer  :: nstep                                  ! time step number
      logical  :: found                                  ! flag in search loop
      integer  :: indexp,indexc,indexl,indext,indexg     ! index of first found in search loop
      real(r8) :: forc_rain_col(bounds%begc:bounds%endc) ! column level rain rate [mm/s]
      real(r8) :: forc_snow_col(bounds%begc:bounds%endc) ! column level snow rate [mm/s]
      !-----------------------------------------------------------------------
-
-     associate(                                                                         & 
-          volr                       =>    atm2lnd_vars%volr_grc                      , & ! Input:  [real(r8) (:)   ]  river water storage (m3)                 
+     associate(                                                                         &
+          !volr                       =>    atm2lnd_vars%volr_grc                      , & ! Input:  [real(r8) (:)   ]  river water storage (m3)
           forc_solad                 =>    top_af%solad                               , & ! Input:  [real(r8) (:,:) ]  direct beam radiation (vis=forc_sols , nir=forc_soll) (W/m**2)
           forc_solai                 =>    top_af%solai                               , & ! Input:  [real(r8) (:,:) ]  diffuse radiation     (vis=forc_solsd, nir=forc_solld) (W/m**2)
           forc_rain                  =>    top_af%rain                                , & ! Input:  [real(r8) (:)   ]  rain rate (kg H2O/m**2/s, or mm liquid H2O/s)
@@ -292,8 +290,8 @@ contains
 
        ! Get step size and time step
 
-       nstep = get_nstep()
-       dtime = get_step_size()
+       !#py nstep = get_nstep()
+       !#py dtime = get_step_size()
 
        ! Determine column level incoming snow and rain.
        ! Assume that all columns on a topounit have the same atmospheric forcing.
@@ -363,66 +361,66 @@ contains
        end do
 
        if ( found ) then
-          write(iulog,*)'WARNING:  water balance error ',&
-               ' nstep= ',nstep, &
-               ' local indexc= ',indexc,&
-               !' global indexc= ',GetGlobalIndex(decomp_index=indexc, clmlevel=namec), &
-               ' errh2o= ',errh2o(indexc)
+          !#py write(iulog,*)'WARNING:  water balance error ',&
+               !#py ' nstep= ',nstep, &
+               !#py ' local indexc= ',indexc,&
+               !#py !' global indexc= ',GetGlobalIndex(decomp_index=indexc, clmlevel=namec), &
+               !#py ' errh2o= ',errh2o(indexc)
 
           if ((col_pp%itype(indexc) == icol_roof .or. &
                col_pp%itype(indexc) == icol_road_imperv .or. &
                col_pp%itype(indexc) == icol_road_perv) .and. &
                abs(errh2o(indexc)) > 1.e-4_r8 .and. (nstep > 2) ) then
 
-             write(iulog,*)'clm urban model is stopping - error is greater than 1e-4 (mm)'
-             write(iulog,*)'nstep                      = ',nstep
-             write(iulog,*)'errh2o                     = ',errh2o(indexc)
-             write(iulog,*)'forc_rain                  = ',forc_rain_col(indexc)
-             write(iulog,*)'forc_snow                  = ',forc_snow_col(indexc)
-             write(iulog,*)'endwb                      = ',endwb(indexc)
-             write(iulog,*)'begwb                      = ',begwb(indexc)
-             write(iulog,*)'qflx_evap_tot              = ',qflx_evap_tot(indexc)
-             write(iulog,*)'qflx_irrig                 = ',qflx_irrig(indexc)
-             write(iulog,*)'qflx_supply                = ',atm2lnd_vars%supply_grc(g)
-             write(iulog,*)'f_grd                      = ',ldomain%f_grd(g)
-             write(iulog,*)'qflx_surf                  = ',qflx_surf(indexc)
-             write(iulog,*)'qflx_qrgwl                 = ',qflx_qrgwl(indexc)
-             write(iulog,*)'qflx_drain                 = ',qflx_drain(indexc)
-             write(iulog,*)'qflx_snwcp_ice             = ',qflx_snwcp_ice(indexc)
-             write(iulog,*)'qflx_lateral               = ',qflx_lateral(indexc)
-             write(iulog,*)'total_plant_stored_h2o_col = ',total_plant_stored_h2o_col(indexc)
-             write(iulog,*)'clm model is stopping'
-             call endrun(decomp_index=indexc, clmlevel=namec, msg=errmsg(__FILE__, __LINE__))
+             !#py write(iulog,*)'clm urban model is stopping - error is greater than 1e-4 (mm)'
+             !#py write(iulog,*)'nstep                      = ',nstep
+             !#py write(iulog,*)'errh2o                     = ',errh2o(indexc)
+             !#py write(iulog,*)'forc_rain                  = ',forc_rain_col(indexc)
+             !#py write(iulog,*)'forc_snow                  = ',forc_snow_col(indexc)
+             !#py write(iulog,*)'endwb                      = ',endwb(indexc)
+             !#py write(iulog,*)'begwb                      = ',begwb(indexc)
+             !#py write(iulog,*)'qflx_evap_tot              = ',qflx_evap_tot(indexc)
+             !#py write(iulog,*)'qflx_irrig                 = ',qflx_irrig(indexc)
+             !#py write(iulog,*)'qflx_supply                = ',atm2lnd_vars%supply_grc(g)
+             !#py write(iulog,*)'f_grd                      = ',ldomain%f_grd(g)
+             !#py write(iulog,*)'qflx_surf                  = ',qflx_surf(indexc)
+             !#py write(iulog,*)'qflx_qrgwl                 = ',qflx_qrgwl(indexc)
+             !#py write(iulog,*)'qflx_drain                 = ',qflx_drain(indexc)
+             !#py write(iulog,*)'qflx_snwcp_ice             = ',qflx_snwcp_ice(indexc)
+             !#py write(iulog,*)'qflx_lateral               = ',qflx_lateral(indexc)
+             !#py write(iulog,*)'total_plant_stored_h2o_col = ',total_plant_stored_h2o_col(indexc)
+             !#py write(iulog,*)'clm model is stopping'
+             !#py !#py call endrun(decomp_index=indexc, clmlevel=namec, msg=errmsg(__FILE__, __LINE__))
 
           else if (abs(errh2o(indexc)) > 1.e-4_r8 .and. (nstep > 2) ) then
 
-             write(iulog,*)'clm model is stopping - error is greater than 1e-4 (mm)'
-             write(iulog,*)'colum number               = ',col_pp%gridcell(indexc)
-             write(iulog,*)'nstep                      = ',nstep
-             write(iulog,*)'errh2o                     = ',errh2o(indexc)
-             write(iulog,*)'forc_rain                  = ',forc_rain_col(indexc)
-             write(iulog,*)'forc_snow                  = ',forc_snow_col(indexc)
-             write(iulog,*)'endwb                      = ',endwb(indexc)
-             write(iulog,*)'begwb                      = ',begwb(indexc)
-             write(iulog,*)'qflx_evap_tot              = ',qflx_evap_tot(indexc)
-             write(iulog,*)'qflx_irrig                 = ',qflx_irrig(indexc)
-             write(iulog,*)'qflx_surf_irrig_col        = ',qflx_surf_irrig_col(indexc)
-             write(iulog,*)'qflx_over_supply_col       = ',qflx_over_supply_col(indexc)
-             write(iulog,*)'qflx_supply                = ',atm2lnd_vars%supply_grc(g)
-             write(iulog,*)'f_grd                      = ',ldomain%f_grd(g)
-             write(iulog,*)'qflx_surf                  = ',qflx_surf(indexc)
-             write(iulog,*)'qflx_h2osfc_surf           = ',qflx_h2osfc_surf(indexc)
-             write(iulog,*)'qflx_qrgwl                 = ',qflx_qrgwl(indexc)
-             write(iulog,*)'qflx_drain                 = ',qflx_drain(indexc)
-             write(iulog,*)'qflx_drain_perched         = ',qflx_drain_perched(indexc)
-             write(iulog,*)'qflx_flood                 = ',qflx_floodc(indexc)
-             write(iulog,*)'qflx_snwcp_ice             = ',qflx_snwcp_ice(indexc)
-             write(iulog,*)'qflx_glcice_melt           = ',qflx_glcice_melt(indexc)
-             write(iulog,*)'qflx_glcice_frz            = ',qflx_glcice_frz(indexc) 
-             write(iulog,*)'qflx_lateral               = ',qflx_lateral(indexc)
-             write(iulog,*)'total_plant_stored_h2o_col = ',total_plant_stored_h2o_col(indexc)
-             write(iulog,*)'clm model is stopping'
-             call endrun(decomp_index=indexc, clmlevel=namec, msg=errmsg(__FILE__, __LINE__))
+             !#py write(iulog,*)'clm model is stopping - error is greater than 1e-4 (mm)'
+             !#py write(iulog,*)'colum number               = ',col_pp%gridcell(indexc)
+             !#py write(iulog,*)'nstep                      = ',nstep
+             !#py write(iulog,*)'errh2o                     = ',errh2o(indexc)
+             !#py write(iulog,*)'forc_rain                  = ',forc_rain_col(indexc)
+             !#py write(iulog,*)'forc_snow                  = ',forc_snow_col(indexc)
+             !#py write(iulog,*)'endwb                      = ',endwb(indexc)
+             !#py write(iulog,*)'begwb                      = ',begwb(indexc)
+             !#py write(iulog,*)'qflx_evap_tot              = ',qflx_evap_tot(indexc)
+             !#py write(iulog,*)'qflx_irrig                 = ',qflx_irrig(indexc)
+             !#py write(iulog,*)'qflx_surf_irrig_col        = ',qflx_surf_irrig_col(indexc)
+             !#py write(iulog,*)'qflx_over_supply_col       = ',qflx_over_supply_col(indexc)
+             !#py write(iulog,*)'qflx_supply                = ',atm2lnd_vars%supply_grc(g)
+             !#py write(iulog,*)'f_grd                      = ',ldomain%f_grd(g)
+             !#py write(iulog,*)'qflx_surf                  = ',qflx_surf(indexc)
+             !#py write(iulog,*)'qflx_h2osfc_surf           = ',qflx_h2osfc_surf(indexc)
+             !#py write(iulog,*)'qflx_qrgwl                 = ',qflx_qrgwl(indexc)
+             !#py write(iulog,*)'qflx_drain                 = ',qflx_drain(indexc)
+             !#py write(iulog,*)'qflx_drain_perched         = ',qflx_drain_perched(indexc)
+             !#py write(iulog,*)'qflx_flood                 = ',qflx_floodc(indexc)
+             !#py write(iulog,*)'qflx_snwcp_ice             = ',qflx_snwcp_ice(indexc)
+             !#py write(iulog,*)'qflx_glcice_melt           = ',qflx_glcice_melt(indexc)
+             !#py write(iulog,*)'qflx_glcice_frz            = ',qflx_glcice_frz(indexc)
+             !#py write(iulog,*)'qflx_lateral               = ',qflx_lateral(indexc)
+             !#py write(iulog,*)'total_plant_stored_h2o_col = ',total_plant_stored_h2o_col(indexc)
+             !#py write(iulog,*)'clm model is stopping'
+             !#py !#py call endrun(decomp_index=indexc, clmlevel=namec, msg=errmsg(__FILE__, __LINE__))
           end if
        end if
 
@@ -505,37 +503,37 @@ contains
           end if
        end do
        if ( found ) then
-          write(iulog,*)'WARNING:  snow balance error '
-          write(iulog,*)'nstep= ',nstep, &
-               ' local indexc= ',indexc, &
-               !' global indexc= ',GetGlobalIndex(decomp_index=indexc, clmlevel=namec), &
-               ' col_pp%itype= ',col_pp%itype(indexc), &
-               ' lun_pp%itype= ',lun_pp%itype(col_pp%landunit(indexc)), &
-               ' errh2osno= ',errh2osno(indexc)
+          !#py write(iulog,*)'WARNING:  snow balance error '
+          !#py write(iulog,*)'nstep= ',nstep, &
+               !#py ' local indexc= ',indexc, &
+               !#py !' global indexc= ',GetGlobalIndex(decomp_index=indexc, clmlevel=namec), &
+               !#py ' col_pp%itype= ',col_pp%itype(indexc), &
+               !#py ' lun_pp%itype= ',lun_pp%itype(col_pp%landunit(indexc)), &
+               !#py ' errh2osno= ',errh2osno(indexc)
 
           if (abs(errh2osno(indexc)) > 1.e-4_r8 .and. (nstep > 2) ) then
-             write(iulog,*)'clm model is stopping - error is greater than 1e-4 (mm)'
-             write(iulog,*)'nstep            = ',nstep
-             write(iulog,*)'errh2osno        = ',errh2osno(indexc)
-             write(iulog,*)'snl              = ',col_pp%snl(indexc)
-             write(iulog,*)'h2osno           = ',h2osno(indexc)
-             write(iulog,*)'h2osno_old       = ',h2osno_old(indexc)
-             write(iulog,*)'snow_sources     = ',snow_sources(indexc)
-             write(iulog,*)'snow_sinks       = ',snow_sinks(indexc)
-             write(iulog,*)'qflx_prec_grnd   = ',qflx_prec_grnd(indexc)*dtime
-             write(iulog,*)'qflx_sub_snow    = ',qflx_sub_snow(indexc)*dtime
-             write(iulog,*)'qflx_evap_grnd   = ',qflx_evap_grnd(indexc)*dtime
-             write(iulog,*)'qflx_top_soil    = ',qflx_top_soil(indexc)*dtime
-             write(iulog,*)'qflx_dew_snow    = ',qflx_dew_snow(indexc)*dtime
-             write(iulog,*)'qflx_dew_grnd    = ',qflx_dew_grnd(indexc)*dtime
-             write(iulog,*)'qflx_snwcp_ice   = ',qflx_snwcp_ice(indexc)*dtime
-             write(iulog,*)'qflx_snwcp_liq   = ',qflx_snwcp_liq(indexc)*dtime
-             write(iulog,*)'qflx_sl_top_soil = ',qflx_sl_top_soil(indexc)*dtime
+             !#py write(iulog,*)'clm model is stopping - error is greater than 1e-4 (mm)'
+             !#py write(iulog,*)'nstep            = ',nstep
+             !#py write(iulog,*)'errh2osno        = ',errh2osno(indexc)
+             !#py write(iulog,*)'snl              = ',col_pp%snl(indexc)
+             !#py write(iulog,*)'h2osno           = ',h2osno(indexc)
+             !#py write(iulog,*)'h2osno_old       = ',h2osno_old(indexc)
+             !#py write(iulog,*)'snow_sources     = ',snow_sources(indexc)
+             !#py write(iulog,*)'snow_sinks       = ',snow_sinks(indexc)
+             !#py write(iulog,*)'qflx_prec_grnd   = ',qflx_prec_grnd(indexc)*dtime
+             !#py write(iulog,*)'qflx_sub_snow    = ',qflx_sub_snow(indexc)*dtime
+             !#py write(iulog,*)'qflx_evap_grnd   = ',qflx_evap_grnd(indexc)*dtime
+             !#py write(iulog,*)'qflx_top_soil    = ',qflx_top_soil(indexc)*dtime
+             !#py write(iulog,*)'qflx_dew_snow    = ',qflx_dew_snow(indexc)*dtime
+             !#py write(iulog,*)'qflx_dew_grnd    = ',qflx_dew_grnd(indexc)*dtime
+             !#py write(iulog,*)'qflx_snwcp_ice   = ',qflx_snwcp_ice(indexc)*dtime
+             !#py write(iulog,*)'qflx_snwcp_liq   = ',qflx_snwcp_liq(indexc)*dtime
+             !#py write(iulog,*)'qflx_sl_top_soil = ',qflx_sl_top_soil(indexc)*dtime
              if (create_glacier_mec_landunit) then
-                write(iulog,*)'qflx_glcice_frz  = ',qflx_glcice_frz(indexc)*dtime
+                !#py write(iulog,*)'qflx_glcice_frz  = ',qflx_glcice_frz(indexc)*dtime
              end if
-             write(iulog,*)'clm model is stopping'
-             call endrun(decomp_index=indexc, clmlevel=namec, msg=errmsg(__FILE__, __LINE__))
+             !#py write(iulog,*)'clm model is stopping'
+             !#py !#py call endrun(decomp_index=indexc, clmlevel=namec, msg=errmsg(__FILE__, __LINE__))
           end if
        end if
 
@@ -603,21 +601,21 @@ contains
           end if
        end do
        if ( found  .and. (nstep > 2) ) then
-          write(iulog,*)'WARNING:: BalanceCheck, solar radiation balance error (W/m2)'
-          write(iulog,*)'nstep         = ',nstep
-          write(iulog,*)'errsol        = ',errsol(indexp)
+          !#py write(iulog,*)'WARNING:: BalanceCheck, solar radiation balance error (W/m2)'
+          !#py write(iulog,*)'nstep         = ',nstep
+          !#py write(iulog,*)'errsol        = ',errsol(indexp)
           if (abs(errsol(indexp)) > 1.e-5_r8 ) then
-             write(iulog,*)'clm model is stopping - error is greater than 1e-5 (W/m2)'
-             write(iulog,*)'fsa           = ',fsa(indexp)
-             write(iulog,*)'fsr           = ',fsr(indexp)
-             write(iulog,*)'forc_solad(1) = ',forc_solad(indext,1)
-             write(iulog,*)'forc_solad(2) = ',forc_solad(indext,2)
-             write(iulog,*)'forc_solai(1) = ',forc_solai(indext,1)
-             write(iulog,*)'forc_solai(2) = ',forc_solai(indext,2)
-             write(iulog,*)'forc_tot      = ',forc_solad(indext,1)+forc_solad(indext,2) &
-               +forc_solai(indext,1)+forc_solai(indext,2)
-             write(iulog,*)'clm model is stopping'
-             call endrun(decomp_index=indexp, clmlevel=namep, msg=errmsg(__FILE__, __LINE__))
+             !#py write(iulog,*)'clm model is stopping - error is greater than 1e-5 (W/m2)'
+             !#py write(iulog,*)'fsa           = ',fsa(indexp)
+             !#py write(iulog,*)'fsr           = ',fsr(indexp)
+             !#py write(iulog,*)'forc_solad(1) = ',forc_solad(indext,1)
+             !#py write(iulog,*)'forc_solad(2) = ',forc_solad(indext,2)
+             !#py write(iulog,*)'forc_solai(1) = ',forc_solai(indext,1)
+             !#py write(iulog,*)'forc_solai(2) = ',forc_solai(indext,2)
+             !#py write(iulog,*)'forc_tot      = ',forc_solad(indext,1)+forc_solad(indext,2) &
+               !#py +forc_solai(indext,1)+forc_solai(indext,2)
+             !#py write(iulog,*)'clm model is stopping'
+             !#py !#py call endrun(decomp_index=indexp, clmlevel=namep, msg=errmsg(__FILE__, __LINE__))
           end if
        end if
 
@@ -633,12 +631,12 @@ contains
           end if
        end do
        if ( found  .and. (nstep > 2) ) then
-          write(iulog,*)'WARNING: BalanceCheck: longwave energy balance error (W/m2)' 
-          write(iulog,*)'nstep        = ',nstep 
-          write(iulog,*)'errlon       = ',errlon(indexp)
+          !#py write(iulog,*)'WARNING: BalanceCheck: longwave energy balance error (W/m2)'
+          !#py write(iulog,*)'nstep        = ',nstep
+          !#py write(iulog,*)'errlon       = ',errlon(indexp)
           if (abs(errlon(indexp)) > 1.e-5_r8 ) then
-             write(iulog,*)'clm model is stopping - error is greater than 1e-5 (W/m2)'
-             call endrun(decomp_index=indexp, clmlevel=namep, msg=errmsg(__FILE__, __LINE__))
+             !#py write(iulog,*)'clm model is stopping - error is greater than 1e-5 (W/m2)'
+             !#py !#py call endrun(decomp_index=indexp, clmlevel=namep, msg=errmsg(__FILE__, __LINE__))
           end if
        end if
 
@@ -656,30 +654,30 @@ contains
           end if
        end do
        if ( found  .and. (nstep > 2) ) then
-          write(iulog,*)'WARNING: BalanceCheck: surface flux energy balance error (W/m2)'
-          write(iulog,*)'nstep          = ' ,nstep
-          write(iulog,*)'errseb         = ' ,errseb(indexp)
+          !#py write(iulog,*)'WARNING: BalanceCheck: surface flux energy balance error (W/m2)'
+          !#py write(iulog,*)'nstep          = ' ,nstep
+          !#py write(iulog,*)'errseb         = ' ,errseb(indexp)
           if (abs(errseb(indexp)) > 1.e-5_r8 ) then
-             write(iulog,*)'clm model is stopping - error is greater than 1e-5 (W/m2)'
-             write(iulog,*)'sabv           = ' ,sabv(indexp)
+             !#py write(iulog,*)'clm model is stopping - error is greater than 1e-5 (W/m2)'
+             !#py write(iulog,*)'sabv           = ' ,sabv(indexp)
 
-             write(iulog,*)'sabg           = ' ,sabg(indexp), ((1._r8- frac_sno(indexc))*sabg_soil(indexp) + &
-                  frac_sno(indexc)*sabg_snow(indexp)),sabg_chk(indexp)
+             !#py write(iulog,*)'sabg           = ' ,sabg(indexp), ((1._r8- frac_sno(indexc))*sabg_soil(indexp) + &
+                  !#py frac_sno(indexc)*sabg_snow(indexp)),sabg_chk(indexp)
 
-             write(iulog,*)'forc_tot      = '  ,forc_solad(indext,1) + forc_solad(indext,2) + &
-                  forc_solai(indext,1) + forc_solai(indext,2)
+             !#py write(iulog,*)'forc_tot      = '  ,forc_solad(indext,1) + forc_solad(indext,2) + &
+                  !#py forc_solai(indext,1) + forc_solai(indext,2)
 
-             write(iulog,*)'eflx_lwrad_net = ' ,eflx_lwrad_net(indexp)
-             write(iulog,*)'eflx_sh_tot    = ' ,eflx_sh_tot(indexp)
-             write(iulog,*)'eflx_lh_tot    = ' ,eflx_lh_tot(indexp)
-             write(iulog,*)'eflx_soil_grnd = ' ,eflx_soil_grnd(indexp)
-             write(iulog,*)'fsa fsr = '        ,fsa(indexp),    fsr(indexp)
-             write(iulog,*)'fabd fabi = '      ,fabd(indexp,:), fabi(indexp,:)
-             write(iulog,*)'albd albi = '      ,albd(indexp,:), albi(indexp,:)
-             write(iulog,*)'ftii ftdd ftid = ' ,ftii(indexp,:), ftdd(indexp,:),ftid(indexp,:)
-             write(iulog,*)'elai esai = '      ,elai(indexp),   esai(indexp)      
-             write(iulog,*)'clm model is stopping'
-             call endrun(decomp_index=indexp, clmlevel=namep, msg=errmsg(__FILE__, __LINE__))
+             !#py write(iulog,*)'eflx_lwrad_net = ' ,eflx_lwrad_net(indexp)
+             !#py write(iulog,*)'eflx_sh_tot    = ' ,eflx_sh_tot(indexp)
+             !#py write(iulog,*)'eflx_lh_tot    = ' ,eflx_lh_tot(indexp)
+             !#py write(iulog,*)'eflx_soil_grnd = ' ,eflx_soil_grnd(indexp)
+             !#py write(iulog,*)'fsa fsr = '        ,fsa(indexp),    fsr(indexp)
+             !#py write(iulog,*)'fabd fabi = '      ,fabd(indexp,:), fabi(indexp,:)
+             !#py write(iulog,*)'albd albi = '      ,albd(indexp,:), albi(indexp,:)
+             !#py write(iulog,*)'ftii ftdd ftid = ' ,ftii(indexp,:), ftdd(indexp,:),ftid(indexp,:)
+             !#py write(iulog,*)'elai esai = '      ,elai(indexp),   esai(indexp)
+             !#py write(iulog,*)'clm model is stopping'
+             !#py !#py call endrun(decomp_index=indexp, clmlevel=namep, msg=errmsg(__FILE__, __LINE__))
           end if
        end if
 
@@ -695,13 +693,12 @@ contains
           end if
        end do
        if ( found ) then
-          write(iulog,*)'WARNING: BalanceCheck: soil balance error (W/m2)'
-          write(iulog,*)'nstep         = ',nstep
-          write(iulog,*)'errsoi_col    = ',errsoi_col(indexc)
-          write(iulog,*)'colum number  = ',col_pp%gridcell(indexc)
+          !#py write(iulog,*)'WARNING: BalanceCheck: soil balance error (W/m2)'
+          !#py write(iulog,*)'nstep         = ',nstep
+          !#py write(iulog,*)'errsoi_col    = ',errsoi_col(indexc)
           if (abs(errsoi_col(indexc)) > 1.e-4_r8 .and. (nstep > 2) ) then
-             write(iulog,*)'clm model is stopping'
-             call endrun(decomp_index=indexc, clmlevel=namec, msg=errmsg(__FILE__, __LINE__))
+             !#py write(iulog,*)'clm model is stopping'
+             !#py !#py call endrun(decomp_index=indexc, clmlevel=namec, msg=errmsg(__FILE__, __LINE__))
           end if
        end if
 
@@ -713,7 +710,7 @@ contains
   subroutine BeginGridWaterBalance(bounds, &
        num_nolakec, filter_nolakec, num_lakec, filter_lakec, &
        num_hydrologyc, filter_hydrologyc, &
-       soilhydrology_vars, waterstate_vars)
+       soilhydrology_vars)
     !
     ! !DESCRIPTION:
     ! Initialize column-level water balance at beginning of time step
@@ -733,7 +730,6 @@ contains
     integer                   , intent(in)    :: num_hydrologyc       ! number of column soil points in column filter
     integer                   , intent(in)    :: filter_hydrologyc(:) ! column filter for soil points
     type(soilhydrology_type)  , intent(inout) :: soilhydrology_vars
-    type(waterstate_type)     , intent(inout) :: waterstate_vars
     !
     ! !LOCAL VARIABLES:
     integer  :: c, p, f, j, fc,g                  ! indices
@@ -863,8 +859,8 @@ contains
      use column_varcon     , only : icol_road_perv, icol_road_imperv
      use landunit_varcon   , only : istice_mec, istdlak, istsoil,istcrop,istwet
      use clm_varctl        , only : create_glacier_mec_landunit
-     use clm_time_manager  , only : get_step_size, get_nstep
-     use clm_initializeMod , only : surfalb_vars
+     !#py use clm_time_manager  , only : get_step_size, get_nstep
+     !#py use clm_initializeMod , only : surfalb_vars
      use CanopyStateType   , only : canopystate_type
      use subgridAveMod
      !
@@ -875,15 +871,16 @@ contains
      type(atm2lnd_type)    , intent(in)    :: atm2lnd_vars
      type(glc2lnd_type)    , intent(in)    :: glc2lnd_vars
      type(solarabs_type)   , intent(in)    :: solarabs_vars
-     type(waterflux_type)  , intent(inout) :: waterflux_vars
-     type(waterstate_type) , intent(inout) :: waterstate_vars
      type(energyflux_type) , intent(inout) :: energyflux_vars
      type(canopystate_type), intent(inout) :: canopystate_vars
      type(soilhydrology_type), intent(inout) :: soilhydrology_vars
+     type(surfalb_type), intent(inout) :: surfalb_vars
+     real(r8) , intent(in) :: dtime                         ! land model time step (sec)
+
+
      !
      ! !LOCAL VARIABLES:
      integer  :: p,c,l,g,fc                             ! indices
-     real(r8) :: dtime                                  ! land model time step (sec)
      real(r8) :: qflx_net_col (bounds%begc:bounds%endc)
      real(r8) :: forc_rain_col(bounds%begc:bounds%endc) ! column level rain rate [mm/s]
      real(r8) :: forc_snow_col(bounds%begc:bounds%endc) ! column level snow rate [mm/s]
@@ -994,7 +991,7 @@ contains
           end_h2osoi_ice_grc         =>    grc_ws%end_h2osoi_ice           & ! Output: [real(r8) (:)   ]  grid-level depth integrated liquid soil water at end of the time step (mm)
           )
 
-       dtime = get_step_size()
+       !#py dtime = get_step_size()
 
        wa_local_col(bounds%begc:bounds%endc) = wa(bounds%begc:bounds%endc)
 

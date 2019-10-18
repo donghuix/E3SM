@@ -6,7 +6,6 @@ module atm2lndType
   !
   ! !USES:
   use shr_kind_mod  , only : r8 => shr_kind_r8
-  use shr_infnan_mod, only : nan => shr_infnan_nan, assignment(=)
   use shr_log_mod   , only : errMsg => shr_log_errMsg
   use shr_megan_mod , only : shr_megan_mechcomps_n
   use clm_varpar    , only : numrad, ndst, nlevgrnd !ndst = number of dust bins.
@@ -19,7 +18,7 @@ module atm2lndType
   !
   ! !PUBLIC TYPES:
   implicit none
-  private
+  public
   save
   !
   ! !PUBLIC DATA TYPES:
@@ -278,19 +277,19 @@ contains
     allocate(this%af_swdn_grc                   (begg:endg))        ; this%af_swdn_grc                   (:)   = ival
     allocate(this%af_lwdn_grc                   (begg:endg))        ; this%af_lwdn_grc                   (:)   = ival
 
-    allocate(this%fsd24_patch                   (begp:endp))        ; this%fsd24_patch                   (:)   = nan
-    allocate(this%fsd240_patch                  (begp:endp))        ; this%fsd240_patch                  (:)   = nan
-    allocate(this%fsi24_patch                   (begp:endp))        ; this%fsi24_patch                   (:)   = nan
-    allocate(this%fsi240_patch                  (begp:endp))        ; this%fsi240_patch                  (:)   = nan
-    allocate(this%prec10_patch                  (begp:endp))        ; this%prec10_patch                  (:)   = nan
-    allocate(this%prec60_patch                  (begp:endp))        ; this%prec60_patch                  (:)   = nan
-    allocate(this%prec365_patch                 (begp:endp))        ; this%prec365_patch                 (:)   = nan
+    allocate(this%fsd24_patch                   (begp:endp))        ; this%fsd24_patch                   (:)   = spval
+    allocate(this%fsd240_patch                  (begp:endp))        ; this%fsd240_patch                  (:)   = spval
+    allocate(this%fsi24_patch                   (begp:endp))        ; this%fsi24_patch                   (:)   = spval
+    allocate(this%fsi240_patch                  (begp:endp))        ; this%fsi240_patch                  (:)   = spval
+    allocate(this%prec10_patch                  (begp:endp))        ; this%prec10_patch                  (:)   = spval
+    allocate(this%prec60_patch                  (begp:endp))        ; this%prec60_patch                  (:)   = spval
+    allocate(this%prec365_patch                 (begp:endp))        ; this%prec365_patch                 (:)   = spval
     if (use_fates) then
-       allocate(this%prec24_patch               (begp:endp))        ; this%prec24_patch                  (:)   = nan
-       allocate(this%rh24_patch                 (begp:endp))        ; this%rh24_patch                    (:)   = nan
-       allocate(this%wind24_patch               (begp:endp))        ; this%wind24_patch                  (:)   = nan
+       allocate(this%prec24_patch               (begp:endp))        ; this%prec24_patch                  (:)   = spval
+       allocate(this%rh24_patch                 (begp:endp))        ; this%rh24_patch                    (:)   = spval
+       allocate(this%wind24_patch               (begp:endp))        ; this%wind24_patch                  (:)   = spval
     end if
-    allocate(this%t_mo_patch                    (begp:endp))        ; this%t_mo_patch               (:)   = nan
+    allocate(this%t_mo_patch                    (begp:endp))        ; this%t_mo_patch               (:)   = spval
     allocate(this%t_mo_min_patch                (begp:endp))        ; this%t_mo_min_patch           (:)   = spval ! TODO - initialize this elsewhere
 
   end subroutine InitAllocate

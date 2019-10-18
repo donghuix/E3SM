@@ -14,12 +14,10 @@ module PhosphorusDynamicsMod
   use clm_varcon          , only : dzsoi_decomp, zisoi
   use subgridAveMod       , only : p2c
   use atm2lndType         , only : atm2lnd_type
-  use CNCarbonFluxType    , only : carbonflux_type  
   use clm_varpar          , only : nlevdecomp
   use clm_varctl          , only : use_vertsoilc
   use PhosphorusFluxType  , only : phosphorusflux_type
   use PhosphorusStateType , only : phosphorusstate_type
-  use CNNitrogenStateType , only : nitrogenstate_type 
 
   use CNStateType         , only : cnstate_type
   use WaterStateType      , only : waterstate_type
@@ -52,7 +50,7 @@ module PhosphorusDynamicsMod
 contains
   !-----------------------------------------------------------------------
   subroutine PhosphorusDeposition( bounds, &
-       atm2lnd_vars, phosphorusflux_vars )
+       atm2lnd_vars )
     ! BY X. SHI
     ! !DESCRIPTION:
     ! On the radiation time step, update the phosphorus deposition rate
@@ -62,9 +60,9 @@ contains
     ! directly into the canopy and mineral P entering the soil pool.
     !
     ! !ARGUMENTS:
+      !$acc routine seq
     type(bounds_type)        , intent(in)    :: bounds
     type(atm2lnd_type)       , intent(in)    :: atm2lnd_vars
-    type(phosphorusflux_type) , intent(inout) :: phosphorusflux_vars
     !
     ! !LOCAL VARIABLES:
     integer :: g,c                    ! indices
@@ -87,12 +85,13 @@ contains
 
   !-----------------------------------------------------------------------
   subroutine PhosphorusWeathering(num_soilc, filter_soilc, &
-       cnstate_vars,phosphorusstate_vars,phosphorusflux_vars)
+       cnstate_vars, dt)
     !
     !
     ! !USES:
-    use clm_time_manager , only : get_days_per_year, get_step_size
-    use shr_sys_mod      , only : shr_sys_flush
+    !#py use clm_time_manager , only : get_days_per_year, get_step_size
+    !#py use shr_sys_mod      , only : shr_sys_flush
+      !$acc routine seq
     use clm_varcon       , only : secspday, spval
     use soilorder_varcon, only: r_weather
     !
@@ -100,18 +99,16 @@ contains
     integer                 , intent(in)    :: num_soilc       ! number of soil columns in filter
     integer                 , intent(in)    :: filter_soilc(:) ! filter for soil columns
     type(cnstate_type)       , intent(in)    :: cnstate_vars
-    type(phosphorusstate_type), intent(in) ::  phosphorusstate_vars
-    type(phosphorusflux_type) , intent(inout) :: phosphorusflux_vars
+    real(r8), intent(in):: dt           !decomp timestep (seconds)
+
     !
     ! !LOCAL VARIABLES:
     integer  :: c,fc                  ! indices
     real(r8) :: t                     ! temporary
-    real(r8) :: dayspyr               ! days per year
 
 !   !OTHER LOCAL VARIABLES
     real(r8)     :: r_weather_c
     real(r8)     :: rr
-    real(r8):: dt           !decomp timestep (seconds)
     real(r8):: dtd          !decomp timestep (days)
     integer :: j
 
@@ -125,10 +122,10 @@ contains
 
          )
 
-      dayspyr = get_days_per_year()
+      !#py dayspyr = get_days_per_year()
 
       ! set time steps
-      dt = real( get_step_size(), r8 )
+      !#py dt = real( get_step_size(), r8 )
       dtd = dt/(30._r8*secspday)
    
       do j = 1,nlevdecomp
@@ -154,12 +151,13 @@ contains
 
   !-----------------------------------------------------------------------
   subroutine PhosphorusAdsportion(num_soilc, filter_soilc, &
-       cnstate_vars,phosphorusstate_vars,phosphorusflux_vars)
+       cnstate_vars ,dt)
     !
     !
     ! !USES:
-    use clm_time_manager , only : get_days_per_year, get_step_size
-    use shr_sys_mod      , only : shr_sys_flush
+    !#py use clm_time_manager , only : get_days_per_year, get_step_size
+    !#py use shr_sys_mod      , only : shr_sys_flush
+      !$acc routine seq
     use clm_varcon       , only : secspday, spval
     use soilorder_varcon , only : r_adsorp
     !
@@ -167,18 +165,16 @@ contains
     integer                 , intent(in)    :: num_soilc       ! number of soil columns in filter
     integer                 , intent(in)    :: filter_soilc(:) ! filter for soil columns
     type(cnstate_type)       , intent(in)    :: cnstate_vars
-    type(phosphorusstate_type), intent(in) ::  phosphorusstate_vars
-    type(phosphorusflux_type) , intent(inout) :: phosphorusflux_vars
+    real(r8), intent(in)    :: dt           !decomp timestep (seconds)
+
     !
     ! !LOCAL VARIABLES:
     integer  :: c,fc                  ! indices
     real(r8) :: t                     ! temporary
-    real(r8) :: dayspyr               ! days per year
 
 !   !OTHER LOCAL VARIABLES
     real(r8)     :: r_adsorp_c
     real(r8)     :: rr
-    real(r8):: dt           !decomp timestep (seconds)
     real(r8):: dtd          !decomp timestep (days)
     integer :: j
 
@@ -193,10 +189,10 @@ contains
 
          )
 
-      dayspyr = get_days_per_year()
+      !#py dayspyr = get_days_per_year()
 
       ! set time steps
-      dt = real( get_step_size(), r8 )
+      !#py dt = real( get_step_size(), r8 )
       dtd = dt/(30._r8*secspday)
    
       do j = 1,nlevdecomp
@@ -223,12 +219,13 @@ contains
 
   !-----------------------------------------------------------------------
   subroutine PhosphorusDesoprtion(num_soilc, filter_soilc, &
-       cnstate_vars,phosphorusstate_vars,phosphorusflux_vars)
+       cnstate_vars, dt)
     !
     !
     ! !USES:
-    use clm_time_manager , only : get_days_per_year, get_step_size
-    use shr_sys_mod      , only : shr_sys_flush
+    !#py use clm_time_manager , only : get_days_per_year, get_step_size
+    !#py use shr_sys_mod      , only : shr_sys_flush
+      !$acc routine seq
     use clm_varcon       , only : secspday, spval
     use soilorder_varcon , only : r_desorp
     !
@@ -236,18 +233,16 @@ contains
     integer                 , intent(in)    :: num_soilc       ! number of soil columns in filter
     integer                 , intent(in)    :: filter_soilc(:) ! filter for soil columns
     type(cnstate_type)       , intent(in)    :: cnstate_vars
-    type(phosphorusstate_type), intent(in) ::  phosphorusstate_vars
-    type(phosphorusflux_type) , intent(inout) :: phosphorusflux_vars
+    real(r8)                 ,  intent(in)   :: dt           !decomp timestep (seconds)
+
     !
     ! !LOCAL VARIABLES:
     integer  :: c,fc                  ! indices
     real(r8) :: t                     ! temporary
-    real(r8) :: dayspyr               ! days per year
 
 !   !OTHER LOCAL VARIABLES
     real(r8)     :: r_desorp_c
     real(r8)     :: rr
-    real(r8):: dt           !decomp timestep (seconds)
     real(r8):: dtd          !decomp timestep (days)
     integer :: j
 
@@ -261,10 +256,10 @@ contains
 
          )
 
-      dayspyr = get_days_per_year()
+      !#py dayspyr = get_days_per_year()
 
       ! set time steps
-      dt = real( get_step_size(), r8 )
+      !#py dt = real( get_step_size(), r8 )
       dtd = dt/(30._r8*secspday)
    
       do j = 1,nlevdecomp
@@ -292,12 +287,13 @@ contains
 
   !-----------------------------------------------------------------------
   subroutine PhosphorusOcclusion(num_soilc, filter_soilc, &
-       cnstate_vars,phosphorusstate_vars,phosphorusflux_vars)
+       cnstate_vars, dt)
     !
     !
     ! !USES:
-    use clm_time_manager , only : get_days_per_year, get_step_size
-    use shr_sys_mod      , only : shr_sys_flush
+    !#py use clm_time_manager , only : get_days_per_year, get_step_size
+    !#py use shr_sys_mod      , only : shr_sys_flush
+      !$acc routine seq
     use clm_varcon       , only : secspday, spval
     use soilorder_varcon , only : r_occlude
     !
@@ -305,18 +301,16 @@ contains
     integer                 , intent(in)    :: num_soilc       ! number of soil columns in filter
     integer                 , intent(in)    :: filter_soilc(:) ! filter for soil columns
     type(cnstate_type)       , intent(in)    :: cnstate_vars
-    type(phosphorusstate_type), intent(in) ::  phosphorusstate_vars
-    type(phosphorusflux_type) , intent(inout) :: phosphorusflux_vars
+    real(r8)                , intent(in)   :: dt      !decomp timestep (seconds)
+
     !
     ! !LOCAL VARIABLES:
     integer  :: c,fc                  ! indices
     real(r8) :: t                     ! temporary
-    real(r8) :: dayspyr               ! days per year
 
 !   !OTHER LOCAL VARIABLES
     real(r8)     :: r_occlude_c
     real(r8)     :: rr
-    real(r8):: dt           !decomp timestep (seconds)
     real(r8):: dtd          !decomp timestep (days)
     integer :: j
  
@@ -330,10 +324,10 @@ contains
 
          )
 
-      dayspyr = get_days_per_year()
+      !#py dayspyr = get_days_per_year()
 
       ! set time steps
-      dt = real( get_step_size(), r8 )
+      !#py dt = real( get_step_size(), r8 )
       dtd = dt/(30._r8*secspday)
    
       do j = 1,nlevdecomp
@@ -362,29 +356,26 @@ contains
 
 
   !-----------------------------------------------------------------------
-  subroutine PhosphorusLeaching(bounds, num_soilc, filter_soilc, &
-       waterstate_vars, waterflux_vars, phosphorusstate_vars, phosphorusflux_vars)
+  subroutine PhosphorusLeaching(bounds, num_soilc, filter_soilc, dt)
     !
     ! !DESCRIPTION:
     ! On the radiation time step, update the phosphorus leaching rate
     ! as a function of solution P and total soil water outflow.
     !
     ! !USES:
+      !$acc routine seq
     use clm_varpar       , only : nlevsoi
-    use clm_time_manager , only : get_step_size
+    !#py use clm_time_manager , only : get_step_size
     !
     ! !ARGUMENTS:
     type(bounds_type)        , intent(in)    :: bounds
     integer                  , intent(in)    :: num_soilc       ! number of soil columns in filter
     integer                  , intent(in)    :: filter_soilc(:) ! filter for soil columns
-    type(waterstate_type)    , intent(in)    :: waterstate_vars
-    type(waterflux_type)     , intent(in)    :: waterflux_vars
-    type(phosphorusstate_type) , intent(inout) :: phosphorusstate_vars
-    type(phosphorusflux_type)  , intent(inout) :: phosphorusflux_vars
+    real(r8) ,intent(in)    :: dt                                     ! radiation time step(seconds)
+
     !
     ! !LOCAL VARIABLES:
     integer  :: j,c,fc                                 ! indices
-    real(r8) :: dt                                     ! radiation time step(seconds)
     real(r8) :: disp_conc                              ! dissolved mineral N concentration (gP/kg water)
     real(r8) :: tot_water(bounds%begc:bounds%endc)     ! total column liquid water (kg water/m2)
     real(r8) :: surface_water(bounds%begc:bounds%endc) ! liquid water to shallow surface depth (kg water/m2)
@@ -403,7 +394,7 @@ contains
          )
 
       ! set time steps
-      dt = real( get_step_size(), r8 )
+      !#py dt = real( get_step_size(), r8 )
 
       ! calculate the total soil water
       tot_water(bounds%begc:bounds%endc) = 0._r8
@@ -482,16 +473,17 @@ contains
 
 
   subroutine PhosphorusBiochemMin(bounds,num_soilc, filter_soilc, &
-       cnstate_vars, phosphorusstate_vars, phosphorusflux_vars)
+       cnstate_vars, dt)
     !
     ! !DESCRIPTION:
     ! On the radiation time step, update the phosphorus leaching rate
     ! as a function of solution P and total soil water outflow.
     !
     ! !USES:
+      !$acc routine seq
     use clm_varpar       , only : nlevsoi
     use clm_varpar       , only : ndecomp_pools
-    use clm_time_manager , only : get_step_size
+    !#py use clm_time_manager , only : get_step_size
     use soilorder_varcon , only:k_s1_biochem,k_s2_biochem,k_s3_biochem,k_s4_biochem
     use clm_varcon       , only : secspday, spval
 
@@ -501,12 +493,11 @@ contains
     integer                  , intent(in)    :: num_soilc       ! number of soil columns in filter
     integer                  , intent(in)    :: filter_soilc(:) ! filter for soil columns
     type(cnstate_type)         , intent(in)    :: cnstate_vars
-    type(phosphorusstate_type) , intent(inout) :: phosphorusstate_vars
-    type(phosphorusflux_type)  , intent(inout) :: phosphorusflux_vars
+    real(r8) , intent(in)  :: dt           !decomp timestep (seconds)
+
     !
     integer  :: c,fc,j,l
     real(r8) :: rr
-    real(r8):: dt           !decomp timestep (seconds)
     real(r8):: dtd          !decomp timestep (days)
     real(r8):: k_s1_biochem_c         !specfic biochemical rate constant SOM 1
     real(r8):: k_s2_biochem_c         !specfic biochemical rate constant SOM 1
@@ -529,7 +520,7 @@ contains
          fpi_p_vr_col           => cnstate_vars%fpi_p_vr_col                   &
          )
 
-      dt = real( get_step_size(), r8 )
+      !#py dt = real( get_step_size(), r8 )
       dtd = dt/(30._r8*secspday)
       r_bc = -5._r8
 
@@ -595,16 +586,17 @@ contains
   !-----------------------------------------------------------------------
   
   subroutine PhosphorusBiochemMin_balance(bounds,num_soilc, filter_soilc, &
-       cnstate_vars,nitrogenstate_vars, phosphorusstate_vars, phosphorusflux_vars)
+       cnstate_vars,dt)
     !
     ! !DESCRIPTION:
     ! created, Aug 2015 by Q. Zhu
     ! update the phosphatase activity induced P release based on Wang 2007
     !
     ! !USES:
+      !$acc routine seq
     use pftvarcon              , only : noveg
     use clm_varpar             , only : ndecomp_pools
-    use clm_time_manager       , only : get_step_size
+    !#py use clm_time_manager       , only : get_step_size
     use CNDecompCascadeConType , only : decomp_cascade_con
  
     !
@@ -613,9 +605,9 @@ contains
     integer                    , intent(in)    :: num_soilc       ! number of soil columns in filter
     integer                    , intent(in)    :: filter_soilc(:) ! filter for soil columns
     type(cnstate_type)         , intent(in)    :: cnstate_vars
-    type(nitrogenstate_type) , intent(in)    :: nitrogenstate_vars
-    type(phosphorusstate_type) , intent(inout) :: phosphorusstate_vars
-    type(phosphorusflux_type)  , intent(inout) :: phosphorusflux_vars
+    !!BUG?
+    real(r8), intent(in)  :: dt
+
     !
     integer  :: c,fc,p,j,l
     real(r8) :: lamda_up       ! nitrogen cost of phosphorus uptake
@@ -623,7 +615,6 @@ contains
     real(r8) :: biochem_pmin_to_ecosysp_vr_col_pot(bounds%begc:bounds%endc,1:nlevdecomp)
     real(r8) :: biochem_pmin_to_plant_vr_patch(bounds%begp:bounds%endp,1:nlevdecomp)
     real(r8) :: sop_tot
-    integer  :: dt
     real(r8) :: ptase_tmp
     !-----------------------------------------------------------------------
 
@@ -644,7 +635,7 @@ contains
          is_soil               => decomp_cascade_con%is_soil             &
          )
 
-    dt = real( get_step_size(), r8 )
+    !#py dt = real( get_step_size(), r8 )
 
     ! set initial values for potential C and N fluxes
     biochem_pmin_ppools_vr_col(bounds%begc : bounds%endc, :, :) = 0._r8

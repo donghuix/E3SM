@@ -5,7 +5,7 @@ module SoilHydrologyMod
   ! Calculate soil hydrology
   !
   use shr_kind_mod      , only : r8 => shr_kind_r8
-  use shr_log_mod       , only : errMsg => shr_log_errMsg
+  !#py !#py use shr_log_mod       , only : errMsg => shr_log_errMsg
   use decompMod         , only : bounds_type
   use clm_varctl        , only : iulog, use_vichydro
   use clm_varcon        , only : e_ice, denh2o, denice, rpi
@@ -38,21 +38,21 @@ contains
 
   !-----------------------------------------------------------------------
   subroutine SurfaceRunoff (bounds, num_hydrologyc, filter_hydrologyc, &
-       num_urbanc, filter_urbanc, soilhydrology_vars, soilstate_vars, waterflux_vars, &
-       waterstate_vars)
+       num_urbanc, filter_urbanc, soilhydrology_vars, soilstate_vars, dtime)
     !
     ! !DESCRIPTION:
     ! Calculate surface runoff
     !
     ! !USES:
+      !$acc routine seq
     use clm_varcon      , only : denice, denh2o, wimp, pondmx_urban
     use column_varcon   , only : icol_roof, icol_sunwall, icol_shadewall
     use column_varcon   , only : icol_road_imperv, icol_road_perv
     use clm_varpar      , only : nlevsoi, nlevgrnd, maxpatch_pft
-    use clm_time_manager, only : get_step_size
+    !#py use clm_time_manager, only : get_step_size
     use clm_varpar      , only : nlayer, nlayert
     use clm_varctl      , only : use_var_soil_thick
-    use abortutils      , only : endrun
+    !#py use abortutils      , only : endrun
     use SoilWaterMovementMod, only : zengdecker_2009_with_var_soil_thick
     !
     ! !ARGUMENTS:
@@ -63,13 +63,11 @@ contains
     integer                  , intent(in)    :: filter_urbanc(:)     ! column filter for urban points
     type(soilhydrology_type) , intent(inout) :: soilhydrology_vars
     type(soilstate_type)     , intent(in)    :: soilstate_vars
-    type(waterflux_type)     , intent(inout) :: waterflux_vars
-    type(waterstate_type)    , intent(inout) :: waterstate_vars
+    real(r8), intent(in)  :: dtime
     !
     ! !LOCAL VARIABLES:
     integer  :: c,j,fc,g,l,i                               !indices
     integer  :: nlevbed                                    !# levels to bedrock
-    real(r8) :: dtime                                      !land model time step (sec)
     real(r8) :: xs(bounds%begc:bounds%endc)                !excess soil water above urban ponding limit
     real(r8) :: vol_ice(bounds%begc:bounds%endc,1:nlevgrnd) !partial volume of ice lens in layer
     real(r8) :: fff(bounds%begc:bounds%endc)               !decay factor (m-1)
@@ -126,7 +124,7 @@ contains
 
       ! Get time step
 
-      dtime = get_step_size()
+      !#py dtime = get_step_size()
 
       do fc = 1, num_hydrologyc
          c = filter_hydrologyc(fc)
@@ -190,7 +188,7 @@ contains
          endif
          if (origflag == 1) then
             if (use_vichydro) then
-               call endrun(msg="VICHYDRO is not available for origflag=1"//errmsg(__FILE__, __LINE__))
+               !#py !#py call endrun(msg="VICHYDRO is not available for origflag=1"//errmsg(__FILE__, __LINE__))
             else
                fcov(c) = (1._r8 - fracice(c,1)) * fsat(c) + fracice(c,1)
             end if
@@ -254,20 +252,20 @@ contains
 
    !-----------------------------------------------------------------------
    subroutine Infiltration(bounds, num_hydrologyc, filter_hydrologyc, num_urbanc, filter_urbanc, &
-        energyflux_vars, soilhydrology_vars, soilstate_vars, temperature_vars, &
-        waterflux_vars, waterstate_vars)
+        energyflux_vars, soilhydrology_vars, soilstate_vars, dtime)
      !
      ! !DESCRIPTION:
      ! Calculate infiltration into surface soil layer (minus the evaporation)
      !
      ! !USES:
+      !$acc routine seq
      use shr_const_mod    , only : shr_const_pi
      use clm_varpar       , only : nlayer, nlayert
      use clm_varpar       , only : nlevsoi, nlevgrnd
      use clm_varcon       , only : denh2o, denice, roverg, wimp, pc, mu, tfrz
      use column_varcon    , only : icol_roof, icol_road_imperv, icol_sunwall, icol_shadewall, icol_road_perv
      use landunit_varcon  , only : istsoil, istcrop
-     use clm_time_manager , only : get_step_size
+     !#py use clm_time_manager , only : get_step_size
      !
      ! !ARGUMENTS:
      type(bounds_type)        , intent(in)    :: bounds               
@@ -275,17 +273,13 @@ contains
      integer                  , intent(in)    :: filter_hydrologyc(:) ! column filter for soil points
      integer                  , intent(in)    :: num_urbanc           ! number of column urban points in column filter
      integer                  , intent(in)    :: filter_urbanc(:)     ! column filter for urban points
-     type(energyflux_type)    , intent(in)    :: energyflux_vars 
      type(soilhydrology_type) , intent(inout) :: soilhydrology_vars
      type(soilstate_type)     , intent(inout) :: soilstate_vars
-     type(temperature_type)   , intent(in)    :: temperature_vars
-     type(waterstate_type)    , intent(inout) :: waterstate_vars
-     type(waterflux_type)     , intent(inout) :: waterflux_vars
+     real(r8), intent(in)  :: dtime
      !
      ! !LOCAL VARIABLES:
      integer  :: c,j,l,fc                                   ! indices
      integer  :: nlevbed                                    !# levels to bedrock
-     real(r8) :: dtime                                      ! land model time step (sec)
      real(r8) :: s1,su,v                                    ! variable to calculate qinmax
      real(r8) :: qinmax                                     ! maximum infiltration capacity (mm/s)
      real(r8) :: vol_ice(bounds%begc:bounds%endc,1:nlevgrnd) ! partial volume of ice lens in layer
@@ -367,7 +361,7 @@ contains
           icefrac              =>    soilhydrology_vars%icefrac_col            & ! Output: [real(r8) (:,:) ]  fraction of ice                                 
               )
 
-       dtime = get_step_size()
+       !#py dtime = get_step_size()
 
        ! Infiltration into surface soil layer (minus the evaporation)
        do fc = 1, num_hydrologyc
@@ -535,13 +529,14 @@ contains
 
    !-----------------------------------------------------------------------
    subroutine WaterTable(bounds, num_hydrologyc, filter_hydrologyc, num_urbanc, filter_urbanc, &
-        soilhydrology_vars, soilstate_vars, temperature_vars, waterstate_vars, waterflux_vars) 
+        soilhydrology_vars, soilstate_vars, dtime)
      !
      ! !DESCRIPTION:
      ! Calculate watertable, considering aquifer recharge but no drainage.
      !
      ! !USES:
-     use clm_time_manager , only : get_step_size
+     !#py use clm_time_manager , only : get_step_size
+      !$acc routine seq
      use clm_varcon       , only : pondmx, tfrz, watmin,denice,denh2o
      use clm_varpar       , only : nlevsoi, nlevgrnd
      use column_varcon    , only : icol_roof, icol_road_imperv
@@ -557,14 +552,11 @@ contains
      integer                  , intent(in)    :: filter_hydrologyc(:) ! column filter for soil points
      type(soilhydrology_type) , intent(inout) :: soilhydrology_vars
      type(soilstate_type)     , intent(in)    :: soilstate_vars
-     type(temperature_type)   , intent(in)    :: temperature_vars
-     type(waterstate_type)    , intent(inout) :: waterstate_vars
-     type(waterflux_type)     , intent(inout) :: waterflux_vars
+     real(r8), intent(in)  :: dtime
      !
      ! !LOCAL VARIABLES:
      integer  :: c,j,fc,i,l,g                            ! indices
      integer  :: nlevbed                                 ! # layers to bedrock
-     real(r8) :: dtime                                   ! land model time step (sec)
      real(r8) :: xs(bounds%begc:bounds%endc)             ! water needed to bring soil moisture to watmin (mm)
      real(r8) :: dzmm(bounds%begc:bounds%endc,1:nlevgrnd) ! layer thickness (mm)
      integer  :: jwt(bounds%begc:bounds%endc)            ! index of the soil layer right above the water table (-)
@@ -644,7 +636,7 @@ contains
 
        ! Get time step
 
-       dtime = get_step_size()
+       !#py dtime = get_step_size()
 
        ! Convert layer thicknesses from m to mm
 
@@ -880,17 +872,18 @@ contains
 
    !-----------------------------------------------------------------------
    subroutine Drainage(bounds, num_hydrologyc, filter_hydrologyc, num_urbanc, filter_urbanc,  &
-        temperature_vars, soilhydrology_vars, soilstate_vars, waterstate_vars, waterflux_vars)
+        soilhydrology_vars, soilstate_vars, dtime)
      !
      ! !DESCRIPTION:
      ! Calculate subsurface drainage
      !
      ! !USES:
-     use clm_time_manager , only : get_step_size
+     !#py use clm_time_manager , only : get_step_size
+      !$acc routine seq
      use clm_varpar       , only : nlevsoi, nlevgrnd, nlayer, nlayert
      use clm_varcon       , only : pondmx, tfrz, watmin,rpi, secspday, nlvic
      use column_varcon    , only : icol_roof, icol_road_imperv, icol_road_perv
-     use abortutils       , only : endrun
+     !#py use abortutils       , only : endrun
      use clm_varctl       , only : use_vsfm, use_var_soil_thick
      use SoilWaterMovementMod, only : zengdecker_2009_with_var_soil_thick
      use pftvarcon        , only : rsub_top_globalmax
@@ -901,17 +894,14 @@ contains
      integer                  , intent(in)    :: num_urbanc           ! number of column urban points in column filter
      integer                  , intent(in)    :: filter_urbanc(:)     ! column filter for urban points
      integer                  , intent(in)    :: filter_hydrologyc(:) ! column filter for soil points
-     type(temperature_type)   , intent(in)    :: temperature_vars
      type(soilstate_type)     , intent(in)    :: soilstate_vars
      type(soilhydrology_type) , intent(inout) :: soilhydrology_vars
-     type(waterstate_type)    , intent(inout) :: waterstate_vars
-     type(waterflux_type)     , intent(inout) :: waterflux_vars
+     real(r8), intent(in)  :: dtime
      !
      ! !LOCAL VARIABLES:
      character(len=32) :: subname = 'Drainage'           ! subroutine name
      integer  :: c,j,fc,i                                ! indices
      integer  :: nlevbed                                 ! # layers to bedrock
-     real(r8) :: dtime                                   ! land model time step (sec)
      real(r8) :: xs(bounds%begc:bounds%endc)             ! water needed to bring soil moisture to watmin (mm)
      real(r8) :: dzmm(bounds%begc:bounds%endc,1:nlevgrnd) ! layer thickness (mm)
      integer  :: jwt(bounds%begc:bounds%endc)            ! index of the soil layer right above the water table (-)
@@ -1013,7 +1003,7 @@ contains
 
        ! Get time step
 
-       dtime = get_step_size()
+       !#py dtime = get_step_size()
 
        ! Convert layer thicknesses from m to mm
 
@@ -1236,7 +1226,7 @@ contains
              ! add ice impedance factor to baseflow
              if(origflag == 1) then 
                 if (use_vichydro) then
-                   call endrun(msg="VICHYDRO is not available for origflag=1"//errmsg(__FILE__, __LINE__))
+                   !#py !#py call endrun(msg="VICHYDRO is not available for origflag=1"//errmsg(__FILE__, __LINE__))
                 else
                    fracice_rsub(c) = max(0._r8,exp(-3._r8*(1._r8-(icefracsum/dzsum))) &
                         - exp(-3._r8))/(1.0_r8-exp(-3._r8))
@@ -1320,7 +1310,7 @@ contains
                 !should never be positive... but include for completeness
                 if(rsub_top_tot > 0.) then !rising water table
 
-                   call endrun(msg="RSUB_TOP IS POSITIVE in Drainage!"//errmsg(__FILE__, __LINE__))
+                   !#py !#py call endrun(msg="RSUB_TOP IS POSITIVE in Drainage!"//errmsg(__FILE__, __LINE__))
 
                 else ! deepening water table
                    if (use_vichydro) then
@@ -1525,17 +1515,18 @@ contains
 
    !-----------------------------------------------------------------------
    subroutine DrainageVSFM(bounds, num_hydrologyc, filter_hydrologyc, num_urbanc, filter_urbanc,  &
-        temperature_vars, soilhydrology_vars, soilstate_vars, waterstate_vars, waterflux_vars)
+         soilhydrology_vars, soilstate_vars, dtime)
      !
      ! !DESCRIPTION:
      ! Calculate subsurface drainage
      !
      ! !USES:
-     use clm_time_manager , only : get_step_size
+     !#py use clm_time_manager , only : get_step_size
+      !$acc routine seq
      use clm_varpar       , only : nlevsoi, nlevgrnd, nlayer, nlayert
      use clm_varcon       , only : pondmx, tfrz, watmin,rpi, secspday, nlvic
      use column_varcon    , only : icol_roof, icol_road_imperv, icol_road_perv
-     use abortutils       , only : endrun
+     !#py use abortutils       , only : endrun
      use clm_varctl       , only : use_vsfm
      use pftvarcon        , only : rsub_top_globalmax
      !
@@ -1545,16 +1536,13 @@ contains
      integer                  , intent(in)    :: num_urbanc           ! number of column urban points in column filter
      integer                  , intent(in)    :: filter_urbanc(:)     ! column filter for urban points
      integer                  , intent(in)    :: filter_hydrologyc(:) ! column filter for soil points
-     type(temperature_type)   , intent(in)    :: temperature_vars
      type(soilstate_type)     , intent(in)    :: soilstate_vars
      type(soilhydrology_type) , intent(inout) :: soilhydrology_vars
-     type(waterstate_type)    , intent(inout) :: waterstate_vars
-     type(waterflux_type)     , intent(inout) :: waterflux_vars
+     real(r8), intent(in)  :: dtime
      !
      ! !LOCAL VARIABLES:
      character(len=32) :: subname = 'Drainage'           ! subroutine name
      integer  :: c,j,fc,i                                ! indices
-     real(r8) :: dtime                                   ! land model time step (sec)
      real(r8) :: xs(bounds%begc:bounds%endc)             ! water needed to bring soil moisture to watmin (mm)
      real(r8) :: dzmm(bounds%begc:bounds%endc,1:nlevgrnd) ! layer thickness (mm)
      integer  :: jwt(bounds%begc:bounds%endc)            ! index of the soil layer right above the water table (-)
@@ -1657,7 +1645,7 @@ contains
 
        ! Get time step
 
-       dtime = get_step_size()
+       !#py dtime = get_step_size()
 
        ! Convert layer thicknesses from m to mm
 
@@ -1873,7 +1861,7 @@ contains
              ! add ice impedance factor to baseflow
              if(origflag == 1) then
                 if (use_vichydro) then
-                   call endrun(msg="VICHYDRO is not available for origflag=1"//errmsg(__FILE__, __LINE__))
+                   !#py !#py call endrun(msg="VICHYDRO is not available for origflag=1"//errmsg(__FILE__, __LINE__))
                 else
                    fracice_rsub(c) = max(0._r8,exp(-3._r8*(1._r8-(icefracsum/dzsum))) &
                         - exp(-3._r8))/(1.0_r8-exp(-3._r8))
@@ -1941,7 +1929,7 @@ contains
 
   !-----------------------------------------------------------------------
   subroutine CLMVICMap(bounds, numf, filter, &
-       soilhydrology_vars, waterstate_vars)
+       soilhydrology_vars)
      !
      ! !DESCRIPTION:
      ! Performs  the mapping from CLM layers to VIC layers
@@ -1953,6 +1941,7 @@ contains
      ! mapping from VIC to CLM layers, M.Huang
      !
      ! !USES:
+      !$acc routine seq
      use clm_varcon  , only : denh2o, denice, watmin
      use clm_varpar  , only : nlevsoi, nlayer, nlayert, nlevgrnd 
      use decompMod   , only : bounds_type
@@ -1965,7 +1954,6 @@ contains
      type(bounds_type)        , intent(in)    :: bounds    
      integer                  , intent(in)    :: numf      ! number of column soil points in column filter
      integer                  , intent(in)    :: filter(:) ! column filter for soil points
-     type(waterstate_type)    , intent(in)    :: waterstate_vars 
      type(soilhydrology_type) , intent(inout) :: soilhydrology_vars
      !
      ! !LOCAL VARIABLES

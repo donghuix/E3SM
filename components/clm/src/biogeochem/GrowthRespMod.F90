@@ -9,7 +9,6 @@ module GrowthRespMod
   use shr_kind_mod     , only : r8 => shr_kind_r8
   use pftvarcon        , only : grperc, grpnow, npcropmin
   use VegetationPropertiesType   , only : veg_vp
-  use CNCarbonFluxType , only : carbonflux_type
   use VegetationType        , only : veg_pp  
   use VegetationDataType    , only : veg_cf  
   !
@@ -23,8 +22,7 @@ module GrowthRespMod
 
 contains
 
-  !-----------------------------------------------------------------------
-  subroutine GrowthResp(num_soilp, filter_soilp, carbonflux_vars)
+  subroutine GrowthResp(num_soilp, filter_soilp)
     !
     ! !DESCRIPTION:
     ! On the radiation time step, update all the prognostic carbon state
@@ -33,9 +31,9 @@ contains
     ! !USES:
     !
     ! !ARGUMENTS:
+      !$acc routine seq
     integer, intent(in) :: num_soilp       ! number of soil patches in filter
     integer, intent(in) :: filter_soilp(:) ! filter for soil patches
-    type(carbonflux_type), intent(inout) :: carbonflux_vars
     !
     ! !LOCAL VARIABLES:
     integer :: p                ! indices

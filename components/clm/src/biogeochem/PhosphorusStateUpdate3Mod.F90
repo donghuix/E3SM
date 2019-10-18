@@ -9,7 +9,7 @@ module PhosphorusStateUpdate3Mod
   use shr_kind_mod        , only: r8 => shr_kind_r8
   use decompMod           , only : bounds_type
   use clm_varpar          , only: nlevdecomp,ndecomp_pools,ndecomp_cascade_transitions
-  use clm_time_manager    , only : get_step_size
+  !#py use clm_time_manager    , only : get_step_size
   use clm_varctl          , only : iulog, use_nitrif_denitrif
   use clm_varpar          , only : i_cwd, i_met_lit, i_cel_lit, i_lig_lit
   use clm_varctl          , only : use_erosion, ero_ccycle
@@ -39,7 +39,7 @@ contains
 
   !-----------------------------------------------------------------------
   subroutine PhosphorusStateUpdate3(bounds,num_soilc, filter_soilc, num_soilp, filter_soilp, &
-       cnstate_vars,phosphorusflux_vars, phosphorusstate_vars)
+       cnstate_vars, dt )
     !
     ! !DESCRIPTION:
     ! On the radiation time step, update all the prognostic phosphorus state
@@ -49,19 +49,19 @@ contains
     ! no science equatiops. This increases readability and maintainability.
     !
     ! !ARGUMENTS:
+      !$acc routine seq 
     type(bounds_type)        , intent(in)    :: bounds
     integer                  , intent(in)    :: num_soilc       ! number of soil columps in filter
     integer                  , intent(in)    :: filter_soilc(:) ! filter for soil columps
     integer                  , intent(in)    :: num_soilp       ! number of soil patches in filter
     integer                  , intent(in)    :: filter_soilp(:) ! filter for soil patches
-    type(phosphorusflux_type)  , intent(inout)    :: phosphorusflux_vars
-    type(phosphorusstate_type) , intent(inout) :: phosphorusstate_vars
     type(cnstate_type)         , intent(in)    :: cnstate_vars
+    real(r8), intent(in) :: dt         ! radiation time step (seconds)
+
     !
     ! !LOCAL VARIABLES:
     integer :: c,p,j,l,k        ! indices
     integer :: fp,fc      ! lake filter indices
-    real(r8):: dt         ! radiation time step (seconds)
 
    real(r8):: smax_c       ! parameter(gP/m2), maximum amount of sorbed P in equilibrium with solution P
    real(r8):: ks_sorption_c ! parameter(gP/m2), empirical constant for sorbed P in equilibrium with solution P 
@@ -75,14 +75,12 @@ contains
          isoilorder     => cnstate_vars%isoilorder ,&
          pdep_prof      => cnstate_vars%pdep_prof_col ,&
          cascade_receiver_pool => decomp_cascade_con%cascade_receiver_pool ,&
-         pf => phosphorusflux_vars  , &
-         ps => phosphorusstate_vars , &
          vmax_minsurf_p_vr => veg_vp%vmax_minsurf_p_vr , &
          km_minsurf_p_vr   => veg_vp%km_minsurf_p_vr     &
          )
 
       ! set time steps
-      dt = real( get_step_size(), r8 )
+      !#py dt = real( get_step_size(), r8 )
 
       !! immobilization/mineralization in litter-to-SOM and SOM-to-SOM fluxes
       !! - X.YANG

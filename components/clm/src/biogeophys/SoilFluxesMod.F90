@@ -6,19 +6,16 @@ module SoilFluxesMod
   !
   ! !USES:
   use shr_kind_mod	, only : r8 => shr_kind_r8
-  use shr_log_mod	, only : errMsg => shr_log_errMsg
+  !#py !#py use shr_log_mod	, only : errMsg => shr_log_errMsg
   use decompMod		, only : bounds_type
-  use abortutils	, only : endrun
-  use perf_mod		, only : t_startf, t_stopf
+  !#py use abortutils	, only : endrun
+  !#py use perf_mod		, only : t_startf, t_stopf
   use clm_varctl	, only : iulog
   use clm_varpar	, only : nlevsno, nlevgrnd, nlevurb, max_patch_per_col
   use atm2lndType	, only : atm2lnd_type
   use CanopyStateType   , only : canopystate_type
   use EnergyFluxType    , only : energyflux_type
   use SolarAbsorbedType , only : solarabs_type
-  use TemperatureType   , only : temperature_type
-  use WaterstateType    , only : waterstate_type
-  use WaterfluxType     , only : waterflux_type
   use TopounitDataType  , only : top_af
   use LandunitType	   , only : lun_pp                
   use ColumnType	      , only : col_pp
@@ -39,15 +36,16 @@ contains
   !-----------------------------------------------------------------------
   subroutine SoilFluxes (bounds, num_urbanl, filter_urbanl, &
        num_nolakec, filter_nolakec, num_nolakep, filter_nolakep, &
-       atm2lnd_vars, solarabs_vars, temperature_vars, canopystate_vars, &
-       waterstate_vars, energyflux_vars, waterflux_vars)            
+       atm2lnd_vars, solarabs_vars, canopystate_vars, &
+       energyflux_vars, dtime)
     !
     ! !DESCRIPTION:
     ! Update surface fluxes based on the new ground temperature
     !
     ! !USES:
-    use clm_time_manager , only : get_step_size
-    use clm_varcon       , only : hvap, cpair, grav, vkc, tfrz, sb 
+    !#py use clm_time_manager , only : get_step_size
+      !$acc routine seq
+    use clm_varcon       , only : hvap, cpair, grav, vkc, tfrz, sb
     use landunit_varcon  , only : istsoil, istcrop
     use column_varcon    , only : icol_roof, icol_sunwall, icol_shadewall, icol_road_perv
     use subgridAveMod    , only : p2c
@@ -62,16 +60,14 @@ contains
     integer                , intent(in)    :: filter_nolakep(:)                ! patch filter for non-lake points
     type(atm2lnd_type)     , intent(in)    :: atm2lnd_vars
     type(solarabs_type)    , intent(in)    :: solarabs_vars
-    type(temperature_type) , intent(in)    :: temperature_vars
     type(canopystate_type) , intent(in)    :: canopystate_vars
-    type(waterstate_type)  , intent(in)    :: waterstate_vars
-    type(waterflux_type)   , intent(inout) :: waterflux_vars
     type(energyflux_type)  , intent(inout) :: energyflux_vars
+    real(r8), intent(in) :: dtime                                              ! land model time step (sec)
+
     !
     ! !LOCAL VARIABLES:
     integer  :: p,c,t,g,j,pi,l                                     ! indices
     integer  :: fc,fp                                              ! lake filtered column and pft indices
-    real(r8) :: dtime                                              ! land model time step (sec)
     real(r8) :: egsmax(bounds%begc:bounds%endc)                    ! max. evaporation which soil can provide at one time step
     real(r8) :: egirat(bounds%begc:bounds%endc)                    ! ratio of topsoil_evap_tot : egsmax
     real(r8) :: tinc(bounds%begc:bounds%endc)                      ! temperature difference of two time step
@@ -165,9 +161,9 @@ contains
 
       ! Get step size
 
-      dtime = get_step_size()
+      !#py dtime = get_step_size()
 
-      call t_startf('bgp2_loop_1')
+      !#py call t_startf('bgp2_loop_1')
       do fc = 1,num_nolakec
          c = filter_nolakec(fc)
          j = col_pp%snl(c)+1
@@ -243,8 +239,8 @@ contains
             end if
          end do
       end do
-      call t_stopf('bgp2_loop_1')
-      call t_startf('bgp2_loop_2')
+      !#py call t_stopf('bgp2_loop_1')
+      !#py call t_startf('bgp2_loop_2')
 
       ! Calculate ratio for rescaling pft-level fluxes to meet availability
 
@@ -363,8 +359,8 @@ contains
          eflx_lh_grnd(p)   = qflx_evap_soi(p) * htvp(c)
 
       end do
-      call t_stopf('bgp2_loop_2')
-      call t_startf('bgp2_loop_3')
+      !#py call t_stopf('bgp2_loop_2')
+      !#py call t_startf('bgp2_loop_3')
 
       ! Soil Energy balance check
 
@@ -398,8 +394,8 @@ contains
             end if
          end do
       end do
-      call t_stopf('bgp2_loop_3')
-      call t_startf('bgp2_loop_4')
+      !#py call t_stopf('bgp2_loop_3')
+      !#py call t_startf('bgp2_loop_4')
 
       ! Outgoing long-wave radiation from vegetation + ground
       ! For conservation we put the increase of ground longwave to outgoing
@@ -442,10 +438,10 @@ contains
       ! therefore obtain column-level radiative temperature
 
       call p2c(bounds, num_nolakec, filter_nolakec, &
-           errsoi_patch(bounds%begp:bounds%endp), &
-           errsoi_col(bounds%begc:bounds%endc))
+           errsoi_patch, &
+           errsoi_col)
 
-      call t_stopf('bgp2_loop_4')
+      !#py call t_stopf('bgp2_loop_4')
 
     end associate 
 

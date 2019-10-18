@@ -6,7 +6,6 @@ module clm_varctl
   !
   ! !USES:
   use shr_kind_mod, only: r8 => shr_kind_r8, SHR_KIND_CL
-  use shr_sys_mod , only: shr_sys_abort ! cannot use endrun here due to circular dependency
   !
   ! !PUBLIC MEMBER FUNCTIONS:
   implicit none
@@ -157,10 +156,14 @@ module clm_varctl
   integer, public :: spinup_state = 0 
   integer, public :: nyears_ad_carbon_only = 0
   real(r8), public :: spinup_mortality_factor = 1._r8
+  !$acc declare copyin(spinup_state           )
+  !$acc declare copyin(nyears_ad_carbon_only  )
+  !$acc declare copyin(spinup_mortality_factor)
 
   ! true => anoxia is applied to heterotrophic respiration also considered in CH4 model
   ! default value reset in controlMod
   logical, public :: anoxia  = .true. 
+  !$acc declare copyin(anoxia)
 
   ! used to override an error check on reading in restart files
   logical, public :: override_bgc_restart_mismatch_dump = .false. 
@@ -169,6 +172,9 @@ module clm_varctl
   logical, private:: carbon_only      
   logical, private:: carbonnitrogen_only      
   logical, private:: carbonphosphorus_only      
+  !$acc declare copyin(carbon_only)
+  !$acc declare copyin(carbonnitrogen_only)
+  !$acc declare copyin(carbonphosphorus_only)
 
   !----------------------------------------------------------
   ! Physics
@@ -215,23 +221,28 @@ module clm_varctl
   !  BeTR switches
   !----------------------------------------------------------
   logical, public :: use_betr = .false.          ! true=> use BeTR
+  !$acc declare create(use_betr)
 
   !----------------------------------------------------------
   ! lai streams switch for Sat. Phenology
   !----------------------------------------------------------
 
   logical, public :: use_lai_streams = .false. ! true => use lai streams in SatellitePhenologyMod.F90
+  !$acc declare create(use_lai_streams)
+
   !----------------------------------------------------------
   ! plant hydraulic stress switch
   !----------------------------------------------------------
 
   logical, public :: use_hydrstress = .false. ! true => use plant hydraulic stress calculation
+  !$acc declare create(use_hydrstress)
 
   !----------------------------------------------------------
   ! dynamic root switch
   !----------------------------------------------------------
 
   logical, public :: use_dynroot = .false. ! true => use dynamic root module
+  !$acc declare create(use_dynroot)
 
   !----------------------------------------------------------
   ! glacier_mec control variables: default values (may be overwritten by namelist)
@@ -243,6 +254,7 @@ module clm_varctl
 
   ! if true, pass surface mass balance info to GLC
   logical , public :: glc_smb = .true.                      
+  !$acc declare create(glc_smb)
 
   ! if false, pass positive-degree-day info to GLC
 
@@ -257,6 +269,7 @@ module clm_varctl
 
   ! number of days before one considers the perennially snow-covered point 'land ice'
   integer , public :: glc_snow_persistence_max_days = 7300  
+  !$acc declare copyin(glc_snow_persistence_max_days)
 
   ! glc_grid used to determine fglcmask  
   character(len=256), public :: glc_grid = ' '              
@@ -356,19 +369,23 @@ module clm_varctl
   !-----------------------------------------------------------------------
   ! nutrient competition (nu_com), default is relative demand approach (RD)
   character(len=15), public :: nu_com = 'RD'
+  !$acc declare copyin(nu_com)
  
   !-----------------------------------------------------------------------
   ! forest N/P fertilization
   logical, public :: forest_fert_exp = .false. 
+  !$acc declare copyin(forest_fert_exp)
 
   !-----------------------------------------------------------------------
   ! ECA regular spinup with P on, keep labile, secondary, occluded, parent 
   ! material P being constant or not
   logical, public :: ECA_Pconst_RGspin = .false.
+  !$acc declare copyin(ECA_Pconst_RGspin)
 
   !-----------------------------------------------------------------------
   ! Priority of plant to get symbiotic N fixation, phosphatase
   logical, public :: NFIX_PTASE_plant = .false.
+  !$acc declare create(NFIX_PTASE_plant)
 
   !-----------------------------------------------------------------------
   !CO2 and warming experiments
@@ -382,15 +399,20 @@ module clm_varctl
   !-----------------------------------------------------------------------
   logical, public            :: lateral_connectivity  = .false.
   character(len=256), public :: domain_decomp_type    = 'round_robin'
+  !$acc declare copyin(lateral_connectivity)
 
   !-----------------------------------------------------------------------
   ! flux limiter for phenology flux calculation
   logical, public :: use_pheno_flux_limiter = .false.
+  !$acc declare copyin(use_pheno_flux_limiter)
 
   ! Soil erosion
   !-----------------------------------------------------------------------
   logical, public :: use_erosion    = .false.
   logical, public :: ero_ccycle     = .false.
+  !$acc declare copyin(use_erosion)
+  !$acc declare copyin(ero_ccycle)
+
 
   !-----------------------------------------------------------------------
   ! bgc & pflotran interface
@@ -399,6 +421,12 @@ module clm_varctl
   logical, public :: use_clm_bgc        = .false.
   logical, public :: use_pflotran       = .false.
   logical, public :: pf_surfaceflow     = .false.
+
+  !$acc declare copyin(use_clm_interface)
+  !$acc declare copyin(use_clm_bgc      )
+  !$acc declare copyin(use_pflotran     )
+  !$acc declare copyin(pf_surfaceflow   )
+
   ! the following switches will allow flexibility of coupling CLM with PFLOTRAN (which in fact runs in 3 modes individually or coupled)
   logical, public :: pf_cmode     = .false.                 ! switch for 'C' mode coupling (will be updated in interface)
   logical, public :: pf_hmode     = .false.                 ! switch for 'H' mode coupling (will be updated in interface)
@@ -406,6 +434,12 @@ module clm_varctl
   logical, public :: pf_frzmode   = .false.                 ! switch for 'freezing' mode availablity in PF-thmode (will be updated in interface)
   logical, public :: initth_pf2clm= .false.                 ! switch for initializing CLM TH states from pflotran
   integer, public :: pf_clmnstep0 = 0                       ! the CLM timestep of start/restart
+  !$acc declare copyin(pf_cmode     )
+  !$acc declare copyin(pf_hmode     )
+  !$acc declare copyin(pf_tmode     )
+  !$acc declare copyin(pf_frzmode   )
+  !$acc declare copyin(initth_pf2clm)
+  !$acc declare copyin(pf_clmnstep0 )
 
   ! cpl_bypass
    character(len=fname_len), public :: metdata_type   = ' '    ! metdata type for CPL_BYPASS mode
@@ -413,6 +447,32 @@ module clm_varctl
    character(len=fname_len), public :: metdata_biases = ' '    ! met biases files for CPL_BYPASS mode
    character(len=fname_len), public :: co2_file       = ' '    ! co2 file for CPL_BYPASS mode
    character(len=fname_len), public :: aero_file      = ' '    ! aerosol deposition file for CPL_BYPASS mode
+
+  !$acc declare create(use_fates)
+
+  !$acc declare copyin(use_c13, use_cn, use_lch4, glcmec_downscale_rain_snow_convert)
+  !$acc declare copyin(use_c14)
+  !$acc declare copyin(glcmec_downscale_longwave, subgridflag)
+  !$acc declare copyin(use_nofire         )
+  !$acc declare copyin(use_lch4           )
+  !$acc declare copyin(use_nitrif_denitrif)
+  !$acc declare copyin(use_vertsoilc      )
+  !$acc declare copyin(use_extralakelayers)
+  !$acc declare copyin(use_vichydro       )
+  !$acc declare copyin(use_century_decomp )
+  !$acc declare copyin(use_cn             )
+  !$acc declare copyin(use_crop           )
+  !$acc declare copyin(use_snicar_frc     )
+  !$acc declare copyin(use_vancouver      )
+  !$acc declare copyin(use_mexicocity     )
+  !$acc declare copyin(use_noio           )
+  !$acc declare copyin(use_var_soil_thick )
+
+  !$acc declare copyin(use_vsfm                   )
+  !$acc declare copyin(vsfm_use_dynamic_linesearch)
+  !$acc declare copyin(vsfm_include_seepage_bc    )
+  !$acc declare copyin(vsfm_satfunc_type          )
+  !$acc declare copyin(vsfm_lateral_model_type    )
 
 
   !----------------------------------------------------------
@@ -449,10 +509,6 @@ contains
     character(len=256), optional, intent(IN) :: username_in              ! username running job
     !-----------------------------------------------------------------------
 
-    if ( clmvarctl_isset )then
-       call shr_sys_abort(' ERROR:: control variables already set, cannot call this routine')
-    end if
-
     if ( present(caseid_in       ) ) caseid        = caseid_in
     if ( present(ctitle_in       ) ) ctitle        = ctitle_in
     if ( present(single_column_in) ) single_column = single_column_in
@@ -468,39 +524,46 @@ contains
 
   ! Set module carbon_only flag
   subroutine cnallocate_carbon_only_set(carbon_only_in)
+    !$acc routine seq
     logical, intent(in) :: carbon_only_in
     carbon_only = carbon_only_in
   end subroutine cnallocate_carbon_only_set
 
   ! Get module carbon_only flag
   logical function CNAllocate_Carbon_only()
+    !$acc routine seq
     cnallocate_carbon_only = carbon_only
   end function CNAllocate_Carbon_only
 
   ! Set module carbonnitrogen_only flag
   subroutine cnallocate_carbonnitrogen_only_set(carbonnitrogen_only_in)
+    !$acc routine seq
     logical, intent(in) :: carbonnitrogen_only_in
     carbonnitrogen_only = carbonnitrogen_only_in
   end subroutine cnallocate_carbonnitrogen_only_set
 
   ! Get module carbonnitrogen_only flag
   logical function CNAllocate_CarbonNitrogen_only()
+    !$acc routine seq
     cnallocate_carbonnitrogen_only = carbonnitrogen_only
   end function CNAllocate_CarbonNitrogen_only
 
 
   ! Set module carbonphosphorus_only flag
   subroutine cnallocate_carbonphosphorus_only_set(carbonphosphorus_only_in)
+    !$acc routine seq
     logical, intent(in) :: carbonphosphorus_only_in
     carbonphosphorus_only = carbonphosphorus_only_in
   end subroutine cnallocate_carbonphosphorus_only_set
 
   ! Get module carbonphosphorus_only flag
   logical function CNAllocate_CarbonPhosphorus_only()
+    !$acc routine seq
     cnallocate_carbonphosphorus_only = carbonphosphorus_only
   end function CNAllocate_CarbonPhosphorus_only
 
   function get_carbontag(carbon_type)result(ctag)
+    !$acc routine seq
     implicit none
     character(len=*) :: carbon_type
      

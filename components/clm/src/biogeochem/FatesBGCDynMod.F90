@@ -94,6 +94,8 @@ contains
           1:nlevdecomp,1:ndecomp_cascade_transitions)       !potential C loss from one pool to another
     ! For methane code
     real(r8):: hrsum(bounds%begc:bounds%endc,1:nlevdecomp)  !sum of HR (gC/m2/s)
+    real(r8) :: dt, dayspyr
+    integer :: year, mon, day, sec
     !-----------------------------------------------------------------------
 
     associate( &
@@ -165,10 +167,14 @@ contains
     !--------------------------------------------
     if (use_century_decomp) then
        call decomp_rate_constants_bgc(bounds, num_soilc, filter_soilc, &
-               canopystate_vars, soilstate_vars, temperature_vars, ch4_vars, carbonflux_vars, cnstate_vars)
+               canopystate_vars, soilstate_vars, ch4_vars, cnstate_vars, &
+               dt, dayspyr,year, mon, day, sec)
     else
-       call decomp_rate_constants_cn(bounds, num_soilc, filter_soilc, &
-             canopystate_vars, soilstate_vars, temperature_vars, ch4_vars, carbonflux_vars, cnstate_vars)
+       call decomp_rate_constants_cn(bounds, &
+            num_soilc, filter_soilc, &
+            canopystate_vars, soilstate_vars, ch4_vars, cnstate_vars,&
+            dt, year, mon, day, sec)
+
     end if
 
     ! SoilBiogeochemPotential() in CLM
@@ -247,7 +253,7 @@ contains
     ! Update all prognostic carbon state variables (except for gap-phase mortality and fire fluxes)
 
     call CarbonStateUpdate1(bounds, num_soilc, filter_soilc, num_soilp, filter_soilp, &
-            crop_vars, col_cs, veg_cs, col_cf, veg_cf)
+            crop_vars, col_cs, veg_cs, col_cf, veg_cf,dt)
 
     call t_stopf('BNGCUpdate1')
 
@@ -259,11 +265,7 @@ contains
 
     call SoilLittVertTransp(bounds, &
           num_soilc, filter_soilc, &
-          canopystate_vars, cnstate_vars,                               &
-          carbonstate_vars, c13_carbonstate_vars, c14_carbonstate_vars, &
-          carbonflux_vars, c13_carbonflux_vars, c14_carbonflux_vars,    &
-          nitrogenstate_vars, nitrogenflux_vars,&
-          phosphorusstate_vars,phosphorusflux_vars)
+          canopystate_vars, cnstate_vars, dt, year, mon, day, sec )
 
     call t_stopf('SoilBiogeochemLittVertTransp')
 
@@ -273,9 +275,7 @@ contains
     ! Added some new logical filters to prevent
     ! above ground precision control calculations with use_fates, as well
     ! bypass on nitrogen calculations
-    call PrecisionControl(num_soilc, filter_soilc, num_soilp, filter_soilp, &
-          carbonstate_vars, c13_carbonstate_vars, c14_carbonstate_vars,       &
-          nitrogenstate_vars,phosphorusstate_vars)
+    call PrecisionControl(num_soilc, filter_soilc, num_soilp, filter_soilp)
 
     
     call FatesBGCSummary(bounds, num_soilc, filter_soilc,carbonflux_vars, carbonstate_vars)

@@ -9,6 +9,7 @@ module AerosolType
   use shr_log_mod    , only : errMsg => shr_log_errMsg
   use clm_varpar     , only : nlevsno, nlevgrnd
   use decompMod      , only : bounds_type
+  use clm_varcon     , only : spval, ispval
   !
   ! !PUBLIC TYPES:
   implicit none
@@ -108,56 +109,56 @@ contains
 
     begc = bounds%begc; endc= bounds%endc
 
-    allocate(this%flx_dst_dep_dry1_col (begc:endc))              ; this%flx_dst_dep_dry1_col (:)   = nan
-    allocate(this%flx_dst_dep_wet1_col (begc:endc))              ; this%flx_dst_dep_wet1_col (:)   = nan
-    allocate(this%flx_dst_dep_dry2_col (begc:endc))              ; this%flx_dst_dep_dry2_col (:)   = nan
-    allocate(this%flx_dst_dep_wet2_col (begc:endc))              ; this%flx_dst_dep_wet2_col (:)   = nan
-    allocate(this%flx_dst_dep_dry3_col (begc:endc))              ; this%flx_dst_dep_dry3_col (:)   = nan
-    allocate(this%flx_dst_dep_wet3_col (begc:endc))              ; this%flx_dst_dep_wet3_col (:)   = nan
-    allocate(this%flx_dst_dep_dry4_col (begc:endc))              ; this%flx_dst_dep_dry4_col (:)   = nan
-    allocate(this%flx_dst_dep_wet4_col (begc:endc))              ; this%flx_dst_dep_wet4_col (:)   = nan
-    allocate(this%flx_dst_dep_col      (begc:endc))              ; this%flx_dst_dep_col      (:)   = nan
+    allocate(this%flx_dst_dep_dry1_col (begc:endc))              ; this%flx_dst_dep_dry1_col (:)   = spval
+    allocate(this%flx_dst_dep_wet1_col (begc:endc))              ; this%flx_dst_dep_wet1_col (:)   = spval
+    allocate(this%flx_dst_dep_dry2_col (begc:endc))              ; this%flx_dst_dep_dry2_col (:)   = spval
+    allocate(this%flx_dst_dep_wet2_col (begc:endc))              ; this%flx_dst_dep_wet2_col (:)   = spval
+    allocate(this%flx_dst_dep_dry3_col (begc:endc))              ; this%flx_dst_dep_dry3_col (:)   = spval
+    allocate(this%flx_dst_dep_wet3_col (begc:endc))              ; this%flx_dst_dep_wet3_col (:)   = spval
+    allocate(this%flx_dst_dep_dry4_col (begc:endc))              ; this%flx_dst_dep_dry4_col (:)   = spval
+    allocate(this%flx_dst_dep_wet4_col (begc:endc))              ; this%flx_dst_dep_wet4_col (:)   = spval
+    allocate(this%flx_dst_dep_col      (begc:endc))              ; this%flx_dst_dep_col      (:)   = spval
 
-    allocate(this%flx_bc_dep_dry_col   (begc:endc))              ; this%flx_bc_dep_dry_col   (:)   = nan
-    allocate(this%flx_bc_dep_wet_col   (begc:endc))              ; this%flx_bc_dep_wet_col   (:)   = nan
-    allocate(this%flx_bc_dep_pho_col   (begc:endc))              ; this%flx_bc_dep_pho_col   (:)   = nan
-    allocate(this%flx_bc_dep_phi_col   (begc:endc))              ; this%flx_bc_dep_phi_col   (:)   = nan
-    allocate(this%flx_bc_dep_col       (begc:endc))              ; this%flx_bc_dep_col       (:)   = nan
+    allocate(this%flx_bc_dep_dry_col   (begc:endc))              ; this%flx_bc_dep_dry_col   (:)   = spval
+    allocate(this%flx_bc_dep_wet_col   (begc:endc))              ; this%flx_bc_dep_wet_col   (:)   = spval
+    allocate(this%flx_bc_dep_pho_col   (begc:endc))              ; this%flx_bc_dep_pho_col   (:)   = spval
+    allocate(this%flx_bc_dep_phi_col   (begc:endc))              ; this%flx_bc_dep_phi_col   (:)   = spval
+    allocate(this%flx_bc_dep_col       (begc:endc))              ; this%flx_bc_dep_col       (:)   = spval
 
-    allocate(this%flx_oc_dep_dry_col   (begc:endc))              ; this%flx_oc_dep_dry_col   (:)   = nan
-    allocate(this%flx_oc_dep_wet_col   (begc:endc))              ; this%flx_oc_dep_wet_col   (:)   = nan
-    allocate(this%flx_oc_dep_pho_col   (begc:endc))              ; this%flx_oc_dep_pho_col   (:)   = nan
-    allocate(this%flx_oc_dep_phi_col   (begc:endc))              ; this%flx_oc_dep_phi_col   (:)   = nan
-    allocate(this%flx_oc_dep_col       (begc:endc))              ; this%flx_oc_dep_col       (:)   = nan
+    allocate(this%flx_oc_dep_dry_col   (begc:endc))              ; this%flx_oc_dep_dry_col   (:)   = spval
+    allocate(this%flx_oc_dep_wet_col   (begc:endc))              ; this%flx_oc_dep_wet_col   (:)   = spval
+    allocate(this%flx_oc_dep_pho_col   (begc:endc))              ; this%flx_oc_dep_pho_col   (:)   = spval
+    allocate(this%flx_oc_dep_phi_col   (begc:endc))              ; this%flx_oc_dep_phi_col   (:)   = spval
+    allocate(this%flx_oc_dep_col       (begc:endc))              ; this%flx_oc_dep_col       (:)   = spval
 
-    allocate(this%mss_bcpho_col        (begc:endc,-nlevsno+1:0)) ; this%mss_bcpho_col        (:,:) = nan
-    allocate(this%mss_bcphi_col        (begc:endc,-nlevsno+1:0)) ; this%mss_bcphi_col        (:,:) = nan
-    allocate(this%mss_bctot_col        (begc:endc,-nlevsno+1:0)) ; this%mss_bctot_col        (:,:) = nan
-    allocate(this%mss_bc_col_col       (begc:endc))              ; this%mss_bc_col_col       (:)   = nan
-    allocate(this%mss_bc_top_col       (begc:endc))              ; this%mss_bc_top_col       (:)   = nan
+    allocate(this%mss_bcpho_col        (begc:endc,-nlevsno+1:0)) ; this%mss_bcpho_col        (:,:) = spval
+    allocate(this%mss_bcphi_col        (begc:endc,-nlevsno+1:0)) ; this%mss_bcphi_col        (:,:) = spval
+    allocate(this%mss_bctot_col        (begc:endc,-nlevsno+1:0)) ; this%mss_bctot_col        (:,:) = spval
+    allocate(this%mss_bc_col_col       (begc:endc))              ; this%mss_bc_col_col       (:)   = spval
+    allocate(this%mss_bc_top_col       (begc:endc))              ; this%mss_bc_top_col       (:)   = spval
 
-    allocate(this%mss_ocpho_col        (begc:endc,-nlevsno+1:0)) ; this%mss_ocpho_col        (:,:) = nan
-    allocate(this%mss_ocphi_col        (begc:endc,-nlevsno+1:0)) ; this%mss_ocphi_col        (:,:) = nan
-    allocate(this%mss_octot_col        (begc:endc,-nlevsno+1:0)) ; this%mss_octot_col        (:,:) = nan
-    allocate(this%mss_oc_col_col       (begc:endc))              ; this%mss_oc_col_col       (:)   = nan
-    allocate(this%mss_oc_top_col       (begc:endc))              ; this%mss_oc_top_col       (:)   = nan
+    allocate(this%mss_ocpho_col        (begc:endc,-nlevsno+1:0)) ; this%mss_ocpho_col        (:,:) = spval
+    allocate(this%mss_ocphi_col        (begc:endc,-nlevsno+1:0)) ; this%mss_ocphi_col        (:,:) = spval
+    allocate(this%mss_octot_col        (begc:endc,-nlevsno+1:0)) ; this%mss_octot_col        (:,:) = spval
+    allocate(this%mss_oc_col_col       (begc:endc))              ; this%mss_oc_col_col       (:)   = spval
+    allocate(this%mss_oc_top_col       (begc:endc))              ; this%mss_oc_top_col       (:)   = spval
 
-    allocate(this%mss_dst1_col         (begc:endc,-nlevsno+1:0)) ; this%mss_dst1_col         (:,:) = nan
-    allocate(this%mss_dst2_col         (begc:endc,-nlevsno+1:0)) ; this%mss_dst2_col         (:,:) = nan
-    allocate(this%mss_dst3_col         (begc:endc,-nlevsno+1:0)) ; this%mss_dst3_col         (:,:) = nan
-    allocate(this%mss_dst4_col         (begc:endc,-nlevsno+1:0)) ; this%mss_dst4_col         (:,:) = nan
-    allocate(this%mss_dsttot_col       (begc:endc,-nlevsno+1:0)) ; this%mss_dsttot_col       (:,:) = nan
-    allocate(this%mss_dst_col_col      (begc:endc))              ; this%mss_dst_col_col      (:)   = nan
-    allocate(this%mss_dst_top_col      (begc:endc))              ; this%mss_dst_top_col      (:)   = nan
+    allocate(this%mss_dst1_col         (begc:endc,-nlevsno+1:0)) ; this%mss_dst1_col         (:,:) = spval
+    allocate(this%mss_dst2_col         (begc:endc,-nlevsno+1:0)) ; this%mss_dst2_col         (:,:) = spval
+    allocate(this%mss_dst3_col         (begc:endc,-nlevsno+1:0)) ; this%mss_dst3_col         (:,:) = spval
+    allocate(this%mss_dst4_col         (begc:endc,-nlevsno+1:0)) ; this%mss_dst4_col         (:,:) = spval
+    allocate(this%mss_dsttot_col       (begc:endc,-nlevsno+1:0)) ; this%mss_dsttot_col       (:,:) = spval
+    allocate(this%mss_dst_col_col      (begc:endc))              ; this%mss_dst_col_col      (:)   = spval
+    allocate(this%mss_dst_top_col      (begc:endc))              ; this%mss_dst_top_col      (:)   = spval
 
-    allocate(this%mss_cnc_bcphi_col    (begc:endc,-nlevsno+1:0)) ; this%mss_cnc_bcphi_col    (:,:) = nan
-    allocate(this%mss_cnc_bcpho_col    (begc:endc,-nlevsno+1:0)) ; this%mss_cnc_bcpho_col    (:,:) = nan
-    allocate(this%mss_cnc_ocphi_col    (begc:endc,-nlevsno+1:0)) ; this%mss_cnc_ocphi_col    (:,:) = nan
-    allocate(this%mss_cnc_ocpho_col    (begc:endc,-nlevsno+1:0)) ; this%mss_cnc_ocpho_col    (:,:) = nan
-    allocate(this%mss_cnc_dst1_col     (begc:endc,-nlevsno+1:0)) ; this%mss_cnc_dst1_col     (:,:) = nan
-    allocate(this%mss_cnc_dst2_col     (begc:endc,-nlevsno+1:0)) ; this%mss_cnc_dst2_col     (:,:) = nan
-    allocate(this%mss_cnc_dst3_col     (begc:endc,-nlevsno+1:0)) ; this%mss_cnc_dst3_col     (:,:) = nan
-    allocate(this%mss_cnc_dst4_col     (begc:endc,-nlevsno+1:0)) ; this%mss_cnc_dst4_col     (:,:) = nan
+    allocate(this%mss_cnc_bcphi_col    (begc:endc,-nlevsno+1:0)) ; this%mss_cnc_bcphi_col    (:,:) = spval
+    allocate(this%mss_cnc_bcpho_col    (begc:endc,-nlevsno+1:0)) ; this%mss_cnc_bcpho_col    (:,:) = spval
+    allocate(this%mss_cnc_ocphi_col    (begc:endc,-nlevsno+1:0)) ; this%mss_cnc_ocphi_col    (:,:) = spval
+    allocate(this%mss_cnc_ocpho_col    (begc:endc,-nlevsno+1:0)) ; this%mss_cnc_ocpho_col    (:,:) = spval
+    allocate(this%mss_cnc_dst1_col     (begc:endc,-nlevsno+1:0)) ; this%mss_cnc_dst1_col     (:,:) = spval
+    allocate(this%mss_cnc_dst2_col     (begc:endc,-nlevsno+1:0)) ; this%mss_cnc_dst2_col     (:,:) = spval
+    allocate(this%mss_cnc_dst3_col     (begc:endc,-nlevsno+1:0)) ; this%mss_cnc_dst3_col     (:,:) = spval
+    allocate(this%mss_cnc_dst4_col     (begc:endc,-nlevsno+1:0)) ; this%mss_cnc_dst4_col     (:,:) = spval
 
   end subroutine InitAllocate
 
@@ -410,6 +411,7 @@ contains
   !-----------------------------------------------------------------------
   subroutine Reset(this, column)
     !
+    !$acc routine seq
     ! !DESCRIPTION:
     ! Intitialize SNICAR variables for fresh snow column
     !

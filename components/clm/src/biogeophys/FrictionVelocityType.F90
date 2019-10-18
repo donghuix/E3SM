@@ -73,7 +73,6 @@ contains
     ! Initialize module data structure
     !
     ! !USES:
-    use shr_infnan_mod , only : nan => shr_infnan_nan, assignment(=)
     !
     ! !ARGUMENTS:
     class(frictionvel_type) :: this
@@ -87,23 +86,23 @@ contains
     begp = bounds%begp; endp= bounds%endp
     begc = bounds%begc; endc= bounds%endc
 
-    allocate(this%forc_hgt_u_patch (begp:endp)) ; this%forc_hgt_u_patch (:)   = nan
-    allocate(this%forc_hgt_t_patch (begp:endp)) ; this%forc_hgt_t_patch (:)   = nan
-    allocate(this%forc_hgt_q_patch (begp:endp)) ; this%forc_hgt_q_patch (:)   = nan
-    allocate(this%u10_patch        (begp:endp)) ; this%u10_patch        (:)   = nan
-    allocate(this%u10_clm_patch    (begp:endp)) ; this%u10_clm_patch    (:)   = nan
-    allocate(this%va_patch         (begp:endp)) ; this%va_patch         (:)   = nan
-    allocate(this%vds_patch        (begp:endp)) ; this%vds_patch        (:)   = nan
-    allocate(this%fv_patch         (begp:endp)) ; this%fv_patch         (:)   = nan
-    allocate(this%rb1_patch        (begp:endp)) ; this%rb1_patch        (:)   = nan
-    allocate(this%ram1_patch       (begp:endp)) ; this%ram1_patch       (:)   = nan
-    allocate(this%z0m_patch        (begp:endp)) ; this%z0m_patch        (:)   = nan
-    allocate(this%z0mv_patch       (begp:endp)) ; this%z0mv_patch       (:)   = nan
-    allocate(this%z0hv_patch       (begp:endp)) ; this%z0hv_patch       (:)   = nan
-    allocate(this%z0qv_patch       (begp:endp)) ; this%z0qv_patch       (:)   = nan
-    allocate(this%z0mg_col         (begc:endc)) ; this%z0mg_col         (:)   = nan
-    allocate(this%z0qg_col         (begc:endc)) ; this%z0qg_col         (:)   = nan
-    allocate(this%z0hg_col         (begc:endc)) ; this%z0hg_col         (:)   = nan
+    allocate(this%forc_hgt_u_patch (begp:endp)) ; this%forc_hgt_u_patch (:)   = spval
+    allocate(this%forc_hgt_t_patch (begp:endp)) ; this%forc_hgt_t_patch (:)   = spval
+    allocate(this%forc_hgt_q_patch (begp:endp)) ; this%forc_hgt_q_patch (:)   = spval
+    allocate(this%u10_patch        (begp:endp)) ; this%u10_patch        (:)   = spval
+    allocate(this%u10_clm_patch    (begp:endp)) ; this%u10_clm_patch    (:)   = spval
+    allocate(this%va_patch         (begp:endp)) ; this%va_patch         (:)   = spval
+    allocate(this%vds_patch        (begp:endp)) ; this%vds_patch        (:)   = spval
+    allocate(this%fv_patch         (begp:endp)) ; this%fv_patch         (:)   = spval
+    allocate(this%rb1_patch        (begp:endp)) ; this%rb1_patch        (:)   = spval
+    allocate(this%ram1_patch       (begp:endp)) ; this%ram1_patch       (:)   = spval
+    allocate(this%z0m_patch        (begp:endp)) ; this%z0m_patch        (:)   = spval
+    allocate(this%z0mv_patch       (begp:endp)) ; this%z0mv_patch       (:)   = spval
+    allocate(this%z0hv_patch       (begp:endp)) ; this%z0hv_patch       (:)   = spval
+    allocate(this%z0qv_patch       (begp:endp)) ; this%z0qv_patch       (:)   = spval
+    allocate(this%z0mg_col         (begc:endc)) ; this%z0mg_col         (:)   = spval
+    allocate(this%z0qg_col         (begc:endc)) ; this%z0qg_col         (:)   = spval
+    allocate(this%z0hg_col         (begc:endc)) ; this%z0hg_col         (:)   = spval
 
   end subroutine InitAllocate
 

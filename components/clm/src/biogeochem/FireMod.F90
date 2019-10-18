@@ -75,8 +75,12 @@ module FireMod
   ! !PRIVATE MEMBER DATA:
   real(r8), pointer     :: forc_lnfm(:)        ! Lightning frequency
   real(r8), pointer     :: forc_hdm(:)         ! Human population density
+  !!$acc declare create(forc_lnfm)
+  !!$acc declare create(forc_hdm )
   real(r8), parameter   :: secsphr = 3600._r8  ! Seconds in an hour
   real(r8), parameter   :: borealat = 40._r8   ! Latitude for boreal peat fires
+  !$acc declare copyin(secsphr )
+  !$acc declare copyin(borealat)
 
   type(shr_strdata_type) :: sdat_hdm    ! Human population density input data stream
   type(shr_strdata_type) :: sdat_lnfm   ! Lightning input data stream
@@ -120,14 +124,15 @@ contains
   subroutine FireArea (bounds, &
        num_soilc, filter_soilc, &
        num_soilp, filter_soilp, &
-       atm2lnd_vars, temperature_vars, energyflux_vars, soilhydrology_vars, waterstate_vars, &
-       cnstate_vars, carbonstate_vars)
+       atm2lnd_vars,  energyflux_vars, soilhydrology_vars, &
+       cnstate_vars, dt, dayspyr,kyr, kmo, kda, mcsec, nstep )
     !
     ! !DESCRIPTION:
     ! Computes column-level burned area 
     !
     ! !USES:
-    use clm_time_manager     , only: get_step_size, get_days_per_year, get_curr_date, get_nstep
+    !$acc routine seq
+    !#py use clm_time_manager     , only: get_step_size, get_days_per_year, get_curr_date, get_nstep
     use clm_varpar           , only: max_patch_per_col
     use clm_varcon           , only: secspday
     use clm_varctl           , only: use_nofire, spinup_state, spinup_mortality_factor
@@ -142,12 +147,12 @@ contains
     integer                  , intent(in)    :: num_soilp       ! number of soil patches in filter
     integer                  , intent(in)    :: filter_soilp(:) ! filter for soil patches
     type(atm2lnd_type)       , intent(in)    :: atm2lnd_vars
-    type(temperature_type)   , intent(in)    :: temperature_vars
     type(energyflux_type)    , intent(in)    :: energyflux_vars
     type(soilhydrology_type) , intent(in)    :: soilhydrology_vars
-    type(waterstate_type)    , intent(in)    :: waterstate_vars
     type(cnstate_type)       , intent(inout) :: cnstate_vars
-    type(carbonstate_type)   , intent(inout) :: carbonstate_vars
+    real(r8), intent(in) :: dt       ! time step variable (s)
+    real(r8), intent(in) :: dayspyr  ! days per year
+    integer,  intent(in) :: kyr, kmo, kda, mcsec, nstep
     !
     ! !LOCAL VARIABLES:
     real(r8), parameter  :: lfuel=75._r8    ! lower threshold of fuel mass (gC/m2) for ignition, Li et al.(2014)
@@ -165,10 +170,8 @@ contains
     ! non-boreal peat fires (was different in paper)
     real(r8), parameter :: non_boreal_peatfire_c = 0.001_r8
     !
-    integer  :: g,t,l,c,p,pi,j,fc,fp,kyr, kmo, kda, mcsec   ! index variables
-    real(r8) :: dt       ! time step variable (s)
+    integer  :: g,t,l,c,p,pi,j,fc,fp  ! index variables
     real(r8) :: m        ! top-layer soil moisture (proportion)
-    real(r8) :: dayspyr  ! days per year
     real(r8) :: cli      ! effect of climate on deforestation fires (0-1)
     real(r8), parameter ::cli_scale = 0.035_r8   !global constant for deforestation fires (/d)
     real(r8) :: cri      ! thresholds used for cli, (mm/d), see Eq.(7) in Li et al.(2013)
@@ -263,25 +266,25 @@ contains
 
       !pft to column average 
       call p2c(bounds, num_soilc, filter_soilc, &
-           totvegc(bounds%begp:bounds%endp), &
-           totvegc_col(bounds%begc:bounds%endc))
+           totvegc, &
+           totvegc_col)
 
       call p2c(bounds, num_soilc, filter_soilc, &
-           leafc(bounds%begp:bounds%endp), &
-           leafc_col(bounds%begc:bounds%endc))
-     
-      call p2c(bounds, num_soilc, filter_soilc, &
-           deadstemc(bounds%begp:bounds%endp), &
-           deadstemc_col(bounds%begc:bounds%endc))
+           leafc, &
+           leafc_col)
 
-     call get_curr_date (kyr, kmo, kda, mcsec)
-     dayspyr = get_days_per_year()
+      call p2c(bounds, num_soilc, filter_soilc, &
+           deadstemc, &
+           deadstemc_col)
+
+     !#py call get_curr_date (kyr, kmo, kda, mcsec)
+     !#py dayspyr = get_days_per_year()
      ! Get model step size
-     dt      = real( get_step_size(), r8 )
+     !#py  dt      = real( get_step_size(), r8 )
      !
      ! On first time-step, just set area burned to zero and exit
      !
-     if ( get_nstep() == 0 )then
+     if ( nstep == 0 )then
         do fc = 1,num_soilc
            c = filter_soilc(fc)
            farea_burned(c) = 0._r8
@@ -372,7 +375,7 @@ contains
 
               ! For non-crop -- natural vegetation and bare-soil
               if( veg_pp%itype(p)  <  nc3crop .and. cropf_col(c)  <  1.0_r8 )then
-                 if( .not. shr_infnan_isnan(btran2(p))) then
+                 if( .not. (btran2(p) .ne. btran2(p)))then !?shr_infnan_isnan(btran2(p))) then
                     if (btran2(p)  <=  1._r8 ) then
                        btran_col(c) = btran_col(c)+btran2(p)*veg_pp%wtcol(p)
                        wtlf(c)      = wtlf(c)+veg_pp%wtcol(p)
@@ -649,8 +652,7 @@ contains
 
  !-----------------------------------------------------------------------
  subroutine FireFluxes (num_soilc, filter_soilc, num_soilp, filter_soilp, &
-      cnstate_vars, carbonstate_vars, nitrogenstate_vars, &
-      carbonflux_vars,nitrogenflux_vars,phosphorusstate_vars,phosphorusflux_vars)
+      cnstate_vars,dt, dayspyr,kyr, kmo, kda, mcsec  )
    !
    ! !DESCRIPTION:
    ! Fire effects routine for coupled carbon-nitrogen code (CN).
@@ -663,9 +665,10 @@ contains
    ! seconds_per_year is the number of seconds in a year.
    !
    ! !USES:
+      !$acc routine seq
    use pftvarcon            , only: cc_leaf,cc_lstem,cc_dstem,cc_other,fm_leaf,fm_lstem,fm_other,fm_root,fm_lroot,fm_droot
    use pftvarcon            , only: nc3crop,lf_flab,lf_fcel,lf_flig,fr_flab,fr_fcel,fr_flig
-   use clm_time_manager     , only: get_step_size,get_days_per_year,get_curr_date
+   !#py use clm_time_manager     , only: get_step_size,get_days_per_year,get_curr_date
    use clm_varpar           , only: max_patch_per_col
    use clm_varctl           , only: spinup_state, spinup_mortality_factor
    use dynSubgridControlMod , only: get_flanduse_timeseries
@@ -678,22 +681,18 @@ contains
    integer                  , intent(in)    :: num_soilp       ! number of soil patches in filter
    integer                  , intent(in)    :: filter_soilp(:) ! filter for soil patches
    type(cnstate_type)       , intent(inout) :: cnstate_vars
-   type(carbonstate_type)   , intent(inout) :: carbonstate_vars
-   type(nitrogenstate_type) , intent(in)    :: nitrogenstate_vars
-   type(carbonflux_type)    , intent(inout) :: carbonflux_vars
-   type(nitrogenflux_type)  , intent(inout) :: nitrogenflux_vars
-  
+   real(r8), intent(in)  :: dt                   ! time step variable (s)
+   real(r8), intent(in)  :: dayspyr              ! days per year
+   integer,    intent(in) :: kyr, kmo, kda, mcsec
+
    ! ! adding phosphorus state and flux variables
-   type(phosphorusstate_type) , intent(in)    :: phosphorusstate_vars
-   type(phosphorusflux_type)  , intent(inout) :: phosphorusflux_vars
    !
    ! !LOCAL VARIABLES:
-   integer :: g,c,p,j,l,pi,kyr, kmo, kda, mcsec   ! indices
+   integer :: g,c,p,j,l,pi   ! indices
    real(r8):: m_veg                ! speedup factor for accelerated decomp
    integer :: fp,fc                ! filter indices
    real(r8):: f                    ! rate for fire effects (1/s)
-   real(r8):: dt                   ! time step variable (s)
-   real(r8):: dayspyr              ! days per year
+
 
    real(r8), pointer :: m_leafn_to_litter_fire                  (:)
    real(r8), pointer :: m_leafn_storage_to_litter_fire          (:)
@@ -1017,9 +1016,9 @@ contains
 
      ! Get model step size
      ! calculate burned area fraction per sec
-     dt = real( get_step_size(), r8 )
+     !#py dt = real( get_step_size(), r8 )
 
-     dayspyr = get_days_per_year()
+     !#py dayspyr = get_days_per_year()
      !
      ! patch loop
      !
@@ -1432,8 +1431,8 @@ contains
               if ( is_cwd(l) ) then
                  m_decomp_cpools_to_fire_vr(c,j,l) = decomp_cpools_vr(c,j,l) * &
                       (f-baf_crop(c)) * 0.25_r8
-                 call get_curr_date(kyr, kmo, kda, mcsec)
-                 if (spinup_state == 1) then 
+                 !#py call get_curr_date(kyr, kmo, kda, mcsec)
+                 if (spinup_state == 1) then
                    m_decomp_cpools_to_fire_vr(c,j,l) = m_decomp_cpools_to_fire_vr(c,j,l) * &
                      decomp_cascade_con%spinup_factor(l) 
                    if (kyr >= 40) m_decomp_cpools_to_fire_vr(c,j,l) = &
@@ -1476,7 +1475,7 @@ contains
      ! carbon loss due to deforestation fires
 
      if (transient_landcover) then    !true when landuse data is used
-        call get_curr_date (kyr, kmo, kda, mcsec)
+        !#py call get_curr_date (kyr, kmo, kda, mcsec)
         do fc = 1,num_soilc
            c = filter_soilc(fc)
            lfc2(c)=0._r8

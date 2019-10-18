@@ -664,7 +664,7 @@ contains
   end subroutine WaterBudget_Restart_Read
 
    !-----------------------------------------------------------------------
-  subroutine WaterBudget_SetBeginningMonthlyStates(bounds, waterstate_vars)
+  subroutine WaterBudget_SetBeginningMonthlyStates(bounds )
     !
     ! !DESCRIPTION:
     ! Set grid-level water states at the beginning of a month
@@ -679,7 +679,7 @@ contains
     !
     ! !ARGUMENTS:
     type(bounds_type)         , intent(in)    :: bounds
-    type(waterstate_type)     , intent(inout) :: waterstate_vars
+    integer :: nstep
     !
     ! !LOCAL VARIABLES:
     integer :: year_prev, month_prev, day_prev, sec_prev
@@ -692,27 +692,28 @@ contains
          tws_month_beg_grc =>    grc_ws%tws_month_beg   & ! Output: [real(r8) (:)   ]  grid-level water mass at the begining of a month
          )
 
+      nstep = get_nstep()
       ! Get current and previous dates to determine if a new month started
       call get_prev_date(year_curr, month_curr, day_curr, sec_curr);
       call get_prev_date(year_prev, month_prev, day_prev, sec_prev)
 
       ! If at the beginning of a simulation, save grid-level TWS based on
       ! 'begwb' from the current time step
-      if ( day_curr == 1 .and. sec_curr == 0 .and. get_nstep() <= 1 ) then
+      if ( day_curr == 1 .and. sec_curr == 0 .and. nstep <= 1 ) then
          call c2g( bounds, &
               begwb(bounds%begc:bounds%endc), &
               tws_month_beg_grc(bounds%begg:bounds%endg), &
-              c2l_scale_type= 'urbanf', l2g_scale_type='unity' )
+              c2l_scale_type= 1, l2g_scale_type=0 )
       endif
 
       ! If multiple steps into a simulation and the last time step was the
       ! end of a month, save grid-level TWS based on 'endwb' from the last
       ! time step
-      if (get_nstep() > 1 .and. day_prev == 1 .and. sec_prev == 0) then
+      if (nstep > 1 .and. day_prev == 1 .and. sec_prev == 0) then
          call c2g( bounds, &
               endwb(bounds%begc:bounds%endc), &
               tws_month_beg_grc(bounds%begg:bounds%endg), &
-              c2l_scale_type= 'urbanf', l2g_scale_type='unity' )
+              c2l_scale_type= 1, l2g_scale_type=0 )
       endif
 
     end associate
@@ -720,22 +721,22 @@ contains
   end subroutine WaterBudget_SetBeginningMonthlyStates
 
    !-----------------------------------------------------------------------
-  subroutine WaterBudget_SetEndingMonthlyStates(bounds, waterstate_vars)
+  subroutine WaterBudget_SetEndingMonthlyStates(bounds, nstep, year, mon, day, sec)
     !
     ! !DESCRIPTION:
     ! Set grid-level water states at the end of a month
     !
     ! !USES:
+      !$acc routine seq
     use subgridAveMod    , only : c2g
     use clm_varcon       , only : spval
-    use clm_time_manager , only : get_curr_date, get_nstep
+    !#py use clm_time_manager , only : get_curr_date, get_nstep
     !
     ! !ARGUMENTS:
     type(bounds_type)         , intent(in)    :: bounds
-    type(waterstate_type)     , intent(inout) :: waterstate_vars
+    integer, intent(in)  :: nstep, year, mon, day, sec
     !
     ! !LOCAL VARIABLES:
-    integer  :: year, mon, day, sec
     !-----------------------------------------------------------------------
 
     associate(                                                       & 
@@ -744,13 +745,13 @@ contains
          )
 
       ! If this is the end of a month, save grid-level total water storage
-      call get_curr_date(year, mon, day, sec);
+      !#py call get_curr_date(year, mon, day, sec);
 
-      if (get_nstep() >= 1 .and. (day == 1 .and. sec == 0)) then
+      if (nstep >= 1 .and. (day == 1 .and. sec == 0)) then
          call c2g( bounds, &
-              endwb(bounds%begc:bounds%endc), &
-              tws_month_end_grc(bounds%begg:bounds%endg), &
-              c2l_scale_type= 'urbanf', l2g_scale_type='unity' )
+              endwb, &
+              tws_month_end_grc, &
+              c2l_scale_type= 1, l2g_scale_type=0 )
       else
          tws_month_end_grc(bounds%begg:bounds%endg) = spval
       end if

@@ -5,9 +5,9 @@ module VerticalProfileMod
   !
   ! !USES:
   use shr_kind_mod    , only: r8 => shr_kind_r8
-  use shr_log_mod     , only : errMsg => shr_log_errMsg
+  !#py !#py use shr_log_mod     , only : errMsg => shr_log_errMsg
   use decompMod       , only : bounds_type
-  use abortutils      , only : endrun
+  !#py use abortutils      , only : endrun
   use subgridAveMod   , only : p2c
   use SoilStateType   , only : soilstate_type
   use CanopyStateType , only : canopystate_type
@@ -28,6 +28,11 @@ module VerticalProfileMod
   real(r8), public :: rootprof_exp  = 3.       
   ! how steep profile is for surface components (1/ e_folding depth) (1/m)
   real(r8), public :: surfprof_exp  = 10.      
+  !$acc declare copyin(exponential_rooting_profile)
+  !$acc declare copyin(pftspecific_rootingprofile )
+  !$acc declare copyin(rootprof_exp)
+  !$acc declare copyin(surfprof_exp)
+
   !-----------------------------------------------------------------------
 
 contains
@@ -51,6 +56,7 @@ contains
     !  SoilLittDecompMod uses the standard filters that just apply over active points
     ! 
     ! !USES:
+      !$acc routine seq
     use clm_varcon  , only : zsoi, dzsoi, zisoi, dzsoi_decomp
     use clm_varpar  , only : nlevdecomp, nlevgrnd, nlevdecomp_full, maxpatch_pft
     use clm_varctl  , only : use_vertsoilc, iulog, use_dynroot
@@ -257,21 +263,21 @@ contains
          end do
          if ( ( abs(ndep_prof_sum - 1._r8) > delta ) .or.  ( abs(nfixation_prof_sum - 1._r8) > delta ) .or. &
               ( abs(pdep_prof_sum - 1._r8) > delta )  ) then
-            write(iulog, *) 'profile sums: ', ndep_prof_sum, nfixation_prof_sum, pdep_prof_sum
-            write(iulog, *) 'c: ', c
-            write(iulog, *) 'altmax_lastyear_indx: ', altmax_lastyear_indx(c)
-            write(iulog, *) 'nfixation_prof: ', nfixation_prof(c,:)
-            write(iulog, *) 'ndep_prof: ', ndep_prof(c,:)
-            write(iulog, *) 'pdep_prof: ', pdep_prof(c,:)
-            write(iulog, *) 'cinput_rootfr: ', cinput_rootfr(c,:)
-            write(iulog, *) 'dzsoi_decomp: ', dzsoi_decomp(:)
-            write(iulog, *) 'surface_prof: ', surface_prof(:)
-            write(iulog, *) 'npfts(c): ', col_pp%npfts(c)
+            !#py write(iulog, *) 'profile sums: ', ndep_prof_sum, nfixation_prof_sum, pdep_prof_sum
+            !#py write(iulog, *) 'c: ', c
+            !#py write(iulog, *) 'altmax_lastyear_indx: ', altmax_lastyear_indx(c)
+            !#py write(iulog, *) 'nfixation_prof: ', nfixation_prof(c,:)
+            !#py write(iulog, *) 'ndep_prof: ', ndep_prof(c,:)
+            !#py write(iulog, *) 'pdep_prof: ', pdep_prof(c,:)
+            !#py write(iulog, *) 'cinput_rootfr: ', cinput_rootfr(c,:)
+            !#py write(iulog, *) 'dzsoi_decomp: ', dzsoi_decomp(:)
+            !#py write(iulog, *) 'surface_prof: ', surface_prof(:)
+            !#py write(iulog, *) 'npfts(c): ', col_pp%npfts(c)
             do p = col_pp%pfti(c), col_pp%pfti(c) + col_pp%npfts(c) -1
-               write(iulog, *) 'p, itype(p), wtcol(p): ', p, veg_pp%itype(p), veg_pp%wtcol(p)
-               write(iulog, *) 'cinput_rootfr(p,:): ', cinput_rootfr(p,:)
+               !#py write(iulog, *) 'p, itype(p), wtcol(p): ', p, veg_pp%itype(p), veg_pp%wtcol(p)
+               !#py write(iulog, *) 'cinput_rootfr(p,:): ', cinput_rootfr(p,:)
             end do
-            call endrun(msg=" ERROR: _prof_sum-1>delta"//errMsg(__FILE__, __LINE__))
+            !#py !#py call endrun(msg=" ERROR: _prof_sum-1>delta"//errMsg(__FILE__, __LINE__))
          endif
       end do
 
@@ -289,8 +295,8 @@ contains
          end do
          if ( ( abs(froot_prof_sum - 1._r8) > delta ) .or.  ( abs(croot_prof_sum - 1._r8) > delta ) .or. &
               ( abs(stem_prof_sum - 1._r8) > delta ) .or.  ( abs(leaf_prof_sum - 1._r8) > delta ) ) then
-            write(iulog, *) 'profile sums: ', froot_prof_sum, croot_prof_sum, leaf_prof_sum, stem_prof_sum
-            call endrun(msg=' ERROR: sum-1 > delta'//errMsg(__FILE__, __LINE__))
+            !#py write(iulog, *) 'profile sums: ', froot_prof_sum, croot_prof_sum, leaf_prof_sum, stem_prof_sum
+            !#py !#py call endrun(msg=' ERROR: sum-1 > delta'//errMsg(__FILE__, __LINE__))
          endif
       end do
 

@@ -1,6 +1,6 @@
 module CanopyFluxesMod
 
-#include "shr_assert.h"
+!#py #include "shr_assert.h"
 
   !------------------------------------------------------------------------------
   ! !DESCRIPTION:
@@ -9,10 +9,10 @@ module CanopyFluxesMod
   ! fluxes for the new ground temperature.
   !
   ! !USES:
-  use shr_sys_mod           , only : shr_sys_flush
+  !#py use shr_sys_mod           , only : shr_sys_flush
   use shr_kind_mod          , only : r8 => shr_kind_r8
-  use shr_log_mod           , only : errMsg => shr_log_errMsg
-  use abortutils            , only : endrun
+  !#py !#py use shr_log_mod           , only : errMsg => shr_log_errMsg
+  !#py use abortutils            , only : endrun
   use clm_varctl            , only : iulog, use_cn, use_lch4, use_c13, use_c14, use_fates
   use clm_varctl            , only : use_hydrstress
   use clm_varpar            , only : nlevgrnd, nlevsno
@@ -22,7 +22,6 @@ module CanopyFluxesMod
   use PhotosynthesisMod     , only : Photosynthesis, PhotosynthesisTotal, Fractionation, PhotoSynthesisHydraulicStress
   use SoilMoistStressMod    , only : calc_effective_soilporosity, calc_volumetric_h2oliq
   use SoilMoistStressMod    , only : calc_root_moist_stress, set_perchroot_opt
-  use SimpleMathMod         , only : array_div_vector
   use SurfaceResistanceMod  , only : do_soilevap_beta
   use VegetationPropertiesType        , only : veg_vp
   use atm2lndType           , only : atm2lnd_type
@@ -40,9 +39,9 @@ module CanopyFluxesMod
   use PhotosynthesisType    , only : photosyns_type
   use PhosphorusStateType   , only : phosphorusstate_type
   use CNNitrogenStateType   , only : nitrogenstate_type
-  use CLMFatesInterfaceMod  , only : hlm_fates_interface_type
-  use GridcellType          , only : grc_pp 
-  use TopounitDataType      , only : top_as, top_af  
+  !#py use CLMFatesInterfaceMod  , only : hlm_fates_interface_type
+  use GridcellType          , only : grc_pp
+  use TopounitDataType      , only : top_as, top_af
   use ColumnType            , only : col_pp
   use ColumnDataType        , only : col_es, col_ef, col_ws               
   use VegetationType        , only : veg_pp                
@@ -54,15 +53,19 @@ module CanopyFluxesMod
   !
   ! !PUBLIC MEMBER FUNCTIONS:
   public :: CanopyFluxes
-  !
+
+  !renamed perchroot so as not to confuse with private data variable in
+  !SoilMoistStressMod
   ! !PUBLIC DATA MEMBERS:
   ! true => btran is based only on unfrozen soil levels
-  logical,  public :: perchroot     = .false.  
+  logical,  public :: perchroot_canopyflux     = .false.
 
-  ! true  => btran is based on active layer (defined over two years); 
+  ! true  => btran is based on active layer (defined over two years);
   ! false => btran is based on currently unfrozen levels
-  logical,  public :: perchroot_alt = .false.  
+  logical,  public :: perchroot_alt_canopyflux = .false.
   !------------------------------------------------------------------------------
+  !$acc declare create(perchroot_canopyflux    )
+  !$acc declare create(perchroot_alt_canopyflux)
 
 contains
 
@@ -70,10 +73,9 @@ contains
   subroutine CanopyFluxes(bounds,  num_nolakeurbanp, filter_nolakeurbanp, &
        atm2lnd_vars, canopystate_vars, cnstate_vars, energyflux_vars, &
        frictionvel_vars, soilstate_vars, solarabs_vars, surfalb_vars, &
-       temperature_vars, waterflux_vars, waterstate_vars, ch4_vars, photosyns_vars, &
-       soil_water_retention_curve, nitrogenstate_vars, phosphorusstate_vars, &
-       alm_fates) 
-    !
+       ch4_vars, photosyns_vars, &
+       dtime, yr, mon, day, time)
+       !#fates_py alm_fates)    !
     ! !DESCRIPTION:
     ! 1. Calculates the leaf temperature:
     ! 2. Calculates the leaf fluxes, transpiration, photosynthesis and
@@ -102,19 +104,21 @@ contains
     !     less than 0.1 W/m2; or the iterative steps over 40.
     !
     ! !USES:
+      !$acc routine seq
     use shr_const_mod      , only : SHR_CONST_TKFRZ, SHR_CONST_RGAS
-    use clm_time_manager   , only : get_step_size, get_prev_date, get_nstep
+    !#py use clm_time_manager   , only : get_step_size, get_prev_date, get_nstep
     use clm_varcon         , only : sb, cpair, hvap, vkc, grav, denice
     use clm_varcon         , only : denh2o, tfrz, csoilc, tlsai_crit, alpha_aero
     use clm_varcon         , only : isecspday, degpsec
     use pftvarcon          , only : irrigated
     use clm_varcon         , only : c14ratio
-    use perf_mod           , only : t_startf, t_stopf
+    !#py use perf_mod           , only : t_startf, t_stopf
     use domainMod          , only : ldomain
     use QSatMod            , only : QSat
     use FrictionVelocityMod, only : FrictionVelocity, MoninObukIni
-    use SoilWaterRetentionCurveMod, only : soil_water_retention_curve_type
+    !use SoilWaterRetentionCurveMod, only : soil_water_retention_curve_type
     use SurfaceResistanceMod, only : getlblcef
+    use PhotosynthesisType, only : photosyns_vars_TimeStepInit
     !
     ! !ARGUMENTS:
     type(bounds_type)         , intent(in)    :: bounds 
@@ -128,15 +132,11 @@ contains
     type(solarabs_type)       , intent(in)    :: solarabs_vars
     type(surfalb_type)        , intent(in)    :: surfalb_vars
     type(soilstate_type)      , intent(inout) :: soilstate_vars
-    type(temperature_type)    , intent(inout) :: temperature_vars
-    type(waterstate_type)     , intent(inout) :: waterstate_vars
-    type(waterflux_type)      , intent(inout) :: waterflux_vars
-    type(ch4_type)            , intent(inout) :: ch4_vars
-    type(photosyns_type)      , intent(inout) :: photosyns_vars
-    class(soil_water_retention_curve_type), intent(in) :: soil_water_retention_curve
-    type(nitrogenstate_type)  , intent(inout) :: nitrogenstate_vars
-    type(phosphorusstate_type), intent(inout) :: phosphorusstate_vars
-    type(hlm_fates_interface_type) , intent(inout) :: alm_fates
+    !#py type(hlm_fates_interface_type) , intent(inout) :: alm_fates
+    real(r8), intent(in) :: dtime
+    integer, intent(in) :: yr, mon, day, time
+
+    
     !
     ! !LOCAL VARIABLES:
     real(r8), pointer   :: bsun(:)          ! sunlit canopy transpiration wetness factor (0 to 1)
@@ -176,7 +176,6 @@ contains
     !added by K.Sakaguchi for stability formulation
     real(r8), parameter :: ria  = 0.5_r8             ! free parameter for stable formulation (currently = 0.5, "gamma" in Sakaguchi&Zeng,2008)
 
-    real(r8) :: dtime                                ! land model time step (sec)
     real(r8) :: zldis(bounds%begp:bounds%endp)       ! reference height "minus" zero displacement height [m]
     real(r8) :: zeta                                 ! dimensionless height used in Monin-Obukhov theory
     real(r8) :: wc                                   ! convective velocity [m/s]
@@ -301,10 +300,10 @@ contains
     real(r8) :: delq_snow
     real(r8) :: delq_soil
     real(r8) :: delq_h2osfc
-    integer  :: yr                                       ! year at start of time step
-    integer  :: mon                                      ! month at start of time step
-    integer  :: day                                      ! day at start of time step
-    integer  :: time                                     ! time at start of time step (seconds after 0Z)
+    !# integer  :: yr                                       ! year at start of time step
+    !# integer  :: mon                                      ! month at start of time step
+    !# integer  :: day                                      ! day at start of time step
+    !# integer  :: time                                     ! time at start of time step (seconds after 0Z)
     integer  :: local_time                               ! local time at start of time step (seconds after solar midnight)
     integer  :: seconds_since_irrig_start_time
     integer  :: irrig_nsteps_per_day                     ! number of time steps per day in which we irrigate
@@ -451,9 +450,8 @@ contains
       end if
       ! Determine step size
 
-      dtime = get_step_size()
+      !#py dtime = get_step_size()
       irrig_nsteps_per_day = ((irrig_length + (dtime - 1))/dtime)  ! round up
-
       ! First - set the following values over points where frac vegetation covered by snow is zero
       ! (e.g. btran, t_veg, rootr, rresis)
 
@@ -479,8 +477,8 @@ contains
       ! Time step initialization of photosynthesis variables
       ! -----------------------------------------------------------------
 
-      call photosyns_vars%TimeStepInit(bounds)
-
+      !call photosyns_vars%TimeStepInit(bounds)
+      call photosyns_vars_TimeStepInit(photosyns_vars,bounds)
 
       ! -----------------------------------------------------------------
       ! Filter patches where frac_veg_nosno IS NON-ZERO
@@ -497,7 +495,7 @@ contains
 
 
       if (use_fates) then
-         call alm_fates%prep_canopyfluxes( bounds )
+         !#py call alm_fates%prep_canopyfluxes( bounds )
       end if
 
 
@@ -537,29 +535,27 @@ contains
       call calc_effective_soilporosity(bounds,                          &
            ubj = nlevgrnd,                                              &
            numf = fn,                                                   &
-           filter = filterc_tmp(1:fn),                                  &
-           watsat = watsat(bounds%begc:bounds%endc, 1:nlevgrnd),        &
-           h2osoi_ice = h2osoi_ice(bounds%begc:bounds%endc,1:nlevgrnd), &
+           filter = filterc_tmp,                                  &
+           watsat = watsat,        &
+           h2osoi_ice = h2osoi_ice, &
            denice = denice,                                             &
-           eff_por=eff_porosity(bounds%begc:bounds%endc, 1:nlevgrnd) )
-      
+           eff_por=eff_porosity )
+
       !compute volumetric liquid water content
       jtop(bounds%begc:bounds%endc) = 1
-      
       call calc_volumetric_h2oliq(bounds,                                    &
-           jtop = jtop(bounds%begc:bounds%endc),                             &
+           jtop = jtop,                             &
            lbj = 1,                                                          &
            ubj = nlevgrnd,                                                   &
            numf = fn,                                                        &
-           filter = filterc_tmp(1:fn),                                       &
-           eff_porosity = eff_porosity(bounds%begc:bounds%endc, 1:nlevgrnd), &
-           h2osoi_liq = h2osoi_liq(bounds%begc:bounds%endc, 1:nlevgrnd),     &
+           filter = filterc_tmp,                                       &
+           eff_porosity = eff_porosity, &
+           h2osoi_liq = h2osoi_liq,     &
            denh2o = denh2o,                                                  &
-           vol_liq = h2osoi_liqvol(bounds%begc:bounds%endc, 1:nlevgrnd) )
-      
+           vol_liq = h2osoi_liqvol )
+
       !set up perchroot options
-      call set_perchroot_opt(perchroot, perchroot_alt)
-   
+      call set_perchroot_opt(perchroot_canopyflux, perchroot_alt_canopyflux)
       ! --------------------------------------------------------------------------
       ! if this is a FATES simulation
       ! ask fates to calculate btran functions and distribution of uptake
@@ -571,11 +567,11 @@ contains
       ! wetness factor btran and the root weighting factors for FATES.  These
       ! values require knowledge of the belowground root structure.
       ! --------------------------------------------------------------------------
-      
+
       if(use_fates)then
-         call alm_fates%wrap_btran(bounds, fn, filterc_tmp(1:fn), soilstate_vars, waterstate_vars, &
-               temperature_vars, energyflux_vars, soil_water_retention_curve)
-         
+         !#fates_py call alm_fates%wrap_btran(bounds, fn, filterc_tmp(1:fn), soilstate_vars, waterstate_vars, &
+               !#fates_py temperature_vars, energyflux_vars, soil_water_retention_curve)
+
       else
          !calculate root moisture stress
          call calc_root_moist_stress(bounds,     &
@@ -584,13 +580,10 @@ contains
               filterp = filterp,                 &
               canopystate_vars=canopystate_vars, &
               energyflux_vars=energyflux_vars,   &
-              soilstate_vars=soilstate_vars,     &
-              temperature_vars=temperature_vars, &
-              waterstate_vars=waterstate_vars,   &
-              soil_water_retention_curve=soil_water_retention_curve)
-         
-      end if !use_fates
+              soilstate_vars=soilstate_vars      &
+              )
 
+      end if !use_fates
       ! Determine if irrigation is needed (over irrigated soil columns)
 
       ! First, determine in what grid cells we need to bother 'measuring' soil water, to see if we need irrigation
@@ -598,7 +591,7 @@ contains
       ! n_irrig_steps_left(p) > 0 is ok even if irrig_rate(p) ends up = 0
       ! in this case, we'll irrigate by 0 for the given number of time steps
 
-      call get_prev_date(yr, mon, day, time)  ! get time as of beginning of time step
+      !#py call get_prev_date(yr, mon, day, time)  ! get time as of beginning of time step
 
       do f = 1, fn
          p = filterp(f)
@@ -729,8 +722,8 @@ contains
 
       if (found) then
          if ( .not. use_fates ) then
-            write(iulog,*)'Error: Forcing height is below canopy height for pft index '
-            call endrun(decomp_index=index, clmlevel=namep, msg=errmsg(__FILE__, __LINE__))
+            !#py write(iulog,*)'Error: Forcing height is below canopy height for pft index '
+            !#py !#py call endrun(decomp_index=index, clmlevel=namep, msg=errmsg(__FILE__, __LINE__))
          end if
       end if
 
@@ -752,16 +745,16 @@ contains
 
       ! Begin stability iteration
 
-      call t_startf('can_iter')
+      !#py call t_startf('can_iter')
       ITERATION : do while (itlef <= itmax .and. fn > 0)
 
          ! Determine friction velocity, and potential temperature and humidity
          ! profiles of the surface boundary layer
 
          call FrictionVelocity (begp, endp, fn, filterp, &
-              displa(begp:endp), z0mv(begp:endp), z0hv(begp:endp), z0qv(begp:endp), &
-              obu(begp:endp), itlef+1, ur(begp:endp), um(begp:endp), ustar(begp:endp), &
-              temp1(begp:endp), temp2(begp:endp), temp12m(begp:endp), temp22m(begp:endp), fm(begp:endp), &
+              displa, z0mv, z0hv, z0qv, &
+              obu, itlef+1, ur, um, ustar, &
+              temp1, temp2, temp12m, temp22m, fm, &
               frictionvel_vars)
 
          do f = 1, fn
@@ -858,10 +851,10 @@ contains
 
          if ( use_fates ) then      
 
-            call alm_fates%wrap_photosynthesis(bounds, fn, filterp(1:fn), &
-                  svpts(begp:endp), eah(begp:endp), o2(begp:endp), &
-                  co2(begp:endp), rb(begp:endp), dayl_factor(begp:endp), &
-                  atm2lnd_vars, temperature_vars, canopystate_vars, photosyns_vars)
+            !#fates_py call alm_fates%wrap_photosynthesis(bounds, fn, filterp(1:fn), &
+                  !#fates_py svpts(begp:endp), eah(begp:endp), o2(begp:endp), &
+                  !#fates_py co2(begp:endp), rb(begp:endp), dayl_factor(begp:endp), &
+                  !#fates_py atm2lnd_vars, temperature_vars, canopystate_vars, photosyns_vars)
 
          else ! not use_fates
 
@@ -870,20 +863,19 @@ contains
                     svpts(begp:endp), eah(begp:endp), o2(begp:endp), co2(begp:endp), rb(begp:endp), bsun(begp:endp), &
                     bsha(begp:endp), btran(begp:endp), dayl_factor(begp:endp), &
                     qsatl(begp:endp), qaf(begp:endp),     &
-                    atm2lnd_vars, temperature_vars, soilstate_vars, waterstate_vars, surfalb_vars, solarabs_vars,    &
-                    canopystate_vars, photosyns_vars, waterflux_vars, &
-                    nitrogenstate_vars, phosphorusstate_vars)
+                    atm2lnd_vars, soilstate_vars, surfalb_vars, solarabs_vars,    &
+                    canopystate_vars)
             else
                call Photosynthesis (bounds, fn, filterp, &
-                 svpts(begp:endp), eah(begp:endp), o2(begp:endp), co2(begp:endp), rb(begp:endp), btran(begp:endp), &
-                 dayl_factor(begp:endp), atm2lnd_vars, temperature_vars, surfalb_vars, solarabs_vars, &
-                 canopystate_vars, photosyns_vars, nitrogenstate_vars, phosphorusstate_vars, phase='sun')
-            end if
+                    svpts, eah, o2, co2, rb, btran, &
+                    dayl_factor, atm2lnd_vars, surfalb_vars, solarabs_vars, &
+                    canopystate_vars, photosyns_vars, 1)
+            endif
 
             if ( use_c13 ) then
                call Fractionation (bounds, fn, filterp, &
-                    atm2lnd_vars, canopystate_vars, cnstate_vars, solarabs_vars, surfalb_vars, photosyns_vars, &
-                    phase='sun')
+                     cnstate_vars, solarabs_vars, surfalb_vars, photosyns_vars, &
+                    1)
             endif
 
             do f = 1, fn
@@ -893,17 +885,18 @@ contains
                   btran(p) = min(1._r8, btran(p) * 1.25_r8)
                end if
             end do
+
             if ( .not. use_hydrstress ) then
-              call Photosynthesis (bounds, fn, filterp, &
-                 svpts(begp:endp), eah(begp:endp), o2(begp:endp), co2(begp:endp), rb(begp:endp), btran(begp:endp), &
-                 dayl_factor(begp:endp), atm2lnd_vars, temperature_vars, surfalb_vars, solarabs_vars, &
-                 canopystate_vars, photosyns_vars, nitrogenstate_vars, phosphorusstate_vars, phase='sha')
+               call Photosynthesis (bounds, fn, filterp, &
+                  svpts, eah, o2, co2, rb, btran, &
+                  dayl_factor, atm2lnd_vars,surfalb_vars, solarabs_vars, &
+                  canopystate_vars, photosyns_vars, 0)
             end if
 
             if ( use_c13 ) then
                call Fractionation (bounds, fn, filterp,  &
-                    atm2lnd_vars, canopystate_vars, cnstate_vars, solarabs_vars, surfalb_vars, photosyns_vars, &
-                    phase='sha')
+                     cnstate_vars, solarabs_vars, surfalb_vars, photosyns_vars, &
+                    0)
             end if
 
          end if ! end of if use_fates
@@ -1147,7 +1140,7 @@ contains
          end if
 
       end do ITERATION     ! End stability iteration
-      call t_stopf('can_iter')
+      !#py call t_stopf('can_iter')
 
       fn = fnorig
       filterp(1:fn) = fporig(1:fn)
@@ -1235,9 +1228,9 @@ contains
       end do
 
       if ( use_fates ) then
-         call alm_fates%wrap_accumulatefluxes(bounds,fn,filterp(1:fn))
-         call alm_fates%wrap_hydraulics_drive(bounds,fn,filterp(1:fn),soilstate_vars, &
-               waterstate_vars,waterflux_vars,solarabs_vars,energyflux_vars)
+         !#py call alm_fates%wrap_accumulatefluxes(bounds,fn,filterp(1:fn))
+         !#py call alm_fates%wrap_hydraulics_drive(bounds,soilstate_vars, &
+               !#fates_py waterstate_vars,waterflux_vars,solarabs_vars,energyflux_vars)
 
       else
 
@@ -1260,7 +1253,7 @@ contains
          
          do f = 1, fn
             p = filterp(f)
-            write(iulog,*) 'energy balance in canopy ',p,', err=',err(p)
+            !#py write(iulog,*) 'energy balance in canopy ',p,', err=',err(p)
          end do
          
       end if

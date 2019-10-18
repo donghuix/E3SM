@@ -11,6 +11,7 @@ module soilorder_varcon
   use abortutils  , only : endrun
   use clm_varpar  , only : nsoilorder
   use clm_varctl  , only : iulog, use_vertsoilc
+  use clm_varcon  , only : spval
   !
   ! !PUBLIC TYPES:
   implicit none
@@ -37,21 +38,29 @@ module soilorder_varcon
   integer :: rock_land
   integer :: Ice_Glacier
 
-  real(r8), pointer :: smax(:)
-  real(r8), pointer :: ks_sorption(:)
-  real(r8), pointer :: r_weather(:)
-  real(r8), pointer :: r_adsorp(:)
-  real(r8), pointer :: r_desorp(:)
-  real(r8), pointer :: r_occlude(:)
-  real(r8), pointer :: k_s1_biochem(:)
-  real(r8), pointer :: k_s2_biochem(:)
-  real(r8), pointer :: k_s3_biochem(:)
-  real(r8), pointer :: k_s4_biochem(:)
+  real(r8), pointer :: smax(:)        => null()
+  real(r8), pointer :: ks_sorption(:) => null()
+  real(r8), pointer :: r_weather(:)   => null()
+  real(r8), pointer :: r_adsorp(:)    => null()
+  real(r8), pointer :: r_desorp(:)    => null()
+  real(r8), pointer :: r_occlude(:)   => null()
+  real(r8), pointer :: k_s1_biochem(:) => null()
+  real(r8), pointer :: k_s2_biochem(:)=> null()
+  real(r8), pointer :: k_s3_biochem(:)=> null()
+  real(r8), pointer :: k_s4_biochem(:)=> null()
+  !$acc declare create(smax(:)       )
+  !$acc declare create(ks_sorption(:))
+  !$acc declare create(r_weather(:)  )
+  !$acc declare create(r_adsorp(:)   )
+  !$acc declare create(r_desorp(:)   )
+  !$acc declare create(r_occlude(:)  )
+  !$acc declare create(k_s1_biochem(:))
+  !$acc declare create(k_s2_biochem(:))
+  !$acc declare create(k_s3_biochem(:))
+  !$acc declare create(k_s4_biochem(:))
 
-  !+
-  real(r8), pointer :: r_mort_soilorder(:)
-
-
+  real(r8), pointer :: r_mort_soilorder(:) => null()
+  !$acc declare create(r_mort_soilorder)
 
   ! !PUBLIC MEMBER FUNCTIONS:
   public :: soilorder_conrd ! Read and initialize soil order dependent  constants
@@ -116,17 +125,17 @@ contains
     /)
 !-----------------------------------------------------------------------
 
-    allocate( smax        (0:nsoilorder) ); smax         (:) = nan
-    allocate( ks_sorption (0:nsoilorder) ); ks_sorption  (:) = nan
-    allocate( r_weather   (0:nsoilorder) ); r_weather    (:) = nan
-    allocate( r_adsorp    (0:nsoilorder) ); r_adsorp     (:) = nan
-    allocate( r_desorp    (0:nsoilorder) ); r_desorp     (:) = nan
-    allocate( r_occlude   (0:nsoilorder) ); r_occlude    (:) = nan
-    allocate(k_s1_biochem (0:nsoilorder) ); k_s1_biochem (:) = nan
-    allocate(k_s2_biochem (0:nsoilorder) ); k_s2_biochem (:) = nan
-    allocate(k_s3_biochem (0:nsoilorder) ); k_s3_biochem (:) = nan
-    allocate(k_s4_biochem (0:nsoilorder) ); k_s4_biochem (:) = nan
-    allocate(r_mort_soilorder (0:nsoilorder) ); r_mort_soilorder (:) = nan
+    allocate( smax        (0:nsoilorder) ); smax         (:) = spval
+    allocate( ks_sorption (0:nsoilorder) ); ks_sorption  (:) = spval
+    allocate( r_weather   (0:nsoilorder) ); r_weather    (:) = spval
+    allocate( r_adsorp    (0:nsoilorder) ); r_adsorp     (:) = spval
+    allocate( r_desorp    (0:nsoilorder) ); r_desorp     (:) = spval
+    allocate( r_occlude   (0:nsoilorder) ); r_occlude    (:) = spval
+    allocate(k_s1_biochem (0:nsoilorder) ); k_s1_biochem (:) = spval
+    allocate(k_s2_biochem (0:nsoilorder) ); k_s2_biochem (:) = spval
+    allocate(k_s3_biochem (0:nsoilorder) ); k_s3_biochem (:) = spval
+    allocate(k_s4_biochem (0:nsoilorder) ); k_s4_biochem (:) = spval
+    allocate(r_mort_soilorder (0:nsoilorder) ); r_mort_soilorder (:) = spval
 
    ! Set specific soil order values
 

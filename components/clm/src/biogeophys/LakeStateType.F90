@@ -21,20 +21,20 @@ module LakeStateType
   ! !PUBLIC TYPES:
   type, public :: lakestate_type
      ! Time constant variables
-     real(r8), pointer :: lakefetch_col     (:)   ! col lake fetch from surface data (m)                    
-     real(r8), pointer :: etal_col          (:)   ! col lake extinction coefficient from surface data (1/m) 
+     real(r8), pointer :: lakefetch_col     (:)   => null()! col lake fetch from surface data (m)
+     real(r8), pointer :: etal_col          (:)   => null()! col lake extinction coefficient from surface data (1/m)
 
      ! Time varying variables
-     real(r8), pointer :: lake_raw_col      (:)   ! col aerodynamic resistance for moisture (s/m)
-     real(r8), pointer :: ks_col            (:)   ! col coefficient for calculation of decay of eddy diffusivity with depth
-     real(r8), pointer :: ws_col            (:)   ! col surface friction velocity (m/s)
-     real(r8), pointer :: ust_lake_col      (:)   ! col friction velocity (m/s)          
-     real(r8), pointer :: betaprime_col     (:)   ! col effective beta: sabg_lyr(p,jtop) for snow layers, beta otherwise
-     real(r8), pointer :: savedtke1_col     (:)   ! col top level eddy conductivity from previous timestep (W/mK)
-     real(r8), pointer :: lake_icefrac_col  (:,:) ! col mass fraction of lake layer that is frozen
-     real(r8), pointer :: lake_icethick_col (:)   ! col ice thickness (m) (integrated if lakepuddling)
-     real(r8), pointer :: lakeresist_col    (:)   ! col [s/m] (Needed for calc. of grnd_ch4_cond)
-     real(r8), pointer :: ram1_lake_patch   (:)   ! patch aerodynamical resistance (s/m)
+     real(r8), pointer :: lake_raw_col      (:)   => null()! col aerodynamic resistance for moisture (s/m)
+     real(r8), pointer :: ks_col            (:)   => null()! col coefficient for calculation of decay of eddy diffusivity with depth
+     real(r8), pointer :: ws_col            (:)   => null()! col surface friction velocity (m/s)
+     real(r8), pointer :: ust_lake_col      (:)   => null()! col friction velocity (m/s)
+     real(r8), pointer :: betaprime_col     (:)   => null()! col effective beta: sabg_lyr(p,jtop) for snow layers, beta otherwise
+     real(r8), pointer :: savedtke1_col     (:)   => null()! col top level eddy conductivity from previous timestep (W/mK)
+     real(r8), pointer :: lake_icefrac_col  (:,:) => null()! col mass fraction of lake layer that is frozen
+     real(r8), pointer :: lake_icethick_col (:)   => null()! col ice thickness (m) (integrated if lakepuddling)
+     real(r8), pointer :: lakeresist_col    (:)   => null()! col [s/m] (Needed for calc. of grnd_ch4_cond)
+     real(r8), pointer :: ram1_lake_patch   (:)   => null()! patch aerodynamical resistance (s/m)
 
    contains
 
@@ -68,7 +68,7 @@ contains
     ! Allocate module variables and data structures
     !
     ! !USES:
-    use shr_infnan_mod, only: nan => shr_infnan_nan, assignment(=)
+    !use shr_infnan_mod, only: nan => shr_infnan_nan, assignment(=)
     use clm_varpar    , only: nlevlak, nlevsno
     !
     ! !ARGUMENTS:
@@ -88,18 +88,18 @@ contains
     begp = bounds%begp; endp= bounds%endp
     begc = bounds%begc; endc = bounds%endc
 
-    allocate(this%etal_col           (begc:endc))           ; this%etal_col           (:)   = nan
-    allocate(this%lakefetch_col      (begc:endc))           ; this%lakefetch_col      (:)   = nan
-    allocate(this%lakeresist_col     (begc:endc))           ; this%lakeresist_col     (:)   = nan
-    allocate(this%savedtke1_col      (begc:endc))           ; this%savedtke1_col      (:)   = spval  
-    allocate(this%lake_icefrac_col   (begc:endc,1:nlevlak)) ; this%lake_icefrac_col   (:,:) = nan
-    allocate(this%lake_icethick_col  (begc:endc))           ; this%lake_icethick_col  (:)   = nan
-    allocate(this%ust_lake_col       (begc:endc))           ; this%ust_lake_col       (:)   = spval   
-    allocate(this%ram1_lake_patch      (begp:endp))           ; this%ram1_lake_patch      (:)   = nan
-    allocate(this%lake_raw_col       (begc:endc))           ; this%lake_raw_col       (:)   = nan
-    allocate(this%ks_col             (begc:endc))           ; this%ks_col             (:)   = nan
-    allocate(this%ws_col             (begc:endc))           ; this%ws_col             (:)   = nan
-    allocate(this%betaprime_col      (begc:endc))           ; this%betaprime_col      (:)   = nan
+    allocate(this%etal_col           (begc:endc))           ; this%etal_col           (:)   = spval
+    allocate(this%lakefetch_col      (begc:endc))           ; this%lakefetch_col      (:)   = spval
+    allocate(this%lakeresist_col     (begc:endc))           ; this%lakeresist_col     (:)   = spval
+    allocate(this%savedtke1_col      (begc:endc))           ; this%savedtke1_col      (:)   = spval
+    allocate(this%lake_icefrac_col   (begc:endc,1:nlevlak)) ; this%lake_icefrac_col   (:,:) = spval
+    allocate(this%lake_icethick_col  (begc:endc))           ; this%lake_icethick_col  (:)   = spval
+    allocate(this%ust_lake_col       (begc:endc))           ; this%ust_lake_col       (:)   = spval
+    allocate(this%ram1_lake_patch    (begp:endp))           ; this%ram1_lake_patch    (:)   = spval
+    allocate(this%lake_raw_col       (begc:endc))           ; this%lake_raw_col       (:)   = spval
+    allocate(this%ks_col             (begc:endc))           ; this%ks_col             (:)   = spval
+    allocate(this%ws_col             (begc:endc))           ; this%ws_col             (:)   = spval
+    allocate(this%betaprime_col      (begc:endc))           ; this%betaprime_col      (:)   = spval
 
   end subroutine InitAllocate
 

@@ -218,6 +218,7 @@ contains
     integer           :: nclumps      ! number of clumps on this processor
     integer           :: nc           ! clump index
     type(bounds_type) :: bounds_clump ! clump-level bounds
+    real*8 :: dt
 
     character(len=*), parameter :: subname = 'dynSubgrid_driver'
     !-----------------------------------------------------------------------
@@ -314,15 +315,15 @@ contains
 
           call CarbonStateUpdateDynPatch(bounds_clump, &
                filter_inactive_and_active(nc)%num_soilc, filter_inactive_and_active(nc)%soilc, &
-               grc_cs, grc_cf, col_cs, col_cf)
+               grc_cs, grc_cf, col_cs, col_cf, dt)
 
           call NitrogenStateUpdateDynPatch(bounds_clump, &
                filter_inactive_and_active(nc)%num_soilc, filter_inactive_and_active(nc)%soilc, &
-               nitrogenflux_vars, nitrogenstate_vars)
+               dt)
 
           call PhosphorusStateUpdateDynPatch(bounds_clump, &
                filter_inactive_and_active(nc)%num_soilc, filter_inactive_and_active(nc)%soilc, &
-               phosphorusflux_vars, phosphorusstate_vars)
+               dt)
 
           call dyn_cnbal_column(bounds_clump, nc, column_state_updater, &
                col_cs, c13_col_cs, c14_col_cs, &

@@ -6,22 +6,19 @@ module UrbanFluxesMod
   !
   ! !USES:
   use shr_kind_mod         , only : r8 => shr_kind_r8
-  use shr_sys_mod          , only : shr_sys_flush 
-  use shr_log_mod          , only : errMsg => shr_log_errMsg
+  !#py use shr_sys_mod          , only : shr_sys_flush
+  !#py !#py use shr_log_mod          , only : errMsg => shr_log_errMsg
   use decompMod            , only : bounds_type
   use clm_varpar           , only : numrad
   use clm_varcon           , only : isecspday, degpsec, namel
   use clm_varctl           , only : iulog
-  use abortutils           , only : endrun  
+  !#py use abortutils           , only : endrun
   use UrbanParamsType      , only : urbanparams_type
   use UrbanParamsType      , only : urban_wasteheat_on, urban_hac_on, urban_hac 
   use atm2lndType          , only : atm2lnd_type
   use SoilStateType        , only : soilstate_type
-  use TemperatureType      , only : temperature_type
-  use WaterstateType       , only : waterstate_type
   use FrictionVelocityType , only : frictionvel_type
   use EnergyFluxType       , only : energyflux_type
-  use WaterfluxType        , only : waterflux_type
   use SurfaceResistanceMod , only : do_soilevap_beta
   use GridcellType         , only : grc_pp
   use TopounitDataType     , only : top_as  
@@ -46,14 +43,16 @@ contains
   !-----------------------------------------------------------------------
   subroutine UrbanFluxes (bounds, num_nourbanl, filter_nourbanl,                        &
        num_urbanl, filter_urbanl, num_urbanc, filter_urbanc, num_urbanp, filter_urbanp, &
-       atm2lnd_vars, urbanparams_vars, soilstate_vars, temperature_vars,                &
-       waterstate_vars, frictionvel_vars, energyflux_vars, waterflux_vars) 
+       atm2lnd_vars, urbanparams_vars, soilstate_vars,               &
+      frictionvel_vars, energyflux_vars,  &
+       nstep, dtime, year, month, day, secs)
     !
     ! !DESCRIPTION: 
     ! Turbulent and momentum fluxes from urban canyon (consisting of roof, sunwall, 
     ! shadewall, pervious and impervious road).
 
     ! !USES:
+      !$acc routine seq
     use clm_varcon          , only : cpair, vkc, spval, grav, pondmx_urban, rpi, rgas
     use clm_varcon          , only : ht_wasteheat_factor, ac_wasteheat_factor, wasteheat_limit
     use column_varcon       , only : icol_shadewall, icol_road_perv, icol_road_imperv
@@ -62,7 +61,7 @@ contains
     use FrictionVelocityMod , only : FrictionVelocity, MoninObukIni
     use QSatMod             , only : QSat
     use clm_varpar          , only : maxpatch_urb, nlevurb, nlevgrnd
-    use clm_time_manager    , only : get_curr_date, get_step_size, get_nstep
+    !#py use clm_time_manager    , only : get_curr_date, get_step_size, get_nstep
     use clm_varctl          , only : use_vsfm
     !
     ! !ARGUMENTS:
@@ -78,14 +77,12 @@ contains
     type(atm2lnd_type)     , intent(in)    :: atm2lnd_vars
     type(urbanparams_type) , intent(in)    :: urbanparams_vars
     type(soilstate_type)   , intent(inout) :: soilstate_vars
-    type(temperature_type) , intent(inout) :: temperature_vars
-    type(waterstate_type)  , intent(inout) :: waterstate_vars
     type(frictionvel_type) , intent(inout) :: frictionvel_vars
-    type(waterflux_type)   , intent(inout) :: waterflux_vars
     type(energyflux_type)  , intent(inout) :: energyflux_vars
+    real(r8), intent(in) :: dtime                                                ! land model time step (sec)
+    integer, intent(in)  :: year,month,day,secs
     !
     ! !LOCAL VARIABLES:
-    character(len=*), parameter :: sub="UrbanFluxes"
     integer  :: fp,fc,fl,f,p,c,l,t,g,j,pi,i     ! indices
 
     real(r8) :: canyontop_wind(bounds%begl:bounds%endl)              ! wind at canyon top (m/s) 
@@ -170,8 +167,6 @@ contains
     real(r8) :: fwet_roof                                            ! fraction of roof surface that is wet (-)
     real(r8) :: fwet_road_imperv                                     ! fraction of impervious road surface that is wet (-)
     integer  :: local_secp1(bounds%begl:bounds%endl)                 ! seconds into current date in local time (sec)
-    real(r8) :: dtime                                                ! land model time step (sec)
-    integer  :: year,month,day,secs                                  ! calendar info for current time step
     logical  :: found                                                ! flag in search loop
     integer  :: indexl                                               ! index of first found in search loop
     integer  :: nstep                                                ! time step number
@@ -272,15 +267,15 @@ contains
       end do
 
       ! Get time step
-      nstep = get_nstep()
+      !#py nstep = get_nstep()
 
       ! Set constants (same as in Biogeophysics1Mod)
       beta(begl:endl) = 1._r8             ! Should be set to the same values as in Biogeophysics1Mod
       zii(begl:endl)  = 1000._r8          ! Should be set to the same values as in Biogeophysics1Mod
 
       ! Get current date
-      dtime = get_step_size()
-      call get_curr_date (year, month, day, secs)
+      !#py dtime = get_step_size()
+      !#py call get_curr_date (year, month, day, secs)
 
       ! Compute canyontop wind using Masson (2000)
 
@@ -295,20 +290,20 @@ contains
          ! Error checks
 
          if (ht_roof(l) - z_d_town(l) <= z_0_town(l)) then
-            write (iulog,*) 'aerodynamic parameter error in UrbanFluxes'
-            write (iulog,*) 'h_r - z_d <= z_0'
-            write (iulog,*) 'ht_roof, z_d_town, z_0_town: ', ht_roof(l), z_d_town(l), &
-                 z_0_town(l)
-            write (iulog,*) 'clm model is stopping'
-            call endrun(decomp_index=l, clmlevel=namel, msg=errmsg(__FILE__, __LINE__))
+            !#py write (iulog,*) 'aerodynamic parameter error in UrbanFluxes'
+            !#py write (iulog,*) 'h_r - z_d <= z_0'
+            !#py write (iulog,*) 'ht_roof, z_d_town, z_0_town: ', ht_roof(l), z_d_town(l), &
+                 !#py z_0_town(l)
+            !#py write (iulog,*) 'clm model is stopping'
+            !#py !#py call endrun(decomp_index=l, clmlevel=namel, msg=errmsg(__FILE__, __LINE__))
          end if
          if (forc_hgt_u_patch(lun_pp%pfti(l)) - z_d_town(l) <= z_0_town(l)) then
-            write (iulog,*) 'aerodynamic parameter error in UrbanFluxes'
-            write (iulog,*) 'h_u - z_d <= z_0'
-            write (iulog,*) 'forc_hgt_u_patch, z_d_town, z_0_town: ', forc_hgt_u_patch(lun_pp%pfti(l)), z_d_town(l), &
-                 z_0_town(l)
-            write (iulog,*) 'clm model is stopping'
-            call endrun(decomp_index=l, clmlevel=namel, msg=errmsg(__FILE__, __LINE__))
+            !#py write (iulog,*) 'aerodynamic parameter error in UrbanFluxes'
+            !#py write (iulog,*) 'h_u - z_d <= z_0'
+            !#py write (iulog,*) 'forc_hgt_u_patch, z_d_town, z_0_town: ', forc_hgt_u_patch(lun_pp%pfti(l)), z_d_town(l), &
+                 !#py z_0_town(l)
+            !#py write (iulog,*) 'clm model is stopping'
+            !#py !#py call endrun(decomp_index=l, clmlevel=namel, msg=errmsg(__FILE__, __LINE__))
          end if
 
          ! Magnitude of atmospheric wind
@@ -389,9 +384,9 @@ contains
          if (num_urbanl > 0) then
             call FrictionVelocity(begl, endl, &
                  num_urbanl, filter_urbanl, &
-                 z_d_town(begl:endl), z_0_town(begl:endl), z_0_town(begl:endl), z_0_town(begl:endl), &
-                 obu(begl:endl), iter, ur(begl:endl), um(begl:endl), ustar(begl:endl), &
-                 temp1(begl:endl), temp2(begl:endl), temp12m(begl:endl), temp22m(begl:endl), fm(begl:endl), &
+                 z_d_town, z_0_town, z_0_town, z_0_town, &
+                 obu, iter+1, ur, um, ustar, &
+                 temp1, temp2, temp12m, temp22m, fm, &
                  frictionvel_vars, landunit_index=.true.)
          end if
 
@@ -471,7 +466,7 @@ contains
                wtuq_roof_unscl(l) = fwet_roof*(1._r8/canyon_resistance(l))
 
                ! wasteheat from heating/cooling
-               if (trim(urban_hac) == urban_wasteheat_on) then
+               if (urban_hac == urban_wasteheat_on) then
                   eflx_wasteheat_roof(l) = ac_wasteheat_factor * eflx_urban_ac(c) + &
                        ht_wasteheat_factor * eflx_urban_heat(c)
                else
@@ -479,7 +474,7 @@ contains
                end if
 
                ! If air conditioning on, always replace heat removed with heat into canyon
-               if (trim(urban_hac) == urban_hac_on .or. trim(urban_hac) == urban_wasteheat_on) then
+               if (urban_hac == urban_hac_on .or. urban_hac == urban_wasteheat_on) then
                   eflx_heat_from_ac_roof(l) = abs(eflx_urban_ac(c))
                else
                   eflx_heat_from_ac_roof(l) = 0._r8
@@ -545,7 +540,7 @@ contains
                wtuq_sunwall_unscl(l) = 0._r8
 
                ! wasteheat from heating/cooling
-               if (trim(urban_hac) == urban_wasteheat_on) then
+               if (urban_hac == urban_wasteheat_on) then
                   eflx_wasteheat_sunwall(l) = ac_wasteheat_factor * eflx_urban_ac(c) + &
                        ht_wasteheat_factor * eflx_urban_heat(c)
                else
@@ -553,7 +548,7 @@ contains
                end if
 
                ! If air conditioning on, always replace heat removed with heat into canyon
-               if (trim(urban_hac) == urban_hac_on .or. trim(urban_hac) == urban_wasteheat_on) then
+               if (urban_hac == urban_hac_on .or. urban_hac == urban_wasteheat_on) then
                   eflx_heat_from_ac_sunwall(l) = abs(eflx_urban_ac(c))
                else
                   eflx_heat_from_ac_sunwall(l) = 0._r8
@@ -574,7 +569,7 @@ contains
                wtuq_shadewall_unscl(l) = 0._r8
 
                ! wasteheat from heating/cooling
-               if (trim(urban_hac) == urban_wasteheat_on) then
+               if (urban_hac == urban_wasteheat_on) then
                   eflx_wasteheat_shadewall(l) = ac_wasteheat_factor * eflx_urban_ac(c) + &
                        ht_wasteheat_factor * eflx_urban_heat(c)
                else
@@ -582,16 +577,16 @@ contains
                end if
 
                ! If air conditioning on, always replace heat removed with heat into canyon
-               if (trim(urban_hac) == urban_hac_on .or. trim(urban_hac) == urban_wasteheat_on) then
+               if (urban_hac == urban_hac_on .or. urban_hac == urban_wasteheat_on) then
                   eflx_heat_from_ac_shadewall(l) = abs(eflx_urban_ac(c))
                else
                   eflx_heat_from_ac_shadewall(l) = 0._r8
                end if
             else
-               write(iulog,*) 'c, ctype, pi = ', c, ctype(c), pi
-               write(iulog,*) 'Column indices for: shadewall, sunwall, road_imperv, road_perv, roof: '
-               write(iulog,*) icol_shadewall, icol_sunwall, icol_road_imperv, icol_road_perv, icol_roof
-               call endrun(decomp_index=l, clmlevel=namel, msg="ERROR, ctype out of range"//errmsg(__FILE__, __LINE__))
+               !#py write(iulog,*) 'c, ctype, pi = ', c, ctype(c), pi
+               !#py write(iulog,*) 'Column indices for: shadewall, sunwall, road_imperv, road_perv, roof: '
+               !#py write(iulog,*) icol_shadewall, icol_sunwall, icol_road_imperv, icol_road_perv, icol_roof
+               !#py !#py call endrun(decomp_index=l, clmlevel=namel, msg="ERROR, ctype out of range"//errmsg(__FILE__, __LINE__))
             end if
 
             taf_numer(l) = taf_numer(l) + t_grnd(c)*wtus(c)
@@ -817,16 +812,16 @@ contains
          end if
       end do
       if ( found ) then
-         write(iulog,*)'WARNING:  Total sensible heat does not equal sum of scaled heat fluxes for urban columns ',&
-              ' nstep = ',nstep,' indexl= ',indexl,' eflx_err= ',eflx_err(indexl)
+         !#py write(iulog,*)'WARNING:  Total sensible heat does not equal sum of scaled heat fluxes for urban columns ',&
+              !#py ' nstep = ',nstep,' indexl= ',indexl,' eflx_err= ',eflx_err(indexl)
          if (abs(eflx_err(indexl)) > .01_r8) then
-            write(iulog,*)'clm model is stopping - error is greater than .01 W/m**2'
-            write(iulog,*)'eflx_scale    = ',eflx_scale(indexl)
-            write(iulog,*)'eflx_sh_grnd_scale: ',eflx_sh_grnd_scale(lun_pp%pfti(indexl):lun_pp%pftf(indexl))
-            write(iulog,*)'eflx          = ',eflx(indexl)
+            !#py write(iulog,*)'clm model is stopping - error is greater than .01 W/m**2'
+            !#py write(iulog,*)'eflx_scale    = ',eflx_scale(indexl)
+            !#py write(iulog,*)'eflx_sh_grnd_scale: ',eflx_sh_grnd_scale(lun_pp%pfti(indexl):lun_pp%pftf(indexl))
+            !#py write(iulog,*)'eflx          = ',eflx(indexl)
             ! test code, PET
-            write(iulog,*)'tbot          = ',forc_t(lun_pp%topounit(indexl))
-            call endrun(decomp_index=indexl, clmlevel=namel, msg=errmsg(__FILE__, __LINE__))
+            !#py write(iulog,*)'tbot          = ',forc_t(lun_pp%topounit(indexl))
+            !#py !#py call endrun(decomp_index=indexl, clmlevel=namel, msg=errmsg(__FILE__, __LINE__))
          end if
       end if
 
@@ -841,13 +836,13 @@ contains
          end if
       end do
       if ( found ) then
-         write(iulog,*)'WARNING:  Total water vapor flux does not equal sum of scaled water vapor fluxes for urban columns ',&
-              ' nstep = ',nstep,' indexl= ',indexl,' qflx_err= ',qflx_err(indexl)
+         !#py write(iulog,*)'WARNING:  Total water vapor flux does not equal sum of scaled water vapor fluxes for urban columns ',&
+              !#py ' nstep = ',nstep,' indexl= ',indexl,' qflx_err= ',qflx_err(indexl)
          if (abs(qflx_err(indexl)) > 4.e-9_r8) then
-            write(iulog,*)'clm model is stopping - error is greater than 4.e-9 kg/m**2/s'
-            write(iulog,*)'qflx_scale    = ',qflx_scale(indexl)
-            write(iulog,*)'qflx          = ',qflx(indexl)
-            call endrun(decomp_index=indexl, clmlevel=namel, msg=errmsg(__FILE__, __LINE__))
+            !#py write(iulog,*)'clm model is stopping - error is greater than 4.e-9 kg/m**2/s'
+            !#py write(iulog,*)'qflx_scale    = ',qflx_scale(indexl)
+            !#py write(iulog,*)'qflx          = ',qflx(indexl)
+            !#py !#py call endrun(decomp_index=indexl, clmlevel=namel, msg=errmsg(__FILE__, __LINE__))
          end if
       end if
 

@@ -69,6 +69,9 @@ module LandunitDataType
   type(landunit_energy_flux )          , public, target :: lun_ef    ! landunit energy flux
   type(landunit_water_state )          , public, target :: lun_ws    ! landunit water state
 
+  !$acc declare create(lun_es)
+  !$acc declare create(lun_ef)
+  !$acc declare create(lun_ws)
   !------------------------------------------------------------------------
 
 contains
@@ -88,8 +91,8 @@ contains
     !-----------------------------------------------------------------------
     ! allocate for each member of lun_es
     !-----------------------------------------------------------------------
-    allocate(this%t_building            (begl:endl))                      ; this%t_building            (:)   = nan
-    allocate(this%taf                   (begl:endl))                      ; this%taf                   (:)   = nan
+    allocate(this%t_building            (begl:endl))                      ; this%t_building            (:)   =spval
+    allocate(this%taf                   (begl:endl))                      ; this%taf                   (:)   =spval
 
     !-----------------------------------------------------------------------
     ! initialize history fields for select members of lun_es
@@ -166,9 +169,9 @@ contains
     !-----------------------------------------------------------------------
     ! allocate for each member of lun_ef
     !-----------------------------------------------------------------------
-    allocate( this%eflx_heat_from_ac   (begl:endl))             ; this%eflx_heat_from_ac   (:)   = nan
-    allocate( this%eflx_traffic        (begl:endl))             ; this%eflx_traffic        (:)   = nan
-    allocate( this%eflx_wasteheat      (begl:endl))             ; this%eflx_wasteheat      (:)   = nan
+    allocate( this%eflx_heat_from_ac   (begl:endl))             ; this%eflx_heat_from_ac   (:)   =spval
+    allocate( this%eflx_traffic        (begl:endl))             ; this%eflx_traffic        (:)   =spval
+    allocate( this%eflx_wasteheat      (begl:endl))             ; this%eflx_wasteheat      (:)   =spval
 
     !-----------------------------------------------------------------------
     ! cold-start initial conditions for lun_ef

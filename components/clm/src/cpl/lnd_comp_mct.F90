@@ -118,6 +118,8 @@ contains
     real(r8) :: mrss0 , mrss1      ! resident size (current memory use)
     character(len=32), parameter :: sub = 'lnd_init_mct'
     character(len=*),  parameter :: format = "('("//trim(sub)//") :',A)"
+
+    integer :: spin
     !-----------------------------------------------------------------------
 
     ! Set cdata data
@@ -132,6 +134,7 @@ contains
     ! Initialize clm MPI communicator 
 
     call spmd_init( mpicom_lnd, LNDID )
+    call acc_initialization()
 
 #if (defined _MEMTRACE)
     if(masterproc) then
@@ -139,6 +142,10 @@ contains
        call memmon_dump_fort('memmon.out','lnd_init_mct:start::',lbnum)
     endif
 #endif                      
+  !   spin = 1
+  !  do while (0 < spin)
+  !    spin = spin + 0
+  !  end do
 
     inst_name   = seq_comm_name(LNDID)
     inst_index  = seq_comm_inst(LNDID)
@@ -570,9 +577,9 @@ contains
        nstep = get_nstep()
        caldayp1 = get_curr_calday(offset=dtime)
        if (nstep == 0) then
-	  doalb = .false. 	
-       else if (nstep == 1) then 
-          doalb = (abs(nextsw_cday- caldayp1) < 1.e-10_r8) 
+	        doalb = .false.
+       else if (nstep == 1) then
+          doalb = (abs(nextsw_cday- caldayp1) < 1.e-10_r8)
        else
           doalb = (nextsw_cday >= -0.5_r8) 
        end if
@@ -805,5 +812,22 @@ contains
     deallocate(idata)
 
   end subroutine lnd_domain_mct
+
+
+        subroutine acc_initialization()
+                use openacc
+                use spmdMod,  only : iam
+
+                integer :: mygpu
+                integer :: ngpus
+
+                call acc_init(acc_device_nvidia)
+
+                ngpus = acc_get_num_devices(acc_device_nvidia)
+                call acc_set_device_num(mod(iam,ngpus),acc_device_nvidia)
+
+                mygpu = acc_get_device_num(acc_device_nvidia)
+                print *, "iam, mygpu: ", iam, mygpu
+        end subroutine
 
 end module lnd_comp_mct

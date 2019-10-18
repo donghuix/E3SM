@@ -2,10 +2,10 @@ module AerosolMod
 
   !-----------------------------------------------------------------------
   use shr_kind_mod     , only : r8 => shr_kind_r8
-  use shr_log_mod      , only : errMsg => shr_log_errMsg
+  !#py !#py use shr_log_mod      , only : errMsg => shr_log_errMsg
   use decompMod        , only : bounds_type
-  use clm_varpar       , only : nlevsno 
-  use clm_time_manager , only : get_step_size
+  use clm_varpar       , only : nlevsno
+  !#py use clm_time_manager , only : get_step_size
   use atm2lndType      , only : atm2lnd_type
   use WaterfluxType    , only : waterflux_type
   use WaterstateType   , only : waterstate_type
@@ -29,8 +29,7 @@ module AerosolMod
 contains
 
   !-----------------------------------------------------------------------
-  subroutine AerosolMasses(bounds, num_on, filter_on, num_off, filter_off, &
-       waterflux_vars, waterstate_vars, aerosol_vars)
+  subroutine AerosolMasses(bounds, num_on, filter_on, num_off, filter_off, aerosol_vars)
     !
     ! !DESCRIPTION:
     ! Calculate column-integrated aerosol masses, and
@@ -40,13 +39,14 @@ contains
     ! can be zero snow layers but an active column in filter)
     !
     ! !ARGUMENTS:
+      !$acc routine seq
     type(bounds_type)     , intent(in )   :: bounds
     integer               , intent(in)    :: num_on         ! number of column filter-ON points
     integer               , intent(in)    :: filter_on(:)   ! column filter for filter-ON points
     integer               , intent(in)    :: num_off        ! number of column non filter-OFF points
     integer               , intent(in)    :: filter_off(:)  ! column filter for filter-OFF points
-    type(waterflux_type)  , intent(in)    :: waterflux_vars 
-    type(waterstate_type) , intent(inout) :: waterstate_vars
+    !type(waterflux_type)  , intent(in)    :: waterflux_vars
+    !type(waterstate_type) , intent(inout) :: waterstate_vars
     type(aerosol_type)    , intent(inout) :: aerosol_vars
     !
     ! !LOCAL VARIABLES:
@@ -94,7 +94,7 @@ contains
          mss_cnc_dst4  => aerosol_vars%mss_cnc_dst4_col       & ! Output: [real(r8) (:,:) ]  mass concentration of dust species 4 (col,lyr) [kg/kg]
          )
 
-      dtime = get_step_size()
+      !#py dtime = get_step_size()
 
       do fc = 1, num_on
          c = filter_on(fc)
@@ -232,6 +232,7 @@ contains
     ! Compute aerosol fluxes through snowpack and aerosol deposition fluxes into top layere
     !
     ! !ARGUMENTS:
+      !$acc routine seq
     type(bounds_type)  , intent(in)    :: bounds
     integer            , intent(in)    :: num_snowc       ! number of snow points in column filter
     integer            , intent(in)    :: filter_snowc(:) ! column filter for snow points
@@ -359,7 +360,7 @@ contains
       ! is in the top layer after deposition, and is not immediately
       ! washed out before radiative calculations are done
 
-      dtime = get_step_size()
+      !#py dtime = get_step_size()
 
       do fc = 1, num_snowc
          c = filter_snowc(fc)

@@ -26,7 +26,7 @@ contains
 
   !-----------------------------------------------------------------------
   subroutine alt_calc(num_soilc, filter_soilc, &
-       temperature_vars, canopystate_vars) 
+       canopystate_vars)
     !
     ! !DESCRIPTION:
     !  define active layer thickness similarly to frost_table, except set as deepest thawed layer and define on nlevgrnd
@@ -52,7 +52,6 @@ contains
     ! !ARGUMENTS:
     integer                , intent(in)    :: num_soilc       ! number of soil columns in filter
     integer                , intent(in)    :: filter_soilc(:) ! filter for soil columns
-    type(temperature_type) , intent(in)    :: temperature_vars
     type(canopystate_type) , intent(inout) :: canopystate_vars
     !
     ! !LOCAL VARIABLES:
