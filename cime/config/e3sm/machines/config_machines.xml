@@ -2844,13 +2844,13 @@
       </modules>
       <!-- mpi lib settings -->
       <!-- Sometimes,same versions of libraries are not available for different compilers, hence the split below -->
-      <modules compiler="ibm" mpilib="!mpi-serial">
+      <modules compiler="ibm">
 	<command name="load">spectrum-mpi/10.3.1.2-20200121</command>
       </modules>
-      <modules compiler="pgi.*" mpilib="!mpi-serial">
+      <modules compiler="pgi.*">
 	<command name="load">spectrum-mpi/10.3.1.2-20200121</command>
       </modules>
-      <modules compiler="gnu" mpilib="!mpi-serial">
+      <modules compiler="gnu">
 	<command name="load">spectrum-mpi/10.3.1.2-20200121</command>
       </modules>
 
@@ -2890,12 +2890,9 @@
     <environment_variables SMP_PRESENT="TRUE">
       <env name="OMP_STACKSIZE">128M</env>
     </environment_variables>
-    <environment_variables mpilib="!mpi-serial">
+    <environment_variables>
       <env name="HDF5_PATH">$ENV{OLCF_HDF5_ROOT}</env>
       <env name="PNETCDF_PATH">$ENV{OLCF_PARALLEL_NETCDF_ROOT}</env>
-    </environment_variables>
-    <environment_variables mpilib="!mpi-serial" compiler="pgigpu">
-      <env name="OMPI_CXX">$SRCROOT/externals/kokkos/bin/nvcc_wrapper</env>
     </environment_variables>
   </machine>
 
