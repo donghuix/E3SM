@@ -401,6 +401,7 @@ contains
        Tctl%OPT_elevProf = OPT_elevProf
        Tctl%npt_elevProf = npt_elevProf
        Tctl%threshold_slpRatio = threshold_slpRatio
+       Tctl%coupling_period = coupling_period ! land river two way coupling
     end if
 
     if (masterproc) then
@@ -2012,6 +2013,9 @@ contains
              budget_terms(bv_fp_i, 1) = budget_terms(bv_fp_i, 1) + TRunoff%wf_ini( nr )
              !budget_terms(bv_fp_i, 1) = budget_terms(bv_fp_i, 1) + rtmCTL%inundwf(nr)        ! 17-6-7
            endif
+
+           ! land river two way coupling, update floodplain inundation volume with drainage from lnd
+           TRunoff%wf_ini(nr) = TRunoff%wf_ini(nr) - rtmCTL%inundinf(nr) * coupling_period
 
          end do
        end if

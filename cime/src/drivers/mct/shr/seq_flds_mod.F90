@@ -2128,6 +2128,32 @@ contains
        attname  = 'Flrr_deficit'
        call metadata_set(attname, longname, stdname, units)
     endif
+
+    ! land river two way coupling
+    call seq_flds_add(r2x_fluxes, 'Sr_inundvol')
+    call seq_flds_add(x2l_fluxes, 'Sr_inundvol')
+    longname = 'Inundation floodplain water volume'
+    stdname  = 'rtm_inundwf'
+    units    = 'm3'
+    attname  = 'inundwf'
+    call metadata_set(attname, longname, stdname, units)
+
+    call seq_flds_add(r2x_fluxes, 'Sr_inundfrc')
+    call seq_flds_add(x2l_fluxes, 'Sr_inundfrc')
+    longname = 'Inundation floodplain water area fraction'
+    stdname  = 'rtm_inundff'
+    units    = '1'
+    attname  = 'inundff'
+    call metadata_set(attname, longname, stdname, units)
+
+    call seq_flds_add(l2x_fluxes, 'Flrl_inundinf')
+    call seq_flds_add(x2r_fluxes, 'Flrl_inundinf')
+    longname = 'Infiltration from floodplain inundation volume'
+    stdname  = 'floodplain_inundation_infiltration'
+    units    = 'mm/s'
+    attname  = 'inundinf'
+    call metadata_set(attname, longname, stdname, units)
+
     !-----------------------------
     ! wav->ocn and ocn->wav
     !-----------------------------

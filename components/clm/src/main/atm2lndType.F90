@@ -113,6 +113,10 @@ module atm2lndType
      real(r8), pointer :: volrmch_grc                   (:)   => null() ! rof volr main channel (m3)
      real(r8), pointer :: supply_grc                    (:)   => null() ! rof volr supply (mm/s)
      real(r8), pointer :: deficit_grc                   (:)   => null() ! rof volr deficit (mm/s)
+
+     ! rof-> lnd river two way coupling
+     real(r8), pointer :: inundvol_grc                  (:)   => null() ! rof floodplain inundation volume [m3]
+     real(r8), pointer :: inundfrc_grc                  (:)   => null() ! rof floodplain inundation fraction [-]
 	 
      ! anomaly forcing
      real(r8), pointer :: af_precip_grc                 (:)   => null() ! anomaly forcing 
@@ -269,6 +273,10 @@ contains
     allocate(this%supply_grc                    (begg:endg))        ; this%supply_grc                    (:)   = ival
     allocate(this%deficit_grc                   (begg:endg))        ; this%deficit_grc                   (:)   = ival
 
+    ! rof->lnd land river two way coupling
+    allocate(this%inundvol_grc                  (begg:endg))        ; this%inundvol_grc                  (:)   = ival
+    allocate(this%inundfrc_grc                  (begg:endg))        ; this%inundfrc_grc                  (:)   = ival
+
     ! anomaly forcing
     allocate(this%bc_precip_grc                 (begg:endg))        ; this%bc_precip_grc                 (:)   = ival
     allocate(this%af_precip_grc                 (begg:endg))        ; this%af_precip_grc                 (:)   = ival
@@ -339,6 +347,17 @@ contains
     call hist_addfld1d (fname='DEFICIT',  units='mm/s',  &
          avgflag='A', long_name='runoff supply deficit', &
          ptr_lnd=this%deficit_grc)
+    
+    ! land river two way coupling
+    this%inundvol_grc(begg:endg) = spval
+    call hist_addfld1d(fname='INUNDVOL',  units='m3',           &
+         avgflag='A', long_name='floodplain inundation volume', &
+         ptr_lnd=this%inundvol_grc)
+
+    this%inundfrc_grc(begg:endg) = spval
+    call hist_addfld1d(fname='INUNDFRC',  units='m3',             &
+         avgflag='A', long_name='floodplain inundation fraction', &
+         ptr_lnd=this%inundfrc_grc)
 
 !    this%forc_wind_grc(begg:endg) = spval
 !    call hist_addfld1d (fname='WIND', units='m/s',  &

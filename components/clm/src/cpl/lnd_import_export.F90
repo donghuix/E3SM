@@ -175,7 +175,6 @@ contains
     ! by 1000 mm/m resulting in an overall factor of unity.
     ! Below the units are therefore given in mm/s.
 
-    thisng = bounds%endg - bounds%begg + 1
     do g = bounds%begg,bounds%endg
        i = 1 + (g - bounds%begg)
        
@@ -189,6 +188,10 @@ contains
        atm2lnd_vars%volrmch_grc(g)= x2l(index_x2l_Flrr_volrmch,i) * (ldomain%area(g) * 1.e6_r8)
        atm2lnd_vars%supply_grc(g) = x2l(index_x2l_Flrr_supply,i)
        atm2lnd_vars%deficit_grc(g) = x2l(index_x2l_Flrr_deficit,i)
+
+       ! land river two way coupling
+       atm2lnd_vars%inundvol_grc(g) = x2l(index_x2l_Sr_inundvol,i)
+       atm2lnd_vars%inundfrc_grc(g) = x2l(index_x2l_Sr_inundfrc,i)
 
        ! Determine required receive fields
 
@@ -1405,6 +1408,9 @@ contains
        endif
        l2x(index_l2x_Flrl_Tqsur,i)  = lnd2atm_vars%Tqsur_grc(g)
        l2x(index_l2x_Flrl_Tqsub,i)  = lnd2atm_vars%Tqsub_grc(g)
+
+       ! land river two way coupling
+       l2x(index_l2x_Flrl_inundinf,i) = lnd2atm_vars%qflx_h2orof_drain_grc(g)
 
        ! glc coupling
 

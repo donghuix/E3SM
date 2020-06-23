@@ -254,8 +254,8 @@ contains
 
    !-----------------------------------------------------------------------
    subroutine Infiltration(bounds, num_hydrologyc, filter_hydrologyc, num_urbanc, filter_urbanc, &
-        energyflux_vars, soilhydrology_vars, soilstate_vars, temperature_vars, &
-        waterflux_vars, waterstate_vars)
+        atm2lnd_vars, lnd2atm_vars,energyflux_vars, soilhydrology_vars, soilstate_vars,          &
+        temperature_vars, waterflux_vars, waterstate_vars)
      !
      ! !DESCRIPTION:
      ! Calculate infiltration into surface soil layer (minus the evaporation)
@@ -268,6 +268,9 @@ contains
      use column_varcon    , only : icol_roof, icol_road_imperv, icol_sunwall, icol_shadewall, icol_road_perv
      use landunit_varcon  , only : istsoil, istcrop
      use clm_time_manager , only : get_step_size
+     use atm2lndType      , only : atm2lnd_type ! land river two way coupling
+     use lnd2atmType      , only : lnd2atm_type
+     use domainMod        , only : ldomain
      !
      ! !ARGUMENTS:
      type(bounds_type)        , intent(in)    :: bounds               
@@ -275,6 +278,8 @@ contains
      integer                  , intent(in)    :: filter_hydrologyc(:) ! column filter for soil points
      integer                  , intent(in)    :: num_urbanc           ! number of column urban points in column filter
      integer                  , intent(in)    :: filter_urbanc(:)     ! column filter for urban points
+     type(atm2lnd_type)       , intent(in)    :: atm2lnd_vars         ! land river two way coupling
+     type(lnd2atm_type)       , intent(in)    :: lnd2atm_vars 
      type(energyflux_type)    , intent(in)    :: energyflux_vars 
      type(soilhydrology_type) , intent(inout) :: soilhydrology_vars
      type(soilstate_type)     , intent(inout) :: soilstate_vars
@@ -283,7 +288,7 @@ contains
      type(waterflux_type)     , intent(inout) :: waterflux_vars
      !
      ! !LOCAL VARIABLES:
-     integer  :: c,j,l,fc                                   ! indices
+     integer  :: c,j,l,fc,g                                 ! indices
      integer  :: nlevbed                                    !# levels to bedrock
      real(r8) :: dtime                                      ! land model time step (sec)
      real(r8) :: s1,su,v                                    ! variable to calculate qinmax
@@ -292,6 +297,7 @@ contains
      real(r8) :: alpha_evap(bounds%begc:bounds%endc)        ! fraction of total evap from h2osfc
      real(r8) :: qflx_evap(bounds%begc:bounds%endc)         ! local evaporation array
      real(r8) :: qflx_h2osfc_drain(bounds%begc:bounds%endc) ! bottom drainage from h2osfc
+     real(r8) :: qflx_h2orof_drain(bounds%begc:bounds%endc) ! bottom drainage from river floodplain inundation
      real(r8) :: qflx_in_h2osfc(bounds%begc:bounds%endc)    ! surface input to h2osfc
      real(r8) :: qflx_in_soil(bounds%begc:bounds%endc)      ! surface input to soil
      real(r8) :: qflx_infl_excess(bounds%begc:bounds%endc)  ! infiltration excess runoff -> h2osfc
@@ -364,7 +370,11 @@ contains
           ice                  =>    soilhydrology_vars%ice_col              , & ! Input:  [real(r8) (:,:) ]  ice len in each VIC layers(ice, mm)              
           i_0                  =>    soilhydrology_vars%i_0_col              , & ! Input:  [real(r8) (:)   ]  column average soil moisture in top VIC layers (mm)
           h2osfcflag           =>    soilhydrology_vars%h2osfcflag           , & ! Input:  logical
-          icefrac              =>    soilhydrology_vars%icefrac_col            & ! Output: [real(r8) (:,:) ]  fraction of ice                                 
+          icefrac              =>    soilhydrology_vars%icefrac_col          , & ! Output: [real(r8) (:,:) ]  fraction of ice
+          ! land river two way coupling         
+          cgridcell            =>    col_pp%gridcell                         , & ! Input:  [integer  (:)   ]  column's gridcell     
+          inundvolc            =>    col_pp%inundvol                         , & ! Input:  [real(r8) (:)   ]  floodplain inudntion volume at column level (m3)
+          inundfrcc            =>    col_pp%inundfrc                           & ! Input:  [real(r8) (:)   ]  floodplain inudntion volume at column level (m3)      
               )
 
        dtime = get_step_size()
@@ -383,6 +393,7 @@ contains
 
        do fc = 1, num_hydrologyc
           c = filter_hydrologyc(fc)
+          g = cgridcell(c)
           ! partition moisture fluxes between soil and h2osfc       
           if (lun_pp%itype(col_pp%landunit(c)) == istsoil .or. lun_pp%itype(col_pp%landunit(c))==istcrop) then
 
@@ -501,7 +512,29 @@ contains
              !7. remove drainage from h2osfc and add to qflx_infl
              h2osfc(c) = h2osfc(c) - qflx_h2osfc_drain(c) * dtime
              qflx_infl(c) = qflx_infl(c) + qflx_h2osfc_drain(c)
-             qflx_gross_infl_soil(c) = qflx_gross_infl_soil(c) + qflx_h2osfc_drain(c)             
+
+             !8. add drainage from river inundation to qflx_infl (land river two way coupling)
+             ! only natural vegetation presented, so, all the inundation go to this column 
+             ! TODO: consider more columns
+             ! use the grid for lnd and rof 
+             ! TODO: consider manipulate for different grid between two componennts
+             inundvolc(c) = atm2lnd_vars%inundvol_grc(g) * dtime 
+             inundfrcc(c) = atm2lnd_vars%inundfrc_grc(g) 
+             !inundvolc(c) = inundvolc(c) / ( inundfrcc(c) * ldomain%area(g) * 1e3_r8 )! [m3] -> [mm]
+             inundvolc(c) = inundvolc(c) / ( ldomain%area(g) * 1e3_r8 )! [m3] -> [mm]
+             ! TODO: add inundfrac from ocean 
+             if ( inundfrcc(c) > 1 - frac_sno(c) - frac_h2osfc(c) ) then
+                inundvolc(c) = inundvolc(c) * inundfrcc(c) / ( 1 - frac_sno(c) - frac_h2osfc(c) )
+                inundfrcc(c) = 1 - frac_sno(c) - frac_h2osfc(c)
+             endif
+             qflx_h2orof_drain(c)=min(inundfrcc(c)*qinmax,inundvolc(c)/dtime)
+
+             ! copy the inundation drainage to the lnd2atm_vars
+             ! TODO: only natural vegetation column in a gridcell, 
+             ! need to consider collect from different column in the future devlopment
+             lnd2atm_vars%qflx_h2orof_drain_grc(g) = qflx_h2orof_drain(c)
+
+             qflx_gross_infl_soil(c) = qflx_gross_infl_soil(c) + qflx_h2osfc_drain(c) + qflx_h2orof_drain(c)            
           else
              ! non-vegetated landunits (i.e. urban) use original CLM4 code
              if (snl(c) >= 0) then
@@ -519,7 +552,6 @@ contains
           endif
 
        enddo
-
        ! No infiltration for impervious urban surfaces
 
        do fc = 1, num_urbanc

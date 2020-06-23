@@ -442,6 +442,9 @@ contains
     integer, save :: index_x2r_Faxa_swvdf
     integer, save :: index_x2r_Faxa_lwdn
 
+    integer, save :: index_l2x_Flrl_inundinf
+    integer, save :: index_x2r_Flrl_inundinf
+
     integer, save :: index_lfrac
     logical, save :: first_time = .true.
     logical, save :: flds_wiso_rof = .false.
@@ -564,6 +567,9 @@ contains
        index_x2r_Faxa_swvdr = mct_aVect_indexRA(x2r_r,'Faxa_swvdr')
        index_x2r_Faxa_swvdf = mct_aVect_indexRA(x2r_r,'Faxa_swvdf')
        index_x2r_Faxa_lwdn  = mct_aVect_indexRA(x2r_r,'Faxa_lwdn')
+
+       index_l2x_Flrl_inundinf = mct_aVect_indexRA(l2x_r,'Flrl_inundinf')
+       index_x2r_Flrl_inundinf = mct_aVect_indexRA(x2r_r,'Flrl_inundinf')
      
        mrgstr(index_x2r_Sa_tbot)    = trim(mrgstr(index_x2r_Sa_tbot))//' = '//'a2x%Sa_tbot'
        mrgstr(index_x2r_Sa_pbot)    = trim(mrgstr(index_x2r_Sa_pbot))//' = '//'a2x%Sa_pbot'
@@ -575,6 +581,10 @@ contains
        mrgstr(index_x2r_Faxa_swvdr) = trim(mrgstr(index_x2r_Faxa_swvdr))//' = '//'a2x%Faxa_swvdr'
        mrgstr(index_x2r_Faxa_swvdf) = trim(mrgstr(index_x2r_Faxa_swvdf))//' = '//'a2x%Faxa_swvdf'
        mrgstr(index_x2r_Faxa_lwdn)  = trim(mrgstr(index_x2r_Faxa_lwdn))//' = '//'a2x%Faxa_lwdn'
+
+       mrgstr(index_l2x_Flrl_inundinf) = trim(mrgstr(index_l2x_Flrl_inundinf))//' = '//'l2x%Flrl_inundinf'
+       mrgstr(index_x2r_Flrl_inundinf) = trim(mrgstr(index_x2r_Flrl_inundinf))//' = '//'x2r%Flrl_inundinf'
+       
     end if
 
     do i = 1,lsize
@@ -609,7 +619,8 @@ contains
        x2r_r%rAttr(index_x2r_Faxa_swvdr,i) = a2x_r%rAttr(index_a2x_Faxa_swvdr,i)
        x2r_r%rAttr(index_x2r_Faxa_swvdf,i) = a2x_r%rAttr(index_a2x_Faxa_swvdf,i)
        x2r_r%rAttr(index_x2r_Faxa_lwdn,i)  = a2x_r%rAttr(index_a2x_Faxa_lwdn,i)
-
+       ! TODO: need to check with lfrac
+       x2r_r%rAttr(index_x2r_Flrl_inundinf,i) = l2x_r%rAttr(index_l2x_Flrl_inundinf,i) * lfrac
     end do
 
     if (first_time) then
