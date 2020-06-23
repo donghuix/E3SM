@@ -270,7 +270,6 @@ contains
      use clm_time_manager , only : get_step_size
      use atm2lndType      , only : atm2lnd_type ! land river two way coupling
      use lnd2atmType      , only : lnd2atm_type
-     use domainMod        , only : ldomain
      !
      ! !ARGUMENTS:
      type(bounds_type)        , intent(in)    :: bounds               
@@ -518,13 +517,11 @@ contains
              ! TODO: consider more columns
              ! use the grid for lnd and rof 
              ! TODO: consider manipulate for different grid between two componennts
-             inundvolc(c) = atm2lnd_vars%inundvol_grc(g) * dtime 
+             inundvolc(c) = atm2lnd_vars%inundvol_grc(g) * dtime ! retrieve volume in [mm]
              inundfrcc(c) = atm2lnd_vars%inundfrc_grc(g) 
-             !inundvolc(c) = inundvolc(c) / ( inundfrcc(c) * ldomain%area(g) * 1e3_r8 )! [m3] -> [mm]
-             inundvolc(c) = inundvolc(c) / ( ldomain%area(g) * 1e3_r8 )! [m3] -> [mm]
              ! TODO: add inundfrac from ocean 
              if ( inundfrcc(c) > 1 - frac_sno(c) - frac_h2osfc(c) ) then
-                inundvolc(c) = inundvolc(c) * inundfrcc(c) / ( 1 - frac_sno(c) - frac_h2osfc(c) )
+                !inundvolc(c) = inundvolc(c) * inundfrcc(c) / ( 1 - frac_sno(c) - frac_h2osfc(c) )
                 inundfrcc(c) = 1 - frac_sno(c) - frac_h2osfc(c)
              endif
              qflx_h2orof_drain(c)=min(inundfrcc(c)*qinmax,inundvolc(c)/dtime)
