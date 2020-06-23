@@ -624,7 +624,7 @@ contains
           rtmCTL%inundinf(n) = x2r_r%rAttr(index_x2r_Flrl_inundinf,n2) * (rtmCTL%area(n)*0.001_r8)
        endif
     enddo
-    print *, rtmCTL%inundinf(:)
+
   end subroutine rof_import_mct
 
 !====================================================================================
