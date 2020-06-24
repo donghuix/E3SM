@@ -372,9 +372,10 @@ contains
           h2osfcflag           =>    soilhydrology_vars%h2osfcflag           , & ! Input:  logical
           icefrac              =>    soilhydrology_vars%icefrac_col          , & ! Output: [real(r8) (:,:) ]  fraction of ice
           ! land river two way coupling         
-          cgridcell            =>    col_pp%gridcell                         , & ! Input:  [integer  (:)   ]  column's gridcell     
-          inundvolc            =>    col_pp%inundvol                         , & ! Input:  [real(r8) (:)   ]  floodplain inudntion volume at column level (m3)
-          inundfrcc            =>    col_pp%inundfrc                           & ! Input:  [real(r8) (:)   ]  floodplain inudntion volume at column level (m3)      
+          cgridcell            =>    col_pp%gridcell                         , & ! Input:  [integer  (:)   ]  column's gridcell    
+          wtgcell              =>    col_pp%wtgcell                          , & ! Input:  [real(r8) (:)   ]  weight (relative to gridcell) 
+          inundvolc            =>    col_ws%inundvol                         , & ! Input:  [real(r8) (:)   ]  floodplain inudntion volume at column level (mm)
+          inundfrcc            =>    col_ws%inundfrc                           & ! Input:  [real(r8) (:)   ]  floodplain inudntion fraction at column level (-)      
               )
 
        dtime = get_step_size()

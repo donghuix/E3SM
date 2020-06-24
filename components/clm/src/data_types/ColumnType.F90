@@ -72,10 +72,6 @@ module ColumnType
      ! other column characteristics
      logical , pointer :: hydrologically_active(:)   ! true if this column is a hydrologically active type
 
-     ! land river two way coupling
-     real(r8), pointer :: inundvol     (:)   => null() ! floodplain inundation volume   (m3)
-     real(r8), pointer :: inundfrc     (:)   => null() ! floodplain inundation fraction (-)
-
    contains
 
      procedure, public :: Init => col_pp_init
@@ -135,10 +131,6 @@ contains
 
     allocate(this%hydrologically_active(begc:endc))            ; this%hydrologically_active(:) = .false.
 
-    ! land river two way coupling
-    allocate(this%inundvol    (begc:endc))                     ; this%inundvol    (:)   = nan
-    allocate(this%inundfrc    (begc:endc))                     ; this%inundfrc    (:)   = nan
-
   end subroutine col_pp_init
 
   !------------------------------------------------------------------------
@@ -176,9 +168,7 @@ contains
     deallocate(this%nlevbed    )
     deallocate(this%zibed      )
     deallocate(this%hydrologically_active)
-    ! land river two way coupling
-    deallocate(this%inundvol)
-    deallocate(this%inundfrc)
+
   end subroutine col_pp_clean
   
 end module ColumnType
