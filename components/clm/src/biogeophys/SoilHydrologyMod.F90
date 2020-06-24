@@ -270,6 +270,7 @@ contains
      use clm_time_manager , only : get_step_size
      use atm2lndType      , only : atm2lnd_type ! land river two way coupling
      use lnd2atmType      , only : lnd2atm_type
+     use subgridAveMod    , only : c2g
      !
      ! !ARGUMENTS:
      type(bounds_type)        , intent(in)    :: bounds               
@@ -526,11 +527,6 @@ contains
              endif
              qflx_h2orof_drain(c)=min(inundfrcc(c)*qinmax,inundvolc(c)/dtime)
 
-             ! copy the inundation drainage to the lnd2atm_vars
-             ! TODO: only natural vegetation column in a gridcell, 
-             ! need to consider collect from different column in the future devlopment
-             lnd2atm_vars%qflx_h2orof_drain_grc(g) = qflx_h2orof_drain(c)
-
              qflx_gross_infl_soil(c) = qflx_gross_infl_soil(c) + qflx_h2osfc_drain(c) + qflx_h2orof_drain(c)            
           else
              ! non-vegetated landunits (i.e. urban) use original CLM4 code
@@ -549,6 +545,7 @@ contains
           endif
 
        enddo
+
        ! No infiltration for impervious urban surfaces
 
        do fc = 1, num_urbanc
@@ -557,6 +554,11 @@ contains
              qflx_infl(c) = 0._r8
           end if
        end do
+
+       !Average up  to gridcell for the inundation drainage
+       call c2g( bounds, qflx_h2orof_drain(bounds%begc:bounds%endc),           &
+                 lnd2atm_vars%qflx_h2orof_drain_grc(bounds%begg:bounds%endg),  &
+                 c2l_scale_type= 'unity',l2g_scale_type= 'unity' )
     
     end associate
 
