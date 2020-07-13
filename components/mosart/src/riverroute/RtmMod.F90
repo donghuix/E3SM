@@ -2017,6 +2017,12 @@ contains
            ! land river two way coupling, update floodplain inundation volume with drainage from lnd
            TRunoff%wf_ini(nr) = TRunoff%wf_ini(nr) - rtmCTL%inundinf(nr) * coupling_period
 
+           if ( TRunoff%wf_ini(nr) < 0 ) then
+             TRunoff%wr(nr, 1) = TRunoff%wr(nr, 1) + TRunoff%wf_ini(nr)
+             TRunoff%wf_ini(nr) = 0._r8
+             TRunoff%yr(nr, 1) = TRunoff%wr(nr, 1) / TUnit%rlen(nr) / TUnit%rwidth(nr)
+           endif
+
          end do
        end if
 

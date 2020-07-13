@@ -730,7 +730,7 @@ contains
     if ( inundflag ) then
       do n = rtmCTL%begr, rtmCTL%endr
         ni = ni + 1
-        r2x_r%rattr(index_r2x_Sr_inundvol,ni) = rtmCTL%inundwf(n) / (rtmCTL%area(n)*0.001_r8) / Tctl%coupling_period
+        r2x_r%rattr(index_r2x_Sr_inundvol,ni) = rtmCTL%inundwf(n) / (rtmCTL%area(n)*0.001_r8) !/ Tctl%coupling_period
         r2x_r%rattr(index_r2x_Sr_inundfrc,ni) = rtmCTL%inundff(n)
       enddo
     endif

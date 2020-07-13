@@ -267,7 +267,7 @@ contains
      use clm_varcon       , only : denh2o, denice, roverg, wimp, pc, mu, tfrz
      use column_varcon    , only : icol_roof, icol_road_imperv, icol_sunwall, icol_shadewall, icol_road_perv
      use landunit_varcon  , only : istsoil, istcrop
-     use clm_time_manager , only : get_step_size
+     use clm_time_manager , only : get_step_size, get_nstep
      use atm2lndType      , only : atm2lnd_type ! land river two way coupling
      use lnd2atmType      , only : lnd2atm_type
      use subgridAveMod    , only : c2g
@@ -519,16 +519,30 @@ contains
              ! TODO: consider more columns
              ! use the grid for lnd and rof 
              ! TODO: consider manipulate for different grid between two componennts
-             inundvolc(c) = atm2lnd_vars%inundvol_grc(g) * dtime ! retrieve volume in [mm]
-             inundfrcc(c) = atm2lnd_vars%inundfrc_grc(g) 
+             if (mod(get_nstep()-1,6) == 1 .or. mod(get_nstep()-1,6) == 0) then                 
+                inundvolc(c) = atm2lnd_vars%inundvol_grc(g) * wtgcell(c) 
+                inundfrcc(c) = atm2lnd_vars%inundfrc_grc(g) * wtgcell(c)
+             endif
              ! TODO: add inundfrac from ocean 
              if ( inundfrcc(c) > 1 - frac_sno(c) - frac_h2osfc(c) ) then
                 !inundvolc(c) = inundvolc(c) * inundfrcc(c) / ( 1 - frac_sno(c) - frac_h2osfc(c) )
                 inundfrcc(c) = 1 - frac_sno(c) - frac_h2osfc(c)
              endif
-             qflx_h2orof_drain(c)=min(inundfrcc(c)*qinmax,inundvolc(c)/dtime)
 
-             qflx_gross_infl_soil(c) = qflx_gross_infl_soil(c) + qflx_h2osfc_drain(c) + qflx_h2orof_drain(c)            
+             qflx_h2orof_drain(c)=min(inundfrcc(c)*qinmax,inundvolc(c)/dtime)
+             ! update inundation volume
+             inundvolc(c) = inundvolc(c) - qflx_h2orof_drain(c) * dtime
+
+             qflx_gross_infl_soil(c) = qflx_gross_infl_soil(c) + qflx_h2osfc_drain(c) + qflx_h2orof_drain(c)  
+
+             !if (mod(get_nstep()-1,6) == 0) then
+             !   qflx_h2orof_drain(c) = 0._r8
+             !elseif (mod(get_nstep()-1,6) == 5) then
+             !   qflx_h2orof_drain(c) = qflx_h2orof_drain(c) + min(inundfrcc(c)*qinmax,inundvolc(c)/dtime)
+             !else
+             !   qflx_h2orof_drain(c) = qflx_h2orof_drain(c)
+             !endif  
+
           else
              ! non-vegetated landunits (i.e. urban) use original CLM4 code
              if (snl(c) >= 0) then
@@ -553,6 +567,7 @@ contains
           c = filter_urbanc(fc)
           if (col_pp%itype(c) /= icol_road_perv) then
              qflx_infl(c) = 0._r8
+             qflx_h2orof_drain(c) = 0._r8
           end if
        end do
 
