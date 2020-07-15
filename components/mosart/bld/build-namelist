@@ -311,6 +311,7 @@ else {
     add_default($nl, 'smat_option');
     add_default($nl, 'wrmflag');
     add_default($nl, 'inundflag');
+    add_default($nl, 'lnd_rof_coupling');
 	add_default($nl, 'sediflag');
     add_default($nl, 'heatflag');
     add_default($nl, 'frivinp_rtm' , 'rof_grid'=>$ROF_GRID );

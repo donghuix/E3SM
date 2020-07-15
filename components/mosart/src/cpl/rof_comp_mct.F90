@@ -25,7 +25,7 @@ module rof_comp_mct
   use RtmVar           , only : rtmlon, rtmlat, ice_runoff, iulog, &
                                 nsrStartup, nsrContinue, nsrBranch, & 
                                 inst_index, inst_suffix, inst_name, RtmVarSet, &
-                                wrmflag, heatflag, inundflag
+                                wrmflag, heatflag, inundflag, lnd_rof_coupling
   use RtmSpmd          , only : masterproc, mpicom_rof, npes, iam, RtmSpmdInit, ROFID
   use RtmMod           , only : Rtmini, Rtmrun
   use RtmTimeManager   , only : timemgr_setup, get_curr_date, get_step_size
@@ -620,7 +620,7 @@ contains
                                x2r_r%rAttr(index_x2r_Faxa_swndr,n2) + x2r_r%rAttr(index_x2r_Faxa_swndf,n2)
        end if
 
-       if (inundflag) then
+       if (lnd_rof_coupling) then
           rtmCTL%inundinf(n) = x2r_r%rAttr(index_x2r_Flrl_inundinf,n2) * (rtmCTL%area(n)*0.001_r8)
        endif
     enddo
@@ -727,10 +727,10 @@ contains
     end do
 
     ni = 0
-    if ( inundflag ) then
+    if ( lnd_rof_coupling ) then
       do n = rtmCTL%begr, rtmCTL%endr
         ni = ni + 1
-        r2x_r%rattr(index_r2x_Sr_inundvol,ni) = rtmCTL%inundwf(n) / (rtmCTL%area(n)*0.001_r8) !/ Tctl%coupling_period
+        r2x_r%rattr(index_r2x_Sr_inundvol,ni) = rtmCTL%inundwf(n) / (rtmCTL%area(n)*0.001_r8) 
         r2x_r%rattr(index_r2x_Sr_inundfrc,ni) = rtmCTL%inundff(n)
       enddo
     endif
