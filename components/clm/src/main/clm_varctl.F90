@@ -439,6 +439,11 @@ module clm_varctl
    integer, public :: budget_ann   = 1
    integer, public :: budget_ltann = 1
    integer, public :: budget_ltend = 0
+
+   !----------------------------------------------------------
+   ! land river two way coupling
+   !----------------------------------------------------------
+   logical, public :: lnd_rof_coupling = .false.
 contains
 
   !---------------------------------------------------------------------------

@@ -295,6 +295,9 @@ contains
     namelist /clm_inparm/ &
          use_erosion, ero_ccycle
 
+    ! land river two way coupling
+    namelist /clm_inparm/ lnd_rof_coupling
+
     ! ----------------------------------------------------------------------
     ! Default values
     ! ----------------------------------------------------------------------
@@ -827,6 +830,9 @@ contains
     call mpi_bcast (budget_ltann , 1, MPI_INTEGER, 0, mpicom, ier)
     call mpi_bcast (budget_ltend , 1, MPI_INTEGER, 0, mpicom, ier)
 
+    ! land river two way coupling
+    call mpi_bcast (lnd_rof_coupling, 1, MPI_LOGICAL, 0, mpicom, ier)
+
   end subroutine control_spmd
 
   !------------------------------------------------------------------------
@@ -1059,6 +1065,9 @@ contains
        write(iulog, *) '  vsfm_use_dynamic_linesearch                            : ', vsfm_use_dynamic_linesearch
        write(iulog,*) '  vsfm_lateral_model_type                                 : ', vsfm_lateral_model_type
     endif
+
+    ! land river two way coupling
+    write(iulog,*) '    lnd_rof_coupling = ', lnd_rof_coupling
 
   end subroutine control_print
 

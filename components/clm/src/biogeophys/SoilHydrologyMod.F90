@@ -7,7 +7,7 @@ module SoilHydrologyMod
   use shr_kind_mod      , only : r8 => shr_kind_r8
   use shr_log_mod       , only : errMsg => shr_log_errMsg
   use decompMod         , only : bounds_type
-  use clm_varctl        , only : iulog, use_vichydro
+  use clm_varctl        , only : iulog, use_vichydro, lnd_rof_coupling
   use clm_varcon        , only : e_ice, denh2o, denice, rpi
   use EnergyFluxType    , only : energyflux_type
   use SoilHydrologyType , only : soilhydrology_type  
@@ -519,21 +519,26 @@ contains
              ! TODO: consider more columns
              ! use the grid for lnd and rof 
              ! TODO: consider manipulate for different grid between two componennts
-             if (mod(get_nstep()-1,6) == 1 .or. mod(get_nstep()-1,6) == 0) then                 
-                inundvolc(c) = atm2lnd_vars%inundvol_grc(g) * wtgcell(c) 
-                inundfrcc(c) = atm2lnd_vars%inundfrc_grc(g) * wtgcell(c)
-             endif
-             ! TODO: add inundfrac from ocean 
-             if ( inundfrcc(c) > 1 - frac_sno(c) - frac_h2osfc(c) ) then
-                !inundvolc(c) = inundvolc(c) * inundfrcc(c) / ( 1 - frac_sno(c) - frac_h2osfc(c) )
-                inundfrcc(c) = 1 - frac_sno(c) - frac_h2osfc(c)
+             if (lnd_rof_coupling) then
+               if (mod(get_nstep()-1,6) == 1 .or. mod(get_nstep()-1,6) == 0) then                 
+                  inundvolc(c) = atm2lnd_vars%inundvol_grc(g) * wtgcell(c) 
+                  inundfrcc(c) = atm2lnd_vars%inundfrc_grc(g) * wtgcell(c)
+               endif
+               ! TODO: add inundfrac from ocean 
+               if ( inundfrcc(c) > 1 - frac_sno(c) - frac_h2osfc(c) ) then
+                  !inundvolc(c) = inundvolc(c) * inundfrcc(c) / ( 1 - frac_sno(c) - frac_h2osfc(c) )
+                  inundfrcc(c) = 1 - frac_sno(c) - frac_h2osfc(c)
+               endif
+
+               qflx_h2orof_drain(c)=min(inundfrcc(c)*qinmax,inundvolc(c)/dtime)
+               ! update inundation volume
+               inundvolc(c) = inundvolc(c) - qflx_h2orof_drain(c) * dtime
+
+               qflx_gross_infl_soil(c) = qflx_gross_infl_soil(c) + qflx_h2osfc_drain(c) + qflx_h2orof_drain(c) 
+             else
+               qflx_gross_infl_soil(c) = qflx_gross_infl_soil(c) + qflx_h2osfc_drain(c)
              endif
 
-             qflx_h2orof_drain(c)=min(inundfrcc(c)*qinmax,inundvolc(c)/dtime)
-             ! update inundation volume
-             inundvolc(c) = inundvolc(c) - qflx_h2orof_drain(c) * dtime
-
-             qflx_gross_infl_soil(c) = qflx_gross_infl_soil(c) + qflx_h2osfc_drain(c) + qflx_h2orof_drain(c)  
 
              !if (mod(get_nstep()-1,6) == 0) then
              !   qflx_h2orof_drain(c) = 0._r8
@@ -567,14 +572,18 @@ contains
           c = filter_urbanc(fc)
           if (col_pp%itype(c) /= icol_road_perv) then
              qflx_infl(c) = 0._r8
-             qflx_h2orof_drain(c) = 0._r8
+             if (lnd_rof_coupling) then
+              qflx_h2orof_drain(c) = 0._r8
+             endif
           end if
        end do
 
        !Average up  to gridcell for the inundation drainage
-       call c2g( bounds, qflx_h2orof_drain(bounds%begc:bounds%endc),           &
-                 lnd2atm_vars%qflx_h2orof_drain_grc(bounds%begg:bounds%endg),  &
-                 c2l_scale_type= 'unity',l2g_scale_type= 'unity' )
+       if (lnd_rof_coupling) then
+         call c2g( bounds, qflx_h2orof_drain(bounds%begc:bounds%endc),         &
+                   lnd2atm_vars%qflx_h2orof_drain_grc(bounds%begg:bounds%endg),&
+                   c2l_scale_type= 'unity',l2g_scale_type= 'unity' )
+       endif
     
     end associate
 
