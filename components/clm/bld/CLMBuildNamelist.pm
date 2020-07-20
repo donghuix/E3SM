@@ -2452,7 +2452,7 @@ sub setup_logic_demand {
     $settings{'use_vertsoilc'}       = $nl_flags->{'use_vertsoilc'};
     $settings{'use_century_decomp'}  = $nl_flags->{'use_century_decomp'};
     $settings{'use_crop'}            = $nl_flags->{'use_crop'};
-    $settings{'lnd_rof_coupling'}    = $nl_flags->{'lnd_rof_coupling'};
+    $settings{'use_lnd_rof_two_way'} = $nl_flags->{'use_lnd_rof_two_way'};
   }
 
   my $demand = $nl->get_value('clm_demand');

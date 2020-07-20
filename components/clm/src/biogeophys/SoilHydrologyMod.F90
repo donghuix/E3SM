@@ -7,7 +7,7 @@ module SoilHydrologyMod
   use shr_kind_mod      , only : r8 => shr_kind_r8
   use shr_log_mod       , only : errMsg => shr_log_errMsg
   use decompMod         , only : bounds_type
-  use clm_varctl        , only : iulog, use_vichydro, lnd_rof_coupling
+  use clm_varctl        , only : iulog, use_vichydro, use_lnd_rof_two_way
   use clm_varcon        , only : e_ice, denh2o, denice, rpi
   use EnergyFluxType    , only : energyflux_type
   use SoilHydrologyType , only : soilhydrology_type  
@@ -519,7 +519,7 @@ contains
              ! TODO: consider more columns
              ! use the grid for lnd and rof 
              ! TODO: consider manipulate for different grid between two componennts
-             if (lnd_rof_coupling) then
+             if (use_lnd_rof_two_way) then
                if (mod(get_nstep()-1,6) == 1 .or. mod(get_nstep()-1,6) == 0) then                 
                   inundvolc(c) = atm2lnd_vars%inundvol_grc(g) * wtgcell(c) 
                   inundfrcc(c) = atm2lnd_vars%inundfrc_grc(g) * wtgcell(c)
@@ -572,14 +572,14 @@ contains
           c = filter_urbanc(fc)
           if (col_pp%itype(c) /= icol_road_perv) then
              qflx_infl(c) = 0._r8
-             if (lnd_rof_coupling) then
+             if (use_lnd_rof_two_way) then
               qflx_h2orof_drain(c) = 0._r8
              endif
           end if
        end do
 
        !Average up  to gridcell for the inundation drainage
-       if (lnd_rof_coupling) then
+       if (use_lnd_rof_two_way) then
          call c2g( bounds, qflx_h2orof_drain(bounds%begc:bounds%endc),         &
                    lnd2atm_vars%qflx_h2orof_drain_grc(bounds%begg:bounds%endg),&
                    c2l_scale_type= 'unity',l2g_scale_type= 'unity' )

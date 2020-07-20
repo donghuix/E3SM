@@ -29,7 +29,7 @@ contains
                                  metdata_type, metdata_bypass, metdata_biases, co2_file, aero_file
     use clm_varctl       , only: const_climate_hist, add_temperature, add_co2, use_cn
     use clm_varctl       , only: startdate_add_temperature, startdate_add_co2
-    use clm_varctl       , only: lnd_rof_coupling
+    use clm_varctl       , only: use_lnd_rof_two_way
     use clm_varcon       , only: rair, o2_molar_const, c13ratio
     use clm_time_manager , only: get_nstep, get_step_size, get_curr_calday, get_curr_date 
     use controlMod       , only: NLFilename
@@ -190,7 +190,7 @@ contains
        atm2lnd_vars%supply_grc(g) = x2l(index_x2l_Flrr_supply,i)
        atm2lnd_vars%deficit_grc(g) = x2l(index_x2l_Flrr_deficit,i)
 
-       if (lnd_rof_coupling) then
+       if (use_lnd_rof_two_way) then
          atm2lnd_vars%inundvol_grc(g) = x2l(index_x2l_Sr_inundvol,i)
          atm2lnd_vars%inundfrc_grc(g) = x2l(index_x2l_Sr_inundfrc,i)
        endif
@@ -1318,7 +1318,7 @@ contains
     ! !USES:
     use shr_kind_mod       , only : r8 => shr_kind_r8
     use clm_varctl         , only : iulog, create_glacier_mec_landunit
-    use clm_varctl         , only : lnd_rof_coupling
+    use clm_varctl         , only : use_lnd_rof_two_way
     use clm_time_manager   , only : get_nstep, get_step_size  
     use domainMod          , only : ldomain
     use seq_drydep_mod     , only : n_drydep
@@ -1412,7 +1412,7 @@ contains
        l2x(index_l2x_Flrl_Tqsur,i)  = lnd2atm_vars%Tqsur_grc(g)
        l2x(index_l2x_Flrl_Tqsub,i)  = lnd2atm_vars%Tqsub_grc(g)
 
-       if (lnd_rof_coupling) then
+       if (use_lnd_rof_two_way) then
           l2x(index_l2x_Flrl_inundinf,i) = lnd2atm_vars%qflx_h2orof_drain_grc(g)
        endif
 

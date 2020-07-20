@@ -443,7 +443,7 @@ module clm_varctl
    !----------------------------------------------------------
    ! land river two way coupling
    !----------------------------------------------------------
-   logical, public :: lnd_rof_coupling = .false.
+   logical, public :: use_lnd_rof_two_way = .false.
 contains
 
   !---------------------------------------------------------------------------
