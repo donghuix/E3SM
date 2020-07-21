@@ -520,7 +520,7 @@ contains
              ! use the grid for lnd and rof 
              ! TODO: consider manipulate for different grid between two componennts
              if (use_lnd_rof_two_way) then
-               if (mod(get_nstep()-1,6) == 1 .or. mod(get_nstep()-1,6) == 0) then                 
+               if (mod(get_nstep()-1,6) == 1 .or. get_nstep() == 1) then                 
                   inundvolc(c) = atm2lnd_vars%inundvol_grc(g) * wtgcell(c) 
                   inundfrcc(c) = atm2lnd_vars%inundfrc_grc(g) * wtgcell(c)
                endif
