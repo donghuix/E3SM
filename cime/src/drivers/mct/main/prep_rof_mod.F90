@@ -582,8 +582,7 @@ contains
        mrgstr(index_x2r_Faxa_swvdf) = trim(mrgstr(index_x2r_Faxa_swvdf))//' = '//'a2x%Faxa_swvdf'
        mrgstr(index_x2r_Faxa_lwdn)  = trim(mrgstr(index_x2r_Faxa_lwdn))//' = '//'a2x%Faxa_lwdn'
 
-       mrgstr(index_l2x_Flrl_inundinf) = trim(mrgstr(index_l2x_Flrl_inundinf))//' = '//'l2x%Flrl_inundinf'
-       mrgstr(index_x2r_Flrl_inundinf) = trim(mrgstr(index_x2r_Flrl_inundinf))//' = '//'x2r%Flrl_inundinf'
+       mrgstr(index_x2r_Flrl_inundinf) = trim(mrgstr(index_x2r_Flrl_inundinf))//' = '//'l2x%Flrl_inundinf'
        
     end if
 

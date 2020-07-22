@@ -379,6 +379,8 @@ contains
               )
 
        dtime = get_step_size()
+       ! initialize drainage from floodplain inundation
+       qflx_h2orof_drain = 0._r8
 
        ! Infiltration into surface soil layer (minus the evaporation)
        do fc = 1, num_hydrologyc
