@@ -517,10 +517,6 @@ contains
              qflx_infl(c) = qflx_infl(c) + qflx_h2osfc_drain(c)
 
              !8. add drainage from river inundation to qflx_infl (land river two way coupling)
-             ! only natural vegetation presented, so, all the inundation go to this column 
-             ! TODO: consider more columns
-             ! use the grid for lnd and rof 
-             ! TODO: consider manipulate for different grid between two componennts
              if (use_lnd_rof_two_way) then
                if (mod(get_nstep()-1,6) == 1 .or. get_nstep() == 1) then                 
                   inundvolc(c) = atm2lnd_vars%inundvol_grc(g) * wtgcell(c) 
@@ -536,6 +532,7 @@ contains
                ! update inundation volume
                inundvolc(c) = inundvolc(c) - qflx_h2orof_drain(c) * dtime
 
+               qflx_infl(c) = qflx_infl(c) + qflx_h2orof_drain(c) 
                qflx_gross_infl_soil(c) = qflx_gross_infl_soil(c) + qflx_h2osfc_drain(c) + qflx_h2orof_drain(c) 
              else
                qflx_gross_infl_soil(c) = qflx_gross_infl_soil(c) + qflx_h2osfc_drain(c)
