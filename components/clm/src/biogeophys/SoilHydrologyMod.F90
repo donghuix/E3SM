@@ -297,7 +297,7 @@ contains
      real(r8) :: alpha_evap(bounds%begc:bounds%endc)        ! fraction of total evap from h2osfc
      real(r8) :: qflx_evap(bounds%begc:bounds%endc)         ! local evaporation array
      real(r8) :: qflx_h2osfc_drain(bounds%begc:bounds%endc) ! bottom drainage from h2osfc
-     real(r8) :: qflx_h2orof_drain(bounds%begc:bounds%endc) ! bottom drainage from river floodplain inundation
+     !real(r8) :: qflx_h2orof_drain(bounds%begc:bounds%endc) ! bottom drainage from river floodplain inundation
      real(r8) :: qflx_in_h2osfc(bounds%begc:bounds%endc)    ! surface input to h2osfc
      real(r8) :: qflx_in_soil(bounds%begc:bounds%endc)      ! surface input to soil
      real(r8) :: qflx_infl_excess(bounds%begc:bounds%endc)  ! infiltration excess runoff -> h2osfc
@@ -349,6 +349,7 @@ contains
           qflx_infl            =>    col_wf%qflx_infl            , & ! Output: [real(r8) (:)   ] infiltration (mm H2O /s)                           
           qflx_gross_infl_soil =>    col_wf%qflx_gross_infl_soil , & ! Output: [real(r8) (:)] gross infiltration (mm H2O/s)
           qflx_gross_evap_soil =>    col_wf%qflx_gross_evap_soil , & ! Output: [real(r8) (:)] gross evaporation (mm H2O/s)
+          qflx_h2orof_drain    =>    col_wf%qflx_h2orof_drain    , & ! Output: [real(r8) (:)] drainange from floodplain inundation volume (mm H2O/s) 
 
           smpmin               =>    soilstate_vars%smpmin_col               , & ! Input:  [real(r8) (:)   ]  restriction for min of soil potential (mm)        
           sucsat               =>    soilstate_vars%sucsat_col               , & ! Input:  [real(r8) (:,:) ]  minimum soil suction (mm)                       
@@ -380,7 +381,7 @@ contains
 
        dtime = get_step_size()
        ! initialize drainage from floodplain inundation
-       qflx_h2orof_drain = 0._r8
+       !qflx_h2orof_drain = 0._r8
 
        ! Infiltration into surface soil layer (minus the evaporation)
        do fc = 1, num_hydrologyc
@@ -518,7 +519,7 @@ contains
 
              !8. add drainage from river inundation to qflx_infl (land river two way coupling)
              if (use_lnd_rof_two_way) then
-               if (mod(get_nstep()-1,6) == 1 .or. get_nstep() == 1) then                 
+               if (mod(get_nstep()-1,6) == 1 .or. get_nstep() <= 1) then                 
                   inundvolc(c) = atm2lnd_vars%inundvol_grc(g) * wtgcell(c) 
                   inundfrcc(c) = atm2lnd_vars%inundfrc_grc(g) * wtgcell(c)
                endif
