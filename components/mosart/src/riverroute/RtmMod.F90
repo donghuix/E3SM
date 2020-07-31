@@ -56,6 +56,7 @@ module RtmMod
 ! !PUBLIC MEMBER FUNCTIONS:
   public Rtmini          ! Initialize MOSART grid
   public Rtmrun          ! River routing model
+  public :: elevation_profile_io
 !
 ! !REVISION HISTORY:
 ! Author: Sam Levis
@@ -3552,7 +3553,7 @@ contains
           ! --------------------------------- 
           ! (assign elevation values to TUnit%e_eprof_in2( :, : ) ).
 
-          call read_elevation_profile(ncid, 'ele', TUnit%e_eprof_in2)
+          call elevation_profile_io(ncid, 'ele', TUnit%e_eprof_in2, 'read')
      
           ! --------------------------------- 
 
@@ -4031,12 +4032,13 @@ contains
 
 !----------------------------------------------------------------------------
 
-  subroutine read_elevation_profile(ncid, varname, e_eprof_in2)
+  subroutine elevation_profile_io(ncid, varname, eprof, mode)
 
     implicit none
     type(file_desc_t)      :: ncid       ! pio file desc
     character(len=*)       :: varname    ! variable name
-    real(r8)               :: e_eprof_in2(:,:)
+    real(r8)               :: eprof(:,:)
+    character(len=*)       :: mode
 
     character(len=*),parameter :: subname = '(read_elevation_profile)'
 
@@ -4048,8 +4050,8 @@ contains
     integer, pointer   :: compdof(:) ! computational degrees of freedom for pio 
     integer            :: begr, endr, cnt, m, n
     integer            :: ier
-    integer            :: elesize    ! number of points for elevation profile
-    real(r8), pointer  :: ele(:,:)
+    integer            :: nele       ! number of points for elevation profile
+    real(r8), pointer  :: tmpele(:,:)
 
     begr = rtmCTL%begr
     endr = rtmCTL%endr
@@ -4062,11 +4064,11 @@ contains
       ier = pio_inq_dimlen(ncid,dimids(n),dsizes(n))
     enddo
 
-    elesize = dsizes(ndims)
-    allocate(compdof(rtmCTL%lnumr*elesize)) ! dims(ndims): 
+    nele = dsizes(ndims)
+    allocate(compdof(rtmCTL%lnumr*nele)) ! dims(ndims): 
     cnt = 0
 
-    do n = 1, elesize
+    do n = 1, nele
       do m = rtmCTL%begr,rtmCTL%endr
         cnt = cnt + 1
         compDOF(cnt) = (n-1)* rtmCTL%numr + rtmCTL%gindex(m)
@@ -4076,17 +4078,26 @@ contains
     call pio_initdecomp(pio_subsystem, pio_double, dsizes(1:ndims), compDOF, iodesc)
     deallocate(compdof)
 
-    allocate(ele(begr:endr,1:elesize))
-    call pio_read_darray(ncid, vardesc, iodesc, ele, ier)
+    if (mode == 'read') then
 
-    do n = 1, elesize
-      e_eprof_in2(n,:) = ele(:,n)
-    enddo
+      allocate(tmpele(begr:endr,1:nele))
+      call pio_read_darray(ncid, vardesc, iodesc, tmpele, ier)
 
-    deallocate(ele)
+      do n = 1, nele
+        eprof(n,:) = tmpele(:,n)
+      enddo
+
+      deallocate(tmpele)
+
+    elseif (mode == 'write') then
+
+      call pio_write_darray(ncid, vardesc, iodesc, eprof, ier)
+
+    endif
+
     call pio_freedecomp(ncid, iodesc)
 
-  end subroutine read_elevation_profile
+  end subroutine elevation_profile_io
 
 !----------------------------------------------------------------------------
 

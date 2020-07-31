@@ -12,11 +12,12 @@ module RtmHistFile
   use RtmVar        , only : rtmlon, rtmlat, spval, ispval, secspday, frivinp_rtm, &   
                              iulog, nsrest, caseid, inst_suffix, nsrStartup, nsrBranch, & 
                              ctitle, version, hostname, username, conventions, source, &
-                             isgrid2d
+                             isgrid2d, inundflag
   use RtmFileUtils  , only : get_filename, getfil
   use RtmTimeManager, only : get_nstep, get_curr_date, get_curr_time, get_ref_date, &
                              get_prev_time, get_prev_date, is_last_step
   use RtmSpmd       , only : masterproc
+  use RtmMod        , only : elevation_profile_io
   use RtmIO
   use RtmDateTime
 
@@ -707,6 +708,11 @@ contains
     else
       call ncd_defdim( lnfid, 'gridcell', rtmlon, dimid)
     endif
+
+    if (inundflag) then
+      call ncd_defdim( lnfid, 'nele',     13,     dimid)
+    endif
+
     call ncd_defdim( lnfid, 'allrof', numrtm    , dimid)
 
     call ncd_defdim(lnfid, 'string_length', 8, strlen_dimid)
@@ -823,6 +829,10 @@ contains
               long_name='basin upstream areatotal', units='m2', ncid=nfid(t))
          call ncd_defvar(varname='areatotal2', xtype=tape(t)%ncprec, dim1name='lon', dim2name='lat', &
               long_name='computed basin upstream areatotal', units='m2', ncid=nfid(t))
+         if (inundflag) then
+            call ncd_defvar(varname='e_eprof3', xtype=tape(t)%ncprec, dim1name='lon', dim2name='lat', &
+                 dim3name='nele', long_name='adjusted elevation profile', units='m', ncid=nfid(t))
+         endif
        else
          call ncd_defvar(varname='lon', xtype=tape(t)%ncprec, dim1name='gridcell',       &
               long_name='runoff coordinate longitude', units='degrees_east', ncid=nfid(t))
@@ -836,6 +846,10 @@ contains
               long_name='basin upstream areatotal', units='m2', ncid=nfid(t))
          call ncd_defvar(varname='areatotal2', xtype=tape(t)%ncprec, dim1name='gridcell',&
               long_name='computed basin upstream areatotal', units='m2', ncid=nfid(t))
+         if (inundflag) then
+            call ncd_defvar(varname='e_eprof3', xtype=tape(t)%ncprec, dim1name='gridcell', dim2name='nele', &
+              long_name='adjusted elevation profile', units='m', ncid=nfid(t))
+         endif
        endif
 
     else if (mode == 'write') then
@@ -873,6 +887,9 @@ contains
            data=Tunit%areatotal, ncid=nfid(t))
        call ncd_io(flag='write', varname='areatotal2', dim1name='allrof', &
            data=Tunit%areatotal2, ncid=nfid(t))
+       if (inundflag) then
+         call elevation_profile_io(nfid(t), 'e_eprof3', TUnit%e_eprof3, mode)
+       endif
 
     endif
 
