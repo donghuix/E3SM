@@ -299,6 +299,7 @@ contains
      real(r8) :: qflx_h2osfc_drain(bounds%begc:bounds%endc) ! bottom drainage from h2osfc
      !real(r8) :: qflx_h2orof_drain(bounds%begc:bounds%endc) ! bottom drainage from river floodplain inundation
      real(r8) :: qflx_in_h2osfc(bounds%begc:bounds%endc)    ! surface input to h2osfc
+     real(r8) :: qflx_in_h2orof(bounds%begc:bounds%endc)    ! surface input to h2orof 
      real(r8) :: qflx_in_soil(bounds%begc:bounds%endc)      ! surface input to soil
      real(r8) :: qflx_infl_excess(bounds%begc:bounds%endc)  ! infiltration excess runoff -> h2osfc
      real(r8) :: frac_infclust                              ! fraction of submerged area that is connected
@@ -324,12 +325,12 @@ contains
      real(r8) :: top_icefrac                                ! temporary, ice fraction in top VIC layers
      !-----------------------------------------------------------------------
 
-     associate(                                                                & 
-          snl                  =>    col_pp%snl                                 , & ! Input:  [integer  (:)   ]  minus number of snow layers                        
-          dz                   =>    col_pp%dz                                  , & ! Input:  [real(r8) (:,:) ]  layer depth (m)                                 
-         nlev2bed         =>    col_pp%nlevbed                                  , & ! Input:  [integer  (:)   ]  number of layers to bedrock                     
+     associate(                                                   & 
+          snl                  =>    col_pp%snl                 , & ! Input:  [integer  (:)   ]  minus number of snow layers                        
+          dz                   =>    col_pp%dz                  , & ! Input:  [real(r8) (:,:) ]  layer depth (m)                                 
+          nlev2bed             =>    col_pp%nlevbed             , & ! Input:  [integer  (:)   ]  number of layers to bedrock                     
 
-          t_soisno             =>    col_es%t_soisno           , & ! Input:  [real(r8) (:,:) ]  soil temperature (Kelvin)                       
+          t_soisno             =>    col_es%t_soisno            , & ! Input:  [real(r8) (:,:) ]  soil temperature (Kelvin)                       
 
           frac_h2osfc          =>    col_ws%frac_h2osfc         , & ! Input:  [real(r8) (:)   ]  fraction of ground covered by surface water (0 to 1)
           frac_sno             =>    col_ws%frac_sno_eff        , & ! Input:  [real(r8) (:)   ]  fraction of ground covered by snow (0 to 1)       
@@ -375,8 +376,8 @@ contains
           ! land river two way coupling         
           cgridcell            =>    col_pp%gridcell                         , & ! Input:  [integer  (:)   ]  column's gridcell    
           wtgcell              =>    col_pp%wtgcell                          , & ! Input:  [real(r8) (:)   ]  weight (relative to gridcell) 
-          inundvolc            =>    col_ws%inundvol                         , & ! Input:  [real(r8) (:)   ]  floodplain inudntion volume at column level (mm)
-          inundfrcc            =>    col_ws%inundfrc                           & ! Input:  [real(r8) (:)   ]  floodplain inudntion fraction at column level (-)      
+          h2orof               =>    col_ws%h2orof                           , & ! Output:  [real(r8) (:)   ]  floodplain inudntion volume at column level (mm)
+          frac_h2orof          =>    col_ws%frac_h2orof                        & ! Output:  [real(r8) (:)   ]  floodplain inudntion fraction at column level (-)      
               )
 
        dtime = get_step_size()
@@ -411,20 +412,35 @@ contains
                 qflx_evap(c)=qflx_ev_soil(c)
              endif
 
-             !1. partition surface inputs between soil and h2osfc
-             qflx_in_soil(c) = (1._r8 - frac_h2osfc(c)) * (qflx_top_soil(c)  - qflx_surf(c))
-             qflx_in_h2osfc(c) = frac_h2osfc(c) * (qflx_top_soil(c)  - qflx_surf(c))          
-             qflx_gross_infl_soil(c) = (1._r8 - frac_h2osfc(c)) * (qflx_top_soil(c)  - qflx_surf(c))
+             ! partition grid-level floodplain inundation volume and fraction to each column
+             if (use_lnd_rof_two_way) then
+                if (mod(get_nstep()-1,6) == 1 .or. get_nstep() <= 1) then                 
+                  h2orof(c)      = atm2lnd_vars%h2orof_grc(g) * wtgcell(c) 
+                  frac_h2orof(c) = atm2lnd_vars%frac_h2orof_grc(g) * wtgcell(c)
+                endif
+                ! TODO: add inundfrac from ocean 
+                if ( frac_h2orof(c) > 1 - fsno - frac_h2osfc(c) ) then
+                  !h2orof(c) = h2orof(c) * frac_h2orof(c) / ( 1 - frac_sno(c) - frac_h2osfc(c) )
+                  frac_h2orof(c) = 1 - fsno - frac_h2osfc(c)
+                endif
+             endif
+
+             !1. partition surface inputs between soil, h2osfc, and floodplain
+             qflx_in_soil(c) = (1._r8 - frac_h2osfc(c) - frac_h2orof(c)) * (qflx_top_soil(c)  - qflx_surf(c))
+             qflx_in_h2osfc(c) = frac_h2osfc(c) * (qflx_top_soil(c)  - qflx_surf(c))
+             qflx_in_h2orof(c) = frac_h2orof(c) * (qflx_top_soil(c)  - qflx_surf(c))       
+             qflx_gross_infl_soil(c) = (1._r8 - frac_h2osfc(c) - frac_h2orof(c)) * (qflx_top_soil(c)  - qflx_surf(c))
              
              !2. remove evaporation (snow treated in SnowHydrology)
-             qflx_in_soil(c) = qflx_in_soil(c) - (1.0_r8 - fsno - frac_h2osfc(c))*qflx_evap(c)
-             qflx_in_h2osfc(c) =  qflx_in_h2osfc(c)  - frac_h2osfc(c) * qflx_ev_h2osfc(c)
+             qflx_in_soil(c) = qflx_in_soil(c) - (1.0_r8 - fsno - frac_h2osfc(c) - frac_h2orof(c))*qflx_evap(c)
+             qflx_in_h2osfc(c) = qflx_in_h2osfc(c) - frac_h2osfc(c) * qflx_ev_h2osfc(c)
+             qflx_in_h2orof(c) = qflx_in_h2orof(c) - frac_h2orof(c) * qflx_ev_h2osfc(c) 
 
              if (qflx_evap(c)>0._r8) then
-                qflx_gross_evap_soil(c) = (1.0_r8 - fsno - frac_h2osfc(c))*qflx_evap(c)
+                qflx_gross_evap_soil(c) = (1.0_r8 - fsno - frac_h2osfc(c) - frac_h2orof(c))*qflx_evap(c)
              else
                 qflx_gross_evap_soil(c) = 0._r8
-                qflx_gross_infl_soil(c) = qflx_gross_infl_soil(c)-(1.0_r8 - fsno - frac_h2osfc(c))*qflx_evap(c)
+                qflx_gross_infl_soil(c) = qflx_gross_infl_soil(c)-(1.0_r8 - fsno - frac_h2osfc(c) - frac_h2orof(c))*qflx_evap(c)
              endif
 
              !3. determine maximum infiltration rate
@@ -454,7 +470,7 @@ contains
              else
                 qinmax=(1._r8 - fsat(c)) * minval(10._r8**(-e_ice*(icefrac(c,1:3)))*hksat(c,1:3))
              end if
-             qflx_infl_excess(c) = max(0._r8,qflx_in_soil(c) -  (1.0_r8 - frac_h2osfc(c))*qinmax)
+             qflx_infl_excess(c) = max(0._r8,qflx_in_soil(c) -  (1.0_r8 - frac_h2osfc(c) - frac_h2orof(c))*qinmax)
 
              !4. soil infiltration and h2osfc "run-on"
              qflx_infl(c) = qflx_in_soil(c) - qflx_infl_excess(c)
@@ -519,22 +535,19 @@ contains
 
              !8. add drainage from river inundation to qflx_infl (land river two way coupling)
              if (use_lnd_rof_two_way) then
-               if (mod(get_nstep()-1,6) == 1 .or. get_nstep() <= 1) then                 
-                  inundvolc(c) = atm2lnd_vars%inundvol_grc(g) * wtgcell(c) 
-                  inundfrcc(c) = atm2lnd_vars%inundfrc_grc(g) * wtgcell(c)
-               endif
-               ! TODO: add inundfrac from ocean 
-               if ( inundfrcc(c) > 1 - frac_sno(c) - frac_h2osfc(c) ) then
-                  !inundvolc(c) = inundvolc(c) * inundfrcc(c) / ( 1 - frac_sno(c) - frac_h2osfc(c) )
-                  inundfrcc(c) = 1 - frac_sno(c) - frac_h2osfc(c)
-               endif
 
-               qflx_h2orof_drain(c)=min(inundfrcc(c)*qinmax,inundvolc(c)/dtime)
-               ! update inundation volume
-               inundvolc(c) = inundvolc(c) - qflx_h2orof_drain(c) * dtime
+               ! update inundation volume prior to calculating bottom drainage from flood plain inundation
+               h2orof(c) = h2orof(c) + qflx_in_h2orof(c) * dtime
+
+               qflx_h2orof_drain(c)=min(frac_h2orof(c)*qinmax,h2orof(c)/dtime)
+
+               ! remove drainage from inundation volume
+               h2orof(c) = h2orof(c) - qflx_h2orof_drain(c) * dtime
 
                qflx_infl(c) = qflx_infl(c) + qflx_h2orof_drain(c) 
                qflx_gross_infl_soil(c) = qflx_gross_infl_soil(c) + qflx_h2osfc_drain(c) + qflx_h2orof_drain(c) 
+               ! TODO: check here
+               qflx_h2orof_drain(c) = qflx_h2orof_drain(c) - qflx_in_h2orof(c)
              else
                qflx_gross_infl_soil(c) = qflx_gross_infl_soil(c) + qflx_h2osfc_drain(c)
              endif
@@ -543,7 +556,7 @@ contains
              !if (mod(get_nstep()-1,6) == 0) then
              !   qflx_h2orof_drain(c) = 0._r8
              !elseif (mod(get_nstep()-1,6) == 5) then
-             !   qflx_h2orof_drain(c) = qflx_h2orof_drain(c) + min(inundfrcc(c)*qinmax,inundvolc(c)/dtime)
+             !   qflx_h2orof_drain(c) = qflx_h2orof_drain(c) + min(frac_h2orof(c)*qinmax,h2orof(c)/dtime)
              !else
              !   qflx_h2orof_drain(c) = qflx_h2orof_drain(c)
              !endif  

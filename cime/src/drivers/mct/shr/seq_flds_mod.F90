@@ -2130,16 +2130,16 @@ contains
     endif
 
     ! land river two way coupling
-    call seq_flds_add(r2x_fluxes, 'Sr_inundvol')
-    call seq_flds_add(x2l_fluxes, 'Sr_inundvol')
+    call seq_flds_add(r2x_fluxes, 'Sr_h2orof')
+    call seq_flds_add(x2l_fluxes, 'Sr_h2orof')
     longname = 'Inundation floodplain water volume'
     stdname  = 'rtm_inundwf'
-    units    = 'm3'
+    units    = 'mm'
     attname  = 'inundwf'
     call metadata_set(attname, longname, stdname, units)
 
-    call seq_flds_add(r2x_fluxes, 'Sr_inundfrc')
-    call seq_flds_add(x2l_fluxes, 'Sr_inundfrc')
+    call seq_flds_add(r2x_fluxes, 'Sr_frac_h2orof')
+    call seq_flds_add(x2l_fluxes, 'Sr_frac_h2orof')
     longname = 'Inundation floodplain water area fraction'
     stdname  = 'rtm_inundff'
     units    = '1'

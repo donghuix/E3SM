@@ -161,8 +161,8 @@ module ColumnDataType
     real(r8), pointer :: vsfm_smpl_col_1d   (:)   => null() ! 1D soil matrix potential liquid from VSFM [m]
     real(r8), pointer :: vsfm_soilp_col_1d  (:)   => null() ! 1D soil liquid pressure from VSFM [Pa]
     ! land river two way coupling
-    real(r8), pointer :: inundvol           (:)   => null() ! floodplain inundation volume   (mm)
-    real(r8), pointer :: inundfrc           (:)   => null() ! floodplain inundation fraction (-)
+    real(r8), pointer :: h2orof             (:)   => null() ! floodplain inundation volume   (mm)
+    real(r8), pointer :: frac_h2orof        (:)   => null() ! floodplain inundation fraction (-)
    
   contains
     procedure, public :: Init    => col_ws_init
@@ -1325,8 +1325,8 @@ contains
     allocate(this%vsfm_mass_col_1d   (ncells))                        ; this%vsfm_mass_col_1d   (:)   = nan
     allocate(this%vsfm_smpl_col_1d   (ncells))                        ; this%vsfm_smpl_col_1d   (:)   = nan
     allocate(this%vsfm_soilp_col_1d  (ncells))                        ; this%vsfm_soilp_col_1d  (:)   = nan
-    allocate(this%inundvol           (begc:endc))                     ; this%inundvol           (:)   = nan
-    allocate(this%inundfrc           (begc:endc))                     ; this%inundfrc           (:)   = nan
+    allocate(this%h2orof             (begc:endc))                     ; this%h2orof             (:)   = nan
+    allocate(this%frac_h2orof        (begc:endc))                     ; this%frac_h2orof        (:)   = nan
 
     !-----------------------------------------------------------------------
     ! initialize history fields for select members of col_ws
@@ -1485,6 +1485,8 @@ contains
        this%h2osfc(c)                 = 0._r8
        this%h2ocan(c)                 = 0._r8
        this%frac_h2osfc(c)            = 0._r8
+       this%h2orof(c)                 = 0._r8
+       this%frac_h2orof(c)            = 0._r8
 
        if (lun_pp%urbpoi(l)) then
           ! From Bonan 1996 (LSM technical note)

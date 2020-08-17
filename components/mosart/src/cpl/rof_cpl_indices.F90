@@ -59,8 +59,8 @@ module rof_cpl_indices
   integer, public :: index_r2x_Flrr_volrmch = 0 ! rof->lnd volr main channel back to land
   integer, public :: index_r2x_Flrr_supply = 0  ! rof->lnd supply flux for land use
   integer, public :: index_r2x_Flrr_deficit = 0 ! rof->lnd supply deficit
-  integer, public :: index_r2x_Sr_inundvol = 0  ! rof->lnd floodplain inundation volume
-  integer, public :: index_r2x_Sr_inundfrc = 0  ! rof->lnd floodplain inundation fraction
+  integer, public :: index_r2x_Sr_h2orof      = 0  ! rof->lnd floodplain inundation volume
+  integer, public :: index_r2x_Sr_frac_h2orof = 0  ! rof->lnd floodplain inundation fraction
   integer, public :: nflds_r2x = 0
 
 !=======================================================================
@@ -132,8 +132,8 @@ contains
     index_r2x_Flrr_volrmch = mct_avect_indexra(avtmp,'Flrr_volrmch')
     index_r2x_Flrr_supply  = mct_avect_indexra(avtmp,'Flrr_supply')
     index_r2x_Flrr_deficit = mct_avect_indexra(avtmp,'Flrr_deficit')
-    index_r2x_Sr_inundvol  = mct_avect_indexra(avtmp,'Sr_inundvol')
-    index_r2x_Sr_inundfrc  = mct_avect_indexra(avtmp,'Sr_inundfrc')
+    index_r2x_Sr_h2orof       = mct_avect_indexra(avtmp,'Sr_h2orof')
+    index_r2x_Sr_frac_h2orof  = mct_avect_indexra(avtmp,'Sr_frac_h2orof')
     nflds_r2x = mct_avect_nRattr(avtmp)
 
     call mct_aVect_clean(avtmp)

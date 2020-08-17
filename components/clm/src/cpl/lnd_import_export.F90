@@ -191,8 +191,8 @@ contains
        atm2lnd_vars%deficit_grc(g) = x2l(index_x2l_Flrr_deficit,i)
 
        if (use_lnd_rof_two_way) then
-         atm2lnd_vars%inundvol_grc(g) = x2l(index_x2l_Sr_inundvol,i)
-         atm2lnd_vars%inundfrc_grc(g) = x2l(index_x2l_Sr_inundfrc,i)
+         atm2lnd_vars%h2orof_grc(g) = x2l(index_x2l_Sr_,i)
+         atm2lnd_vars%frac_h2orof_grc(g) = x2l(index_x2l_Sr_frac_h2orof,i)
        endif
 
        ! Determine required receive fields

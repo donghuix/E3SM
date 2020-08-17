@@ -110,8 +110,8 @@ module clm_cpl_indices
   integer, public ::index_x2l_Flrr_volrmch    ! rtm->lnd rof volr main channel volume
   integer, public ::index_x2l_Flrr_supply     ! rtm->lnd rof supply for land use
   integer, public ::index_x2l_Flrr_deficit    ! rtm->lnd supply deficit
-  integer, public ::index_x2l_Sr_inundvol     ! rtm->lnd floodplain inundation volume
-  integer, public ::index_x2l_Sr_inundfrc     ! rtm->lnd floodplain inundation fraction
+  integer, public ::index_x2l_Sr_h2orof       ! rtm->lnd floodplain inundation volume
+  integer, public ::index_x2l_Sr_frac_h2orof  ! rtm->lnd floodplain inundation fraction
 
   ! In the following, index 0 is bare land, other indices are glc elevation classes
   integer, public ::index_x2l_Sg_frac(0:glc_nec_max)   = 0   ! Fraction of glacier from glc model
@@ -243,8 +243,8 @@ contains
     index_x2l_Flrr_volrmch  = mct_avect_indexra(x2l,'Flrr_volrmch')
     index_x2l_Flrr_supply   = mct_avect_indexra(x2l,'Flrr_supply')
     index_x2l_Flrr_deficit  = mct_avect_indexra(x2l,'Flrr_deficit')
-    index_x2l_Sr_inundvol   = mct_avect_indexra(x2l,'Sr_inundvol')
-    index_x2l_Sr_inundfrc   = mct_avect_indexra(x2l,'Sr_inundfrc')
+    index_x2l_Sr_h2orof     = mct_avect_indexra(x2l,'Sr_h2orof')
+    index_x2l_Sr_frac_h2orof= mct_avect_indexra(x2l,'Sr_frac_h2orof')
 	
     index_x2l_Faxa_lwdn     = mct_avect_indexra(x2l,'Faxa_lwdn')
     index_x2l_Faxa_rainc    = mct_avect_indexra(x2l,'Faxa_rainc')

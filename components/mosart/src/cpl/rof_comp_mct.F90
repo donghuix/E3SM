@@ -48,7 +48,7 @@ module rof_comp_mct
                                 index_r2x_Flrr_flood, &
                                 index_r2x_Flrr_volr, index_r2x_Flrr_volrmch, &
                                 index_r2x_Flrr_supply, index_r2x_Flrr_deficit, &
-                                index_r2x_Sr_inundvol, index_r2x_Sr_inundfrc,  &
+                                index_r2x_Sr_h2orof, index_r2x_Sr_frac_h2orof, &
                                 index_x2r_Flrl_inundinf
 
   use mct_mod
@@ -730,8 +730,8 @@ contains
     if ( use_lnd_rof_two_way ) then
       do n = rtmCTL%begr, rtmCTL%endr
         ni = ni + 1
-        r2x_r%rattr(index_r2x_Sr_inundvol,ni) = rtmCTL%inundwf(n) / (rtmCTL%area(n)*0.001_r8) 
-        r2x_r%rattr(index_r2x_Sr_inundfrc,ni) = rtmCTL%inundff(n)
+        r2x_r%rattr(index_r2x_Sr_h2orof,ni)      = rtmCTL%inundwf(n) / (rtmCTL%area(n)*0.001_r8) ! m^3 to mm
+        r2x_r%rattr(index_r2x_Sr_frac_h2orof,ni) = rtmCTL%inundff(n)
       enddo
     endif
 
