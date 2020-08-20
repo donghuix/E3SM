@@ -596,8 +596,8 @@ contains
 
        !Average up  to gridcell for the inundation drainage
        if (use_lnd_rof_two_way) then
-         call c2g( bounds, qflx_h2orof_exchg(bounds%begc:bounds%endc)- qflx_in_h2orof(c), &
-                   lnd2atm_vars%qflx_h2orof_drain_grc(bounds%begg:bounds%endg),           &
+         call c2g( bounds, qflx_h2orof_exchg(bounds%begc:bounds%endc),         &
+                   lnd2atm_vars%qflx_h2orof_drain_grc(bounds%begg:bounds%endg),&
                    c2l_scale_type= 'unity',l2g_scale_type= 'unity' )
        endif
     
