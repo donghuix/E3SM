@@ -265,6 +265,7 @@ contains
      use clm_varpar       , only : nlayer, nlayert
      use clm_varpar       , only : nlevsoi, nlevgrnd
      use clm_varcon       , only : denh2o, denice, roverg, wimp, pc, mu, tfrz
+     use clm_varcon       , only : pondmx, watmin
      use column_varcon    , only : icol_roof, icol_road_imperv, icol_sunwall, icol_shadewall, icol_road_perv
      use landunit_varcon  , only : istsoil, istcrop
      use clm_time_manager , only : get_step_size, get_nstep
@@ -324,6 +325,7 @@ contains
      real(r8) :: top_max_moist(bounds%begc:bounds%endc)     ! temporary, maximum soil moisture in top VIC layers
      real(r8) :: top_ice(bounds%begc:bounds%endc)           ! temporary, ice len in top VIC layers
      real(r8) :: top_icefrac                                ! temporary, ice fraction in top VIC layers
+     real(r8) :: h2osoi_left_vol1                           ! temporary, available volume in the first soil layer
      !-----------------------------------------------------------------------
 
      associate(                                                   & 
@@ -541,7 +543,11 @@ contains
                ! update inundation volume prior to calculating bottom drainage from flood plain inundation
                h2orof(c) = h2orof(c) + qflx_in_h2orof(c) * dtime
 
+               h2osoi_left_vol1 = max(max(0._r8,(pondmx+watsat(c,1)*dz(c,1)*1.e3_r8-h2osoi_ice(c,1)-watmin)) - &
+                                      max(h2osoi_liq(c,1)-watmin,0._r8), 0._r8)
                qflx_h2orof_drain(c)=min(frac_h2orof(c)*qinmax,h2orof(c)/dtime)
+               ! no drainage from rof inundation if the 1st layer soil is saturated
+               qflx_h2orof_drain(c)=min(qflx_h2orof_drain(c), h2osoi_left_vol1/dtime)
 
                ! remove drainage from inundation volume
                h2orof(c) = h2orof(c) - qflx_h2orof_drain(c) * dtime
