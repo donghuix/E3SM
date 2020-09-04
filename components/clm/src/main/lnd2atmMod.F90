@@ -12,7 +12,7 @@ module lnd2atmMod
   use shr_megan_mod        , only : shr_megan_mechcomps_n
   use clm_varpar           , only : numrad, ndst, nlevgrnd, nlevsno, nlevsoi !ndst = number of dust bins.
   use clm_varcon           , only : rair, grav, cpair, hfus, tfrz, spval
-  use clm_varctl           , only : iulog, use_c13, use_cn, use_lch4, use_voc
+  use clm_varctl           , only : iulog, use_c13, use_cn, use_lch4, use_voc, use_lnd_rof_two_way
   use tracer_varcon        , only : is_active_betr_bgc
   use seq_drydep_mod       , only : n_drydep, drydep_method, DD_XLND
   use decompMod            , only : bounds_type
@@ -317,11 +317,20 @@ contains
 
     call c2g( bounds, &
          col_wf%qflx_snwcp_ice(bounds%begc:bounds%endc),  &
-         lnd2atm_vars%qflx_rofice_grc     (bounds%begg:bounds%endg),  & 
+         lnd2atm_vars%qflx_rofice_grc     (bounds%begg:bounds%endg),    & 
          c2l_scale_type= 'urbanf', l2g_scale_type='unity' )
     do g = bounds%begg, bounds%endg
        lnd2atm_vars%qflx_rofice_grc(g) = lnd2atm_vars%qflx_rofice_grc(g) - grc_wf%qflx_ice_dynbal(g)          
     enddo
+
+    ! land river two-way coupling
+    !Average up  to gridcell for the inundation drainage
+    if (use_lnd_rof_two_way) then
+          call c2g( bounds, & 
+               col_wf%qflx_h2orof_drain(bounds%begc:bounds%endc),          &
+               lnd2atm_vars%qflx_h2orof_drain_grc(bounds%begg:bounds%endg),&
+               c2l_scale_type= 'unity',l2g_scale_type= 'unity' )
+    endif
 
     ! calculate total water storage for history files
     ! first set tws to gridcell total endwb
