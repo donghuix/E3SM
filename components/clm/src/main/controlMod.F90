@@ -296,7 +296,7 @@ contains
          use_erosion, ero_ccycle
 
     ! land river two way coupling
-    namelist /clm_inparm/ use_lnd_rof_two_way
+    namelist /clm_inparm/ use_lnd_rof_two_way, use_frac_h2osfc_act
 
     ! ----------------------------------------------------------------------
     ! Default values
@@ -832,6 +832,7 @@ contains
 
     ! land river two way coupling
     call mpi_bcast (use_lnd_rof_two_way, 1, MPI_LOGICAL, 0, mpicom, ier)
+    call mpi_bcast (use_frac_h2osfc_act, 1, MPI_LOGICAL, 0, mpicom, ier)
 
   end subroutine control_spmd
 
@@ -1068,6 +1069,7 @@ contains
 
     ! land river two way coupling
     write(iulog,*) '    use_lnd_rof_two_way= ', use_lnd_rof_two_way
+    write(iulog,*) '    use_frac_h2osfc_act= ', use_frac_h2osfc_act
 
   end subroutine control_print
 

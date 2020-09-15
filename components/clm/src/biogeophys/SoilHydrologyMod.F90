@@ -8,6 +8,7 @@ module SoilHydrologyMod
   use shr_log_mod       , only : errMsg => shr_log_errMsg
   use decompMod         , only : bounds_type
   use clm_varctl        , only : iulog, use_vichydro, use_lnd_rof_two_way
+  use clm_varctl        , only : use_frac_h2osfc_act
   use clm_varcon        , only : e_ice, denh2o, denice, rpi
   use EnergyFluxType    , only : energyflux_type
   use SoilHydrologyType , only : soilhydrology_type  
@@ -481,14 +482,22 @@ contains
              !5. surface runoff from h2osfc
              if (h2osfcflag==1) then
                 ! calculate runoff from h2osfc  -------------------------------------
-                if (frac_h2osfc_act(c) <= pc .and. frac_h2osfc(c) <= pc) then 
-                   frac_infclust=0.0_r8
+                if (use_frac_h2osfc_act) then
+                  if (frac_h2osfc_act(c) <= pc .and. frac_h2osfc(c) <= pc) then 
+                     frac_infclust=0.0_r8
+                  else
+                      if (frac_h2osfc(c) <= pc) then
+                        frac_infclust=(frac_h2osfc_act(c)-pc)**mu
+                      else
+                        frac_infclust=(frac_h2osfc(c)-pc)**mu
+                      endif
+                  endif
                 else
-                    if (frac_h2osfc(c) <= pc) then
-                      frac_infclust=(frac_h2osfc_act(c)-pc)**mu
-                    else
-                      frac_infclust=(frac_h2osfc(c)-pc)**mu
-                    endif
+                  if (frac_h2osfc(c) <= pc) then
+                    frac_infclust=0.0_r8
+                  else
+                    frac_infclust=(frac_h2osfc(c)-pc)**mu
+                  endif
                 endif
              endif
 

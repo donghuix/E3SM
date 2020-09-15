@@ -444,6 +444,8 @@ module clm_varctl
    ! land river two way coupling
    !----------------------------------------------------------
    logical, public :: use_lnd_rof_two_way = .false.
+   logical, public :: use_frac_h2osfc_act = .false.
+   
 contains
 
   !---------------------------------------------------------------------------

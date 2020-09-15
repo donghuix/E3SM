@@ -1923,4 +1923,13 @@ Toggle to turn on the soil erosion and OM pools feedback.
 Toggle to turn on land-river two way coupling.
 </entry>
 
+<!-- ========================================================================================  -->
+<!-- Namelist options for using actual h2osfc actual fraction                                  -->
+<!-- ========================================================================================  -->
+
+<entry id="use_frac_h2osfc_act" type="logical" category="clm_physics"
+       group="clm_inparm" valid_values="" value=".false.">
+Toggle to use actual frac_h2osfc to calculate qh2osfc.
+</entry>
+
 </namelist_definition>
