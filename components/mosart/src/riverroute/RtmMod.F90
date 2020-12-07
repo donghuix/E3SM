@@ -20,7 +20,8 @@ module RtmMod
                                nsrContinue, nsrBranch, nsrStartup, nsrest, &
                                inst_index, inst_suffix, inst_name, wrmflag, inundflag, &
                                use_lnd_rof_two_way, smat_option, decomp_option, &
-                               barrier_timers, heatflag, sediflag, isgrid2d
+                               barrier_timers, heatflag, sediflag, isgrid2d,    &
+                               use_linear_inund
   use RtmFileUtils    , only : getfil, getavu, relavu
   use RtmTimeManager  , only : timemgr_init, get_nstep, get_curr_date, advance_timestep
   use RtmHistFlds     , only : RtmHistFldsInit, RtmHistFldsSet 
@@ -246,9 +247,9 @@ contains
          rtmhist_fincl1,  rtmhist_fincl2, rtmhist_fincl3, &
          rtmhist_fexcl1,  rtmhist_fexcl2, rtmhist_fexcl3, &
          rtmhist_avgflag_pertape, decomp_option, wrmflag, &
-         inundflag, use_lnd_rof_two_way, smat_option, delt_mosart, &
-         barrier_timers, RoutingMethod, DLevelH2R, DLevelR, &
-         sediflag, heatflag
+         inundflag, use_lnd_rof_two_way, use_linear_inund, &
+         smat_option, delt_mosart, barrier_timers, RoutingMethod, &
+         DLevelH2R, DLevelR, sediflag, heatflag
 
     namelist /inund_inparm / opt_inund, &
          opt_truedw, opt_calcnr, nr_max, nr_min, &
@@ -263,6 +264,7 @@ contains
     wrmflag     = .false.
     inundflag   = .false.
     use_lnd_rof_two_way = .false.
+    use_linear_inund = .false.
     sediflag    = .false.
     heatflag    = .false.
     barrier_timers = .false.
@@ -349,6 +351,7 @@ contains
     call mpi_bcast (heatflag,       1, MPI_LOGICAL, 0, mpicom_rof, ier)
     call mpi_bcast (inundflag,      1, MPI_LOGICAL, 0, mpicom_rof, ier)
     call mpi_bcast (use_lnd_rof_two_way, 1, MPI_LOGICAL, 0, mpicom_rof, ier)
+    call mpi_bcast (use_linear_inund, 1, MPI_LOCIGAL, 0, mpicom_rof, ier)
     call mpi_bcast (barrier_timers, 1, MPI_LOGICAL, 0, mpicom_rof, ier)
 
     call mpi_bcast (rtmhist_nhtfrq, size(rtmhist_nhtfrq), MPI_INTEGER,   0, mpicom_rof, ier)
@@ -421,6 +424,8 @@ contains
        write(iulog,*) '   smat_option           = ',trim(smat_option)
        write(iulog,*) '   wrmflag               = ',wrmflag
        write(iulog,*) '   inundflag             = ',inundflag
+       write(iulog,*) '   use_lnd_rof_two_way   = ',use_lnd_rof_two_way
+       write(iulog,*) '   use_linear_inund      = ',use_linear_inund
        write(iulog,*) '   sediflag              = ',inundflag
        write(iulog,*) '   heatflag              = ',inundflag
        write(iulog,*) '   barrier_timers        = ',barrier_timers
@@ -3612,6 +3617,21 @@ contains
 
           ! Pre-process elevation-profile parameters :
           call preprocess_elevProf ( )
+       endif
+
+       ! Read linear inundation model parameters 
+       if (use_linear_inund) then
+          allocate(TUnit%linear_a(begr:endr))  
+          ier = pio_inq_varid(ncid, name='a', vardesc=vardesc)
+          call pio_read_darray(ncid, vardesc, iodesc_dbl, TUnit%linear_a, ier)
+          if (masterproc) write(iulog,FORMR) trim(subname),' read linear inundation scheme a',minval(Tunit%linear_a),maxval(Tunit%linear_a)
+          call shr_sys_flush(iulog)
+
+          allocate(TUnit%linear_b(begr:endr))  
+          ier = pio_inq_varid(ncid, name='b', vardesc=vardesc)
+          call pio_read_darray(ncid, vardesc, iodesc_dbl, TUnit%linear_b, ier)
+          if (masterproc) write(iulog,FORMR) trim(subname),' read linear inundation scheme b',minval(Tunit%linear_b),maxval(Tunit%linear_b)
+          call shr_sys_flush(iulog)
        endif
 
      end if  ! inundflag

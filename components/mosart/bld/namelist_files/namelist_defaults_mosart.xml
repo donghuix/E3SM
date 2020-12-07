@@ -21,6 +21,7 @@ for the CLM data in the CESM distribution
 <wrmflag>.false.</wrmflag>
 <inundflag>.false.</inundflag>
 <use_lnd_rof_two_way>.false.</use_lnd_rof_two_way>
+<use_linear_inund>.false.</use_linear_inund>
 <sediflag>.false.</sediflag>
 <heatflag>.false.</heatflag>
 <barrier_timers>.false.</barrier_timers>

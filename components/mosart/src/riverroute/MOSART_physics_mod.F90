@@ -218,6 +218,24 @@ MODULE MOSART_physics_mod
         if (inundflag) then
           ! Channel -- floodplain exchange computation :      
           call ChnlFPexchg ( )
+          if (use_linear_inund) then
+            ! Floodplain area fraction (not including channel)
+              TRunoff%ff_ini = TRunoff%ff_fp
+            ! Flooded area fraction (including channel):
+              TRunoff%ffunit_ini = TRunoff%ff_unit
+              do iunit=rtmCTL%begr,rtmCTL%endr
+                if (TUnit%linear_a(iunit) > -999.0_r8) then
+                  TRunoff%ff_unit(iunit) = TUnit%linear_a(iunit) * log(TRunoffwr(iunit,1)) + TUnit%linear_b(iunit)
+                  if () then
+                    TRunoff%ff_fp(iu) = TRunoff%ff_unit(iunit) - TUnit%a_chnl( iu ) 
+                  else
+                    TRunoff%ff_fp(iu) = 0.0_r8
+                  end if
+                end if
+              end do
+              TRunoff%ff_ini = TRunoff%ff_fp
+              TRunoff%ffunit_ini = TRunoff%ff_unit
+          else
             ! update variables after channel-floodplain exchanges
             ! Floodplain water volume :
               TRunoff%wf_ini = TRunoff%wf_exchg
@@ -233,6 +251,7 @@ MODULE MOSART_physics_mod
               TRunoff%wr(:,1) = TRunoff%wr_exchg
             ! Aggregate net floodplain storage change from subcycle to timestep 
               TRunoff%se_rf = TRunoff%se_rf + TRunoff%netchange
+            end if
         end if
        !------------------
        ! upstream interactions
