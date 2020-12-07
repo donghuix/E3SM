@@ -226,7 +226,7 @@ MODULE MOSART_physics_mod
               TRunoff%ffunit_ini = TRunoff%ff_unit
               do iunit=rtmCTL%begr,rtmCTL%endr
                 if (TUnit%linear_a(iunit) > -999.0_r8) then
-                  TRunoff%ff_unit(iunit) = TUnit%linear_a(iunit) * log(TRunoffwr(iunit,1)) + TUnit%linear_b(iunit)
+                  TRunoff%ff_unit(iunit) = TUnit%linear_a(iunit) * log(TRunoff%wr(iunit,1)) + TUnit%linear_b(iunit)
                   if (TRunoff%ff_unit(iunit) > TUnit%a_chnl(iunit) ) then
                     TRunoff%ff_fp(iunit) = TRunoff%ff_unit(iunit) - TUnit%a_chnl(iunit) 
                   else
