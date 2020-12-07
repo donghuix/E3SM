@@ -228,9 +228,9 @@ MODULE MOSART_physics_mod
                 if (TUnit%linear_a(iunit) > -999.0_r8) then
                   TRunoff%ff_unit(iunit) = TUnit%linear_a(iunit) * log(TRunoffwr(iunit,1)) + TUnit%linear_b(iunit)
                   if (TRunoff%ff_unit(iunit) > TUnit%a_chnl(iunit) ) then
-                    TRunoff%ff_fp(iu) = TRunoff%ff_unit(iunit) - TUnit%a_chnl(iunit) 
+                    TRunoff%ff_fp(iunit) = TRunoff%ff_unit(iunit) - TUnit%a_chnl(iunit) 
                   else
-                    TRunoff%ff_fp(iu) = 0.0_r8
+                    TRunoff%ff_fp(iunit) = 0.0_r8
                   end if
                 end if
               end do
