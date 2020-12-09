@@ -3423,8 +3423,10 @@ contains
      allocate(TUnit%nr(begr:endr))
   
      if (inundflag) then
-         ! Calculate channel Manning roughness coefficients :
-         call calc_chnlMannCoe ( )
+        if (.not. use_linear_inund) then
+            ! Calculate channel Manning roughness coefficients :
+            call calc_chnlMannCoe ( )
+        endif
      else
         !!allocate(TUnit%nr(begr:endr))   !(Repetitive, removed on 6-1-17. --Inund.)
         ier = pio_inq_varid(ncid, name='nr', vardesc=vardesc)
