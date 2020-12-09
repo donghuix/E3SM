@@ -3423,7 +3423,13 @@ contains
      allocate(TUnit%nr(begr:endr))
   
      if (inundflag) then
-        if (.not. use_linear_inund) then
+        if (use_linear_inund) then
+            !!allocate(TUnit%nr(begr:endr))   !(Repetitive, removed on 6-1-17. --Inund.)
+            ier = pio_inq_varid(ncid, name='nr', vardesc=vardesc)
+            call pio_read_darray(ncid, vardesc, iodesc_dbl, TUnit%nr, ier)
+            if (masterproc) write(iulog,FORMR) trim(subname),' read nr ',minval(Tunit%nr),maxval(Tunit%nr)
+            call shr_sys_flush(iulog)
+        else
             ! Calculate channel Manning roughness coefficients :
             call calc_chnlMannCoe ( )
         endif
