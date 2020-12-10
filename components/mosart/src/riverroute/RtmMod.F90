@@ -3988,7 +3988,9 @@ contains
         if(TUnit%rslp(iunit) <= 0._r8) then
 
         if (inundflag) then
-           if (inundflag) then
+           if (use_linear_inund) then
+              TUnit%rslp(iunit) = 0.0001_r8
+           else
               TUnit%rslp(iunit) = Tctl%rslp_assume
            endif
         else
