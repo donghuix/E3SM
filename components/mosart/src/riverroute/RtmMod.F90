@@ -1631,7 +1631,7 @@ contains
     ! Set inital condition (water volumes and streamflows) :
     !----------------------------------  
 
-    if (inundflag .and. nsrest .eq. nsrStartup .and. .not. use_linear_inund) then
+    if (inundflag .and. nsrest .eq. nsrStartup) then
 
       do nr = rtmCTL%begr, rtmCTL%endr
         if ( rtmCTL%mask(nr) .eq. 1 .or. rtmCTL%mask(nr) .eq. 3 ) then   ! 1--Land; 3--Basin outlet (downstream is ocean).
@@ -1700,7 +1700,7 @@ contains
     end if
 !#endif
 
-    if (inundflag .and. .not. use_linear_inund) then
+    if (inundflag) then
        do nr = rtmCTL%begr, rtmCTL%endr
           !if ( TUnit%mask( nr ) .gt. 0 ) then
           if ( rtmCTL%mask(nr) .eq. 1 .or. rtmCTL%mask(nr) .eq. 3 ) then   ! 1--Land; 3--Basin outlet (downstream is ocean).

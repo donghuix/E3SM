@@ -217,8 +217,6 @@ MODULE MOSART_physics_mod
        call t_stopf('mosartr_subnetwork')    
 
         if (inundflag) then
-          ! Channel -- floodplain exchange computation :      
-          call ChnlFPexchg ( )
           if (use_linear_inund) then
             ! Floodplain area fraction (not including channel)
               TRunoff%ff_ini = TRunoff%ff_fp
@@ -237,6 +235,8 @@ MODULE MOSART_physics_mod
               TRunoff%ff_ini = TRunoff%ff_fp
               TRunoff%ffunit_ini = TRunoff%ff_unit
           else
+            ! Channel -- floodplain exchange computation :      
+            call ChnlFPexchg ( )
             ! update variables after channel-floodplain exchanges
             ! Floodplain water volume :
               TRunoff%wf_ini = TRunoff%wf_exchg
