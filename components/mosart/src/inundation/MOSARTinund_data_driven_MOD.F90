@@ -37,13 +37,13 @@ MODULE MOSARTinund_data_driven_MOD
 
         if (TRunoff%ff_fp(iunit) > 0._r8) then
             call calculate_volume_exchange(TRunoff%wr(iunit,1),TRunoff%wf_ini(iunit), &
-                                           TUnit%wr_bf(iunit),TRunoff%ff_unit(iunit),   &
-            TRunoff%ff_fp(iunit))
+                                           TUnit%wr_bf(iunit),TRunoff%ff_unit(iunit), &
+                                           TRunoff%ff_fp(iunit))
             TRunoff%yr(iunit) = TRunoff%wr(iunit,1) / TUnit%rwidth(iunit) / TUnit%rlen(iunit)
         endif
 
-        TRunoff%ff_ini = TRunoff%ff_fp
-        TRunoff%ffunit_ini = TRunoff%ff_unit
+        TRunoff%ff_ini(iunit)     = TRunoff%ff_fp(iunit)
+        TRunoff%ffunit_ini(iunit) = TRunoff%ff_unit(iunit)
 
     end subroutine inundation_run
 
