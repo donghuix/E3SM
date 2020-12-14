@@ -20,7 +20,7 @@ MODULE MOSARTinund_data_driven_MOD
 
         implicit none
         real(r8), intent(in) :: iunit
-        real(r8)             :: Vtoal
+        real(r8)             :: Vtotal
 
         if (TUnit%linear_a(iunit) > -999._r8) then
             Vtotal = TRunoff%wr(iunit,1) + TRunoff%wf_ini(iunit)
@@ -35,7 +35,7 @@ MODULE MOSARTinund_data_driven_MOD
             TRunoff%ff_fp(iunit) = 0._r8
         endif
 
-        if (ff_fp(iunit) > 0._r8) then
+        if (TRunoff%ff_fp(iunit) > 0._r8) then
             call calculate_volume_exchange(TRunoff%wr(iunit,1),TRunoff%wf_ini(iunit), &
                                            TUnit%wr_bf(iunit),TRunoff%ff_unit(iunit),   &
             TRunoff%ff_fp(iunit))
@@ -50,7 +50,7 @@ MODULE MOSARTinund_data_driven_MOD
     real (r8) function calculate_flooded_fraction(Vtotal,a,b,Vcri)
 
         implicit none
-        real(r8), intent(in) :: vtotal ! total volume [m^{3}], Vchannel + Vfloodplain
+        real(r8), intent(in) :: Vtotal ! total volume [m^{3}], Vchannel + Vfloodplain
         real(r8), intent(in) :: a, b   ! FF = a * log(Vtotal) + b
         real(r8), intent(in) :: Vcri   ! critical volume, FF = 0 when Vtotal <= Vcri
         character( len = * ), parameter :: subname = '(calculate_flooded_fraction)'
@@ -65,7 +65,7 @@ MODULE MOSARTinund_data_driven_MOD
                 calculate_flooded_fraction = 0._r8
             endif
         endif
-            call calculate_volume_exchange(wr,wf,wr_bf,ff_unit,ff_fp)
+
         return
 
     end function calculate_flooded_fraction
@@ -74,7 +74,7 @@ MODULE MOSARTinund_data_driven_MOD
 
         implicit none
         real(r8), intent(inout) :: wr, wf
-        real(r8), intent(in)    :: wr_bf, ff_unit
+        real(r8), intent(in)    :: wr_bf, ff_unit, ff_fp
         real(r8)                :: w_over     ! channel storage + floodplain storage - channel storage capacity (m^3).
         real(r8)                :: hbf_excess ! bankfull excess water depth
         character( len = * ), parameter :: subname = '(calculate_volume_exchange)'
