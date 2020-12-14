@@ -30,6 +30,7 @@ MODULE MOSART_physics_mod
                              estimate_returnflow_deficit
   use WRM_subw_io_mod, only : WRM_readDemand, WRM_computeRelease
   use MOSARTinund_Core_MOD, only: ChnlFPexchg
+  use MOSARTinund_data_driven_MOD, only: inundation_run
   use rof_cpl_indices, only : nt_rtm, rtm_tracers, nt_nliq, nt_nice
   use perf_mod, only: t_startf, t_stopf
   use mct_mod
@@ -253,6 +254,13 @@ MODULE MOSART_physics_mod
             ! Aggregate net floodplain storage change from subcycle to timestep 
               TRunoff%se_rf = TRunoff%se_rf + TRunoff%netchange
             end if
+
+        elseif (use_linear_inund) then
+
+         do iunit = rtmCTL%begr,rtmCTL%endr
+            call inundation_run(iunit)
+         enddo
+
         end if
        !------------------
        ! upstream interactions

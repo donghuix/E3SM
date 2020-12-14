@@ -313,7 +313,7 @@ contains
           endif
        end do
        call relavu( unitn )
-       if (inundflag) then
+       if (inundflag .or. use_linear_inund) then
           unitn = getavu()
           write(iulog,*) 'Read in inund_inparm namelist from: ', trim(nlfilename_rof)
           open( unitn, file=trim(nlfilename_rof), status='old' )
@@ -367,7 +367,7 @@ contains
 
     call mpi_bcast (rtmhist_avgflag_pertape, size(rtmhist_avgflag_pertape), MPI_CHARACTER, 0, mpicom_rof, ier)
 
-    if (inundflag) then
+    if (inundflag .or. use_linear_inund) then
        call mpi_bcast (OPT_inund,          1, MPI_INTEGER, 0, mpicom_rof, ier)
        call mpi_bcast (OPT_trueDW,         1, MPI_INTEGER, 0, mpicom_rof, ier)
        call mpi_bcast (OPT_calcNr,         1, MPI_INTEGER, 0, mpicom_rof, ier)
@@ -394,7 +394,7 @@ contains
     Tctl%DLevelH2R     = DLevelH2R
     Tctl%DLevelR       = DLevelR
 
-    if (inundflag) then
+    if (inundflag .or. use_linear_inund) then
        Tctl%OPT_inund = OPT_inund     !
        Tctl%OPT_trueDW = OPT_trueDW   ! diffusion wave method
        Tctl%OPT_calcNr = OPT_calcNr   ! method to calculate channel Manning
@@ -435,7 +435,7 @@ contains
        if (nsrest == nsrStartup .and. finidat_rtm /= ' ') then
           write(iulog,*) '   MOSART initial data   = ',trim(finidat_rtm)
        end if
-       if (inundflag) then
+       if (inundflag .or. use_linear_inund) then
           write(iulog,*) ' '
           write(iulog,*) 'inundation settings:'
           write(iulog,*) '  OPT_inund          = ',Tctl%OPT_inund
@@ -1597,7 +1597,7 @@ contains
        TRunoff%wr   = rtmCTL%wr
        TRunoff%erout= rtmCTL%erout
 
-       if (inundflag) then
+       if (inundflag .or. use_linear_inund) then
           ! If inundation scheme is turned on :
           if ( Tctl%OPT_inund .eq. 1 ) then
              !TRunoff%wf_ini(:) = rtmCTL%wf(:, 1)
@@ -2015,7 +2015,7 @@ contains
        enddo
 
        ! If inundation scheme is turned on :
-       if (inundflag .and. Tctl%OPT_inund .eq. 1 ) then
+       if ( (inundflag .and. Tctl%OPT_inund .eq. 1) .or. (use_linear_inund) ) then
          do nr = rtmCTL%begr, rtmCTL%endr
 
            !if ( TUnit%mask( nr ) .gt. 0 ) then      ! 0--Ocean; 1--Land; 2--Basin outlet.
@@ -2445,6 +2445,14 @@ contains
       rtmCTL%inundffunit(:) = TRunoff%ffunit_ini(:)
     end if
 
+    if (use_linear_inund ) then
+      !rtmCTL%wf(:, 1) = TRunoff%wf_ini(:)
+      rtmCTL%inundwf(:) = TRunoff%wf_ini(:)
+      rtmCTL%inundhf(:) = TRunoff%hf_ini(:)
+      rtmCTL%inundff(:) = TRunoff%ff_ini(:)
+      rtmCTL%inundffunit(:) = TRunoff%ffunit_ini(:)
+    end if
+
     if (heatflag) then
       rtmCTL%Tqsur   = THeat%Tqsur
       rtmCTL%Tqsub   = THeat%Tqsub
@@ -2475,6 +2483,9 @@ contains
        if (inundflag .and. Tctl%OPT_inund == 1 .and. nt == 1) then
           rtmCTL%volr(nr,nt) = rtmCTL%volr(nr,nt) + TRunoff%wf_ini(nr)
        endif
+       if (use_linear_inund .and. nt == 1) then
+         rtmCTL%volr(nr,nt) = rtmCTL%volr(nr,nt) + TRunoff%wf_ini(nr)
+      endif
        rtmCTL%dvolrdt(nr,nt) = (rtmCTL%volr(nr,nt) - volr_init) / delt_coupling
        rtmCTL%runoff(nr,nt) = flow(nr,nt)
 
@@ -3395,7 +3406,7 @@ contains
      if (masterproc) write(iulog,FORMR) trim(subname),' read rwidth ',minval(Tunit%rwidth),maxval(Tunit%rwidth)
      call shr_sys_flush(iulog)
 
-     if (inundflag) then
+     if (inundflag .or. use_linear_inund) then
         do n = rtmCtl%begr, rtmCTL%endr
            if ( rtmCTL%mask(n) .eq. 1 .or. rtmCTL%mask(n) .eq. 3 ) then   ! 1--Land; 3--Basin outlet (downstream is ocean).
 
@@ -3441,7 +3452,7 @@ contains
         call shr_sys_flush(iulog)
      endif
 
-     if (inundflag) then
+     if (inundflag .or. use_linear_inund) then
 
         !----------------------------------   
         ! Check input parameters :
@@ -3534,7 +3545,7 @@ contains
      allocate(TUnit%indexDown(begr:endr))
      TUnit%indexDown = 0
    
-     if (inundflag) then
+     if (inundflag .or. use_linear_inund) then
        if ( Tctl%RoutingMethod == 4 ) then       ! Use diffusion wave method in channel routing computation.
           allocate (TUnit%rlen_dstrm(begr:endr))
           allocate (TUnit%rslp_dstrm(begr:endr))
@@ -3572,7 +3583,7 @@ contains
           call shr_sys_flush(iulog)
        end if
 
-       if (Tctl%OPT_inund == 1) then
+       if (Tctl%OPT_inund == 1 .or. use_linear_inund) then
           allocate (TUnit%wr_bf(begr:endr))
           TUnit%wr_bf = 0.0_r8   
 
@@ -3771,7 +3782,7 @@ contains
      allocate (TPara%c_twid(begr:endr))
      TPara%c_twid = 1.0_r8
    
-     if (inundflag) then
+     if (inundflag .or. use_linear_inund) then
         !allocate (TRunoff%wr_ini(begr:endr))
         !TRunoff%wr_ini = 0.0
 
@@ -3931,7 +3942,7 @@ contains
    ! control parameters and some other derived parameters
    ! estimate derived input variables
 
-     if (inundflag .and. Tctl%OPT_inund == 1) then
+     if ( (inundflag .and. Tctl%OPT_inund == 1) .or. use_linear_inund ) then
         do iunit = rtmCTL%begr, rtmCTL%endr
           if ( rtmCTL%mask(iunit) .eq. 1 .or. rtmCTL%mask(iunit) .eq. 3 ) then   ! 1--Land; 3--Basin outlet (downstream is ocean).
 
@@ -3988,11 +3999,7 @@ contains
         if(TUnit%rslp(iunit) <= 0._r8) then
 
         if (inundflag) then
-           if (use_linear_inund) then
-              TUnit%rslp(iunit) = 0.0001_r8
-           else
-              TUnit%rslp(iunit) = Tctl%rslp_assume
-           endif
+            TUnit%rslp(iunit) = Tctl%rslp_assume
         else
            TUnit%rslp(iunit) = 0.0001_r8
         endif
