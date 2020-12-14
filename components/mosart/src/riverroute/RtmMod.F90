@@ -3651,6 +3651,12 @@ contains
           call pio_read_darray(ncid, vardesc, iodesc_dbl, TUnit%linear_b, ier)
           if (masterproc) write(iulog,FORMR) trim(subname),' read linear inundation scheme b',minval(Tunit%linear_b),maxval(Tunit%linear_b)
           call shr_sys_flush(iulog)
+
+          allocate(TUnit%linear_vcri(begr:endr))  
+          ier = pio_inq_varid(ncid, name='vcri', vardesc=vardesc)
+          call pio_read_darray(ncid, vardesc, iodesc_dbl, TUnit%linear_vcri, ier)
+          if (masterproc) write(iulog,FORMR) trim(subname),' read linear inundation scheme v',minval(Tunit%linear_vcri),maxval(Tunit%linear_vcri)
+          call shr_sys_flush(iulog)
        endif
 
      end if  ! inundflag
