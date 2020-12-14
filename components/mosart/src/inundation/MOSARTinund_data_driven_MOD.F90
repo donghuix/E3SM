@@ -19,7 +19,7 @@ MODULE MOSARTinund_data_driven_MOD
     subroutine inundation_run(iunit)
 
         implicit none
-        real(r8), intent(in) :: iunit
+        integer, intent(in)  :: iunit
         real(r8)             :: Vtotal
 
         if (TUnit%linear_a(iunit) > -999._r8) then
