@@ -39,7 +39,7 @@ MODULE MOSARTinund_data_driven_MOD
             call calculate_volume_exchange(TRunoff%wr(iunit,1),TRunoff%wf_ini(iunit), &
                                            TUnit%wr_bf(iunit),TRunoff%ff_unit(iunit), &
                                            TRunoff%ff_fp(iunit))
-            TRunoff%yr(iunit) = TRunoff%wr(iunit,1) / TUnit%rwidth(iunit) / TUnit%rlen(iunit)
+            TRunoff%yr(iunit,1) = TRunoff%wr(iunit,1) / TUnit%rwidth(iunit) / TUnit%rlen(iunit)
         endif
 
         TRunoff%ff_ini(iunit)     = TRunoff%ff_fp(iunit)
