@@ -296,8 +296,9 @@ module RunoffMod
      ! --------------------------------- 
      ! slope and interception for linear inundation scheme
      ! --------------------------------- 
-     real(r8), pointer :: linear_a(:)
-     real(r8), pointer :: linear_b(:)
+     real(r8), pointer :: linear_a(:)    ! slope for the linear inundation model 
+     real(r8), pointer :: linear_b(:)    ! interception for the linear inundation model 
+     real(r8), pointer :: linear_vcri(:) ! critical volume for the linear inundation model [m^3]
 
   end type Tspatialunit
 
