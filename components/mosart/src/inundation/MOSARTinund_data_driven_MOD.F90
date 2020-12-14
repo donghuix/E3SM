@@ -38,9 +38,9 @@ MODULE MOSARTinund_data_driven_MOD
         if (ff_fp(iunit) > 0._r8) then
             call calculate_volume_exchange(TRunoff%wr(iunit,1),TRunoff%wf_ini(iunit), &
                                            TUnit%wr_bf(iunit),TRunoff%ff_unit(iunit),   &
-                                           TRunoff%ff_fp(iunit))
+            TRunoff%ff_fp(iunit))
             TRunoff%yr(iunit) = TRunoff%wr(iunit,1) / TUnit%rwidth(iunit) / TUnit%rlen(iunit)
-        end
+        endif
 
         TRunoff%ff_ini = TRunoff%ff_fp
         TRunoff%ffunit_ini = TRunoff%ff_unit
@@ -64,7 +64,7 @@ MODULE MOSARTinund_data_driven_MOD
             elseif (calculate_flooded_fraction < 0._r8) then
                 calculate_flooded_fraction = 0._r8
             endif
-        end
+        endif
             call calculate_volume_exchange(wr,wf,wr_bf,ff_unit,ff_fp)
         return
 
