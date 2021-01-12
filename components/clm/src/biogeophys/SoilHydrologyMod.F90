@@ -555,9 +555,13 @@ contains
 
                h2osoi_left_vol1 = max(max(0._r8,(pondmx+watsat(c,1)*dz(c,1)*1.e3_r8-h2osoi_ice(c,1)-watmin)) - &
                                       max(h2osoi_liq(c,1)-watmin,0._r8), 0._r8)
-               qflx_h2orof_drain(c)=min(frac_h2orof(c)*qinmax,h2orof(c)/dtime)
-               ! no drainage from rof inundation if the 1st layer soil is saturated
-               qflx_h2orof_drain(c)=min(qflx_h2orof_drain(c), h2osoi_left_vol1/dtime)
+               if (frac_h2orof(c) > fsat(c)) then
+                  qflx_h2orof_drain(c)=min((frac_h2orof(c)-fsat(c))*qinmax,h2orof(c)/dtime)
+                  ! no drainage from rof inundation if the 1st layer soil is saturated
+                  qflx_h2orof_drain(c)=min(qflx_h2orof_drain(c), h2osoi_left_vol1/dtime)
+               else
+                  qflx_h2orof_drain(c)=0._r8
+               endif
 
                ! remove drainage from inundation volume
                h2orof(c) = h2orof(c) - qflx_h2orof_drain(c) * dtime
