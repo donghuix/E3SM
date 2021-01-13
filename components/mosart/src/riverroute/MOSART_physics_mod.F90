@@ -219,22 +219,11 @@ MODULE MOSART_physics_mod
 
         if (inundflag) then
           if (use_linear_inund) then
-            ! Floodplain area fraction (not including channel)
-              TRunoff%ff_ini = TRunoff%ff_fp
-            ! Flooded area fraction (including channel):
-              TRunoff%ffunit_ini = TRunoff%ff_unit
-              do iunit=rtmCTL%begr,rtmCTL%endr
-                if (TUnit%linear_a(iunit) > -999.0_r8) then
-                  TRunoff%ff_unit(iunit) = TUnit%linear_a(iunit) * log(TRunoff%wr(iunit,1)) + TUnit%linear_b(iunit)
-                  if (TRunoff%ff_unit(iunit) > TUnit%a_chnl(iunit) ) then
-                    TRunoff%ff_fp(iunit) = TRunoff%ff_unit(iunit) - TUnit%a_chnl(iunit) 
-                  else
-                    TRunoff%ff_fp(iunit) = 0.0_r8
-                  end if
-                end if
-              end do
-              TRunoff%ff_ini = TRunoff%ff_fp
-              TRunoff%ffunit_ini = TRunoff%ff_unit
+
+            do iunit = rtmCTL%begr,rtmCTL%endr
+               call inundation_run(iunit)
+            enddo
+
           else
             ! Channel -- floodplain exchange computation :      
             call ChnlFPexchg ( )
@@ -253,13 +242,7 @@ MODULE MOSART_physics_mod
               TRunoff%wr(:,1) = TRunoff%wr_exchg
             ! Aggregate net floodplain storage change from subcycle to timestep 
               TRunoff%se_rf = TRunoff%se_rf + TRunoff%netchange
-            end if
-
-        elseif (use_linear_inund) then
-
-         do iunit = rtmCTL%begr,rtmCTL%endr
-            call inundation_run(iunit)
-         enddo
+          end if
 
         end if
        !------------------
