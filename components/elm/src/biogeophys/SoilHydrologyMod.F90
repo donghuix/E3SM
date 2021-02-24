@@ -1018,7 +1018,7 @@ contains
           h2osoi_liq         =>    col_ws%h2osoi_liq        , & ! Output: [real(r8) (:,:) ] liquid water (kg/m2)                            
           h2osoi_ice         =>    col_ws%h2osoi_ice        , & ! Output: [real(r8) (:,:) ] ice lens (kg/m2)
           max_drain          =>    soilhydrology_vars%max_drain        , &
-         ice_imped           =>    soilhydrology_vars%ice_imped          &                                
+          ice_imped           =>    soilhydrology_vars%ice_imped         &                                
           )
 
        ! Get time step
@@ -1566,7 +1566,7 @@ contains
      !
      ! !LOCAL VARIABLES:
      character(len=32) :: subname = 'Drainage'           ! subroutine name
-     integer  :: c,j,fc,i                                ! indices
+     integer  :: c,j,fc,i,g                              ! indices
      real(r8) :: dtime                                   ! land model time step (sec)
      real(r8) :: xs(bounds%begc:bounds%endc)             ! water needed to bring soil moisture to watmin (mm)
      real(r8) :: dzmm(bounds%begc:bounds%endc,1:nlevgrnd) ! layer thickness (mm)
@@ -1615,6 +1615,7 @@ contains
      real(r8) :: rel_moist                ! relative moisture, temporary variable
      real(r8) :: wtsub_vic                ! summation of hk*dzmm for layers in the third VIC layer
      integer  :: idx                      ! 1D index for VSFM
+     real(r8) :: e_ice
      !-----------------------------------------------------------------------
 
      associate(                                                            &
@@ -1665,7 +1666,9 @@ contains
           mflx_drain_perched_col_1d =>    col_wf%mflx_drain_perched_1d   , & ! Input:  [real(r8) (:)   ]  drainage from perched water table (kg H2O /s)
 
           h2osoi_liq         =>    col_ws%h2osoi_liq        , & ! Output: [real(r8) (:,:) ] liquid water (kg/m2)
-          h2osoi_ice         =>    col_ws%h2osoi_ice          & ! Output: [real(r8) (:,:) ] ice lens (kg/m2)
+          h2osoi_ice         =>    col_ws%h2osoi_ice        , & ! Output: [real(r8) (:,:) ] ice lens (kg/m2)
+          max_drain          =>    soilhydrology_vars%max_drain        , &
+          ice_imped          =>    soilhydrology_vars%ice_imped          & 
           )
 
        ! Get time step
@@ -1720,7 +1723,8 @@ contains
        ! perched water table code
        do fc = 1, num_hydrologyc
           c = filter_hydrologyc(fc)
-
+          g = col_pp%gridcell(c)
+          e_ice = ice_imped(g) 
           !  specify maximum drainage rate
           q_perch_max = 1.e-5_r8 * sin(col_pp%topo_slope(c) * (rpi/180._r8))
 
