@@ -301,7 +301,7 @@ contains
     class(soil_water_retention_curve_type), intent(in) :: soil_water_retention_curve
     !
     ! !LOCAL VARIABLES:
-    integer  :: p,c,fc,j                                     ! do loop indices
+    integer  :: p,c,fc,j,g                                   ! do loop indices
     integer  :: nlevbed                                      ! number of layers to bedrock
     integer  :: jtop(bounds%begc:bounds%endc)                ! top level at each column
     integer  :: jbot(bounds%begc:bounds%endc)                ! bottom level at each column
@@ -384,7 +384,7 @@ contains
          qflx_infl         =>    col_wf%qflx_infl       , & ! Input:  [real(r8) (:)   ]  infiltration (mm H2O /s)                          
          qflx_rootsoi_col  =>    col_wf%qflx_rootsoi    , & ! Input: [real(r8) (:,:) ]  vegetation/soil water exchange (mm H2O/s) (+ = to atm)
          t_soisno          =>    col_es%t_soisno        , & ! Input:  [real(r8) (:,:) ]  soil temperature (Kelvin)   
-         ice_imped         =>    soilhydrology_vars%hice_imped &               
+         ice_imped         =>    soilhydrology_vars%ice_imped &               
          )
 
       ! Get time step
