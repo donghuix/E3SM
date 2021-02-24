@@ -63,6 +63,8 @@ Module SoilHydrologyType
      real(r8), pointer :: max_infil_col     (:)     ! col VIC maximum infiltration rate calculated in VIC
      real(r8), pointer :: i_0_col           (:)     ! col VIC average saturation in top soil layers 
      real(r8), pointer :: ice_col           (:,:)   ! col VIC soil ice (kg/m2) for VIC soil layers
+     real(r8) ,pointer :: max_drain         (:)   ! maximum bottom drainage rate for sensitivity analysis
+     real(r8) ,pointer :: ice_imped         (:)   ! ice impedance factor for sensitivity analysis
 
    contains
 
@@ -150,6 +152,8 @@ contains
     allocate(this%max_infil_col     (begc:endc))                 ; this%max_infil_col     (:)     = nan
     allocate(this%i_0_col           (begc:endc))                 ; this%i_0_col           (:)     = nan
     allocate(this%ice_col           (begc:endc,nlayert))         ; this%ice_col           (:,:)   = nan
+    allocate(this%max_drain         (begc:endc,nlayert))         ; this%max_drain         (:)     = nan
+    allocate(this%ice_imped         (begc:endc,nlayert))         ; this%ice_imped         (:)     = nan 
 
   end subroutine InitAllocate
 
@@ -267,8 +271,7 @@ contains
     real(r8) ,pointer  :: zsoifl     (:)   ! original soil midpoint 
     real(r8) ,pointer  :: dzsoifl    (:)   ! original soil thickness 
     real(r8) ,pointer  :: fdrain     (:)   ! top-model drainage parameter*-+
-    real(r8) ,pointer  :: max_drain  (:)   ! maximum bottom drainage rate for sensitivity analysis
-    real(r8) ,pointer  :: ice_imped  (:)   ! ice impedance factor for sensitivity analysis
+    
     !-----------------------------------------------------------------------
 
     ! -----------------------------------------------------------------
@@ -534,21 +537,19 @@ contains
     end if
     call ncd_pio_closefile(ncid)
 
-    allocate(max_drain(bounds%begg:bounds%endg))
     call getfil (fsurdat, locfn, 0)
     call ncd_pio_openfile (ncid, locfn, 0)
-    call ncd_io(ncid=ncid, varname='max_drain', flag='read', data=max_drain, dim1name=grlnd, readvar=readvar)
+    call ncd_io(ncid=ncid, varname='max_drain', flag='read', data=this%max_drain, dim1name=grlnd, readvar=readvar)
     if (.not. readvar) then
-      max_drain(:) = 5.5e-3_r8
+      this%max_drain(:) = 5.5e-3_r8
     end if
     call ncd_pio_closefile(ncid)
 
-    allocate(ice_imped(bounds%begg:bounds%endg))
     call getfil (fsurdat, locfn, 0)
     call ncd_pio_openfile (ncid, locfn, 0)
-    call ncd_io(ncid=ncid, varname='ice_imped', flag='read', data=ice_imped, dim1name=grlnd, readvar=readvar)
+    call ncd_io(ncid=ncid, varname='ice_imped', flag='read', data=this%ice_imped, dim1name=grlnd, readvar=readvar)
     if (.not. readvar) then
-      ice_imped(:) = 6.0_r8
+      this%ice_imped(:) = 6.0_r8
     end if
     call ncd_pio_closefile(ncid)
 
@@ -585,8 +586,7 @@ contains
     end associate
 
     deallocate(fdrain)
-    deallocate(max_drain)
-    deallocate(ice_imped)
+    
   end subroutine InitCold
 
   !------------------------------------------------------------------------
