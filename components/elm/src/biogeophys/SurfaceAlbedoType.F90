@@ -9,6 +9,7 @@ module SurfaceAlbedoType
   use elm_varpar     , only : numrad, nlevcan, nlevsno
   use elm_varctl     , only : fsurdat, iulog
   use abortutils     , only : endrun
+  use ncdio_pio      , only : file_desc_t, ncd_io, ncd_pio_openfile, ncd_pio_closefile
   !
   ! !PUBLIC TYPES:
   implicit none
@@ -254,9 +255,9 @@ contains
 
     call getfil (fsurdat, locfn, 0)
     call ncd_pio_openfile (ncid, locfn, 0)
-    call ncd_io(ncid=ncid, varname='snoalb_factor', flag='read', data=snoalb_factor, dim1name=grlnd, readvar=readvar)
+    call ncd_io(ncid=ncid, varname='snoalb_factor', flag='read', data=this%snoalb_factor, dim1name=grlnd, readvar=readvar)
     if (.not. readvar) then
-     snoalb_factor(:) = 1.0_r8
+     this%snoalb_factor(:) = 1.0_r8
     end if
     call ncd_pio_closefile(ncid)
  
