@@ -152,8 +152,8 @@ contains
     allocate(this%max_infil_col     (begc:endc))                 ; this%max_infil_col     (:)     = nan
     allocate(this%i_0_col           (begc:endc))                 ; this%i_0_col           (:)     = nan
     allocate(this%ice_col           (begc:endc,nlayert))         ; this%ice_col           (:,:)   = nan
-    allocate(this%max_drain         (begc:endc,nlayert))         ; this%max_drain         (:)     = nan
-    allocate(this%ice_imped         (begc:endc,nlayert))         ; this%ice_imped         (:)     = nan 
+    allocate(this%max_drain         (begg:endg))                 ; this%max_drain         (:)     = nan
+    allocate(this%ice_imped         (begg:endg))                 ; this%ice_imped         (:)     = nan 
 
   end subroutine InitAllocate
 
@@ -586,7 +586,7 @@ contains
     end associate
 
     deallocate(fdrain)
-    
+
   end subroutine InitCold
 
   !------------------------------------------------------------------------
