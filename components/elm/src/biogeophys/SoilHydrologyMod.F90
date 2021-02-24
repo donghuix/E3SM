@@ -8,7 +8,7 @@ module SoilHydrologyMod
   use shr_log_mod       , only : errMsg => shr_log_errMsg
   use decompMod         , only : bounds_type
   use elm_varctl        , only : iulog, use_vichydro
-  use elm_varcon        , only : e_ice, denh2o, denice, rpi
+  use elm_varcon        , only : denh2o, denice, rpi
   use EnergyFluxType    , only : energyflux_type
   use SoilHydrologyType , only : soilhydrology_type  
   use SoilStateType     , only : soilstate_type
@@ -121,7 +121,9 @@ contains
          icefrac          =>    soilhydrology_vars%icefrac_col      , & ! Output: [real(r8) (:,:) ]                                                  
          ice              =>    soilhydrology_vars%ice_col          , & ! Output: [real(r8) (:,:) ]  ice len in each VIC layers(ice, mm)              
          max_infil        =>    soilhydrology_vars%max_infil_col    , & ! Output: [real(r8) (:)   ]  maximum infiltration capacity in VIC (mm)          
-         i_0              =>    soilhydrology_vars%i_0_col            & ! Output: [real(r8) (:)   ]  column average soil moisture in top VIC layers (mm)
+         i_0              =>    soilhydrology_vars%i_0_col          , & ! Output: [real(r8) (:)   ]  column average soil moisture in top VIC layers (mm)
+         max_drain        =>    soilhydrology_vars%max_drain        , &
+         ice_imped        =>    soilhydrology_vars%ice_imped          &
          )
 
       ! Get time step
@@ -958,6 +960,7 @@ contains
      real(r8) :: frac                     ! temporary variable for ARNO subsurface runoff calculation
      real(r8) :: rel_moist                ! relative moisture, temporary variable
      real(r8) :: wtsub_vic                ! summation of hk*dzmm for layers in the third VIC layer
+     real(r8) :: e_ice
      !-----------------------------------------------------------------------
 
      associate(                                                            & 
@@ -1066,7 +1069,9 @@ contains
        ! perched water table code
        do fc = 1, num_hydrologyc
           c = filter_hydrologyc(fc)
-       	  nlevbed = nlev2bed(c)
+          g = col_pp%gridcell(c)
+          e_ice = ice_imped(g)
+       	 nlevbed = nlev2bed(c)
 
           !  specify maximum drainage rate
           q_perch_max = 1.e-5_r8 * sin(col_pp%topo_slope(c) * (rpi/180._r8))
@@ -1249,7 +1254,8 @@ contains
                    dsmax_tmp(c) = Dsmax(c) * dtime/ secspday !mm/day->mm/dtime
                    rsub_top_max = dsmax_tmp(c)
                 else
-                   imped=10._r8**(-e_ice*(icefracsum/dzsum))
+                   !imped=10._r8**(-e_ice*(icefracsum/dzsum))
+                   imped=10._r8**(-ice_imped(g)*(icefracsum/dzsum))
                    rsub_top_max = min(10._r8 * sin((rpi/180.) * col_pp%topo_slope(c)), rsub_top_globalmax)
                 end if
              endif

@@ -266,7 +266,9 @@ contains
     real(r8) ,pointer  :: zisoifl    (:)   ! original soil interface depth 
     real(r8) ,pointer  :: zsoifl     (:)   ! original soil midpoint 
     real(r8) ,pointer  :: dzsoifl    (:)   ! original soil thickness 
-    real(r8) ,pointer  :: fdrain     (:)   ! top-model drainage parameter
+    real(r8) ,pointer  :: fdrain     (:)   ! top-model drainage parameter*-+
+    real(r8) ,pointer  :: max_drain  (:)   ! maximum bottom drainage rate for sensitivity analysis
+    real(r8) ,pointer  :: ice_imped  (:)   ! ice impedance factor for sensitivity analysis
     !-----------------------------------------------------------------------
 
     ! -----------------------------------------------------------------
@@ -532,6 +534,25 @@ contains
     end if
     call ncd_pio_closefile(ncid)
 
+    allocate(max_drain(bounds%begg:bounds%endg))
+    call getfil (fsurdat, locfn, 0)
+    call ncd_pio_openfile (ncid, locfn, 0)
+    call ncd_io(ncid=ncid, varname='max_drain', flag='read', data=max_drain, dim1name=grlnd, readvar=readvar)
+    if (.not. readvar) then
+      max_drain(:) = 5.5e-3_r8
+    end if
+    call ncd_pio_closefile(ncid)
+
+    allocate(ice_imped(bounds%begg:bounds%endg))
+    call getfil (fsurdat, locfn, 0)
+    call ncd_pio_openfile (ncid, locfn, 0)
+    call ncd_io(ncid=ncid, varname='ice_imped', flag='read', data=ice_imped, dim1name=grlnd, readvar=readvar)
+    if (.not. readvar) then
+      ice_imped(:) = 6.0_r8
+    end if
+    call ncd_pio_closefile(ncid)
+
+
     associate(micro_sigma => col_pp%micro_sigma)
       do c = bounds%begc, bounds%endc
          
@@ -564,7 +585,8 @@ contains
     end associate
 
     deallocate(fdrain)
-
+    deallocate(max_drain)
+    deallocate(ice_imped)
   end subroutine InitCold
 
   !------------------------------------------------------------------------

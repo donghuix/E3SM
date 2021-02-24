@@ -271,7 +271,7 @@ contains
     use shr_const_mod        , only : SHR_CONST_TKFRZ, SHR_CONST_LATICE, SHR_CONST_G
     use decompMod            , only : bounds_type        
     use elm_varcon           , only : wimp,grav,hfus,tfrz
-    use elm_varcon           , only : e_ice,denh2o, denice
+    use elm_varcon           , only : denh2o, denice
     use elm_varpar           , only : nlevsoi, max_patch_per_col, nlevgrnd
     use clm_time_manager     , only : get_step_size
     use column_varcon        , only : icol_roof, icol_road_imperv
@@ -350,6 +350,7 @@ contains
     real(r8) :: dsmpds                                       !temporary variable
     real(r8) :: dhkds                                        !temporary variable
     real(r8) :: hktmp                                        !temporary variable
+    real(r8) :: e_ice
     !-----------------------------------------------------------------------
 
     associate(& 
@@ -382,7 +383,8 @@ contains
          qflx_deficit      =>    col_wf%qflx_deficit    , & ! Input:  [real(r8) (:)   ]  water deficit to keep non-negative liquid water content
          qflx_infl         =>    col_wf%qflx_infl       , & ! Input:  [real(r8) (:)   ]  infiltration (mm H2O /s)                          
          qflx_rootsoi_col  =>    col_wf%qflx_rootsoi    , & ! Input: [real(r8) (:,:) ]  vegetation/soil water exchange (mm H2O/s) (+ = to atm)
-         t_soisno          =>    col_es%t_soisno        & ! Input:  [real(r8) (:,:) ]  soil temperature (Kelvin)                       
+         t_soisno          =>    col_es%t_soisno        , & ! Input:  [real(r8) (:,:) ]  soil temperature (Kelvin)   
+         ice_imped         =>    soilhydrology_vars%hice_imped &               
          )
 
       ! Get time step
@@ -509,6 +511,8 @@ contains
       sdamp = 0._r8
       do fc = 1, num_hydrologyc
          c = filter_hydrologyc(fc)
+         g = col_pp%gridCell(c)
+         e_ice = ice_imped(g)
          nlevbed = nlev2bed(c)
          do j = 1, nlevbed
             ! compute hydraulic conductivity based on liquid water content only
