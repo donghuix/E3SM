@@ -285,7 +285,7 @@ contains
      type(waterflux_type)     , intent(inout) :: waterflux_vars
      !
      ! !LOCAL VARIABLES:
-     integer  :: c,j,l,fc                                   ! indices
+     integer  :: c,j,l,fc,g                                 ! indices
      integer  :: nlevbed                                    !# levels to bedrock
      real(r8) :: dtime                                      ! land model time step (sec)
      real(r8) :: s1,su,v                                    ! variable to calculate qinmax
@@ -318,6 +318,7 @@ contains
      real(r8) :: top_max_moist(bounds%begc:bounds%endc)     ! temporary, maximum soil moisture in top VIC layers
      real(r8) :: top_ice(bounds%begc:bounds%endc)           ! temporary, ice len in top VIC layers
      real(r8) :: top_icefrac                                ! temporary, ice fraction in top VIC layers
+     real(r8) :: e_ice
      !-----------------------------------------------------------------------
 
      associate(                                                                & 
@@ -387,6 +388,8 @@ contains
 
        do fc = 1, num_hydrologyc
           c = filter_hydrologyc(fc)
+          g = col_pp%gridcell(c)
+          e_ice = ice_imped(g) 
           ! partition moisture fluxes between soil and h2osfc       
           if (lun_pp%itype(col_pp%landunit(c)) == istsoil .or. lun_pp%itype(col_pp%landunit(c))==istcrop) then
 
@@ -701,7 +704,7 @@ contains
           rous=max(rous,0.02_r8)
 
           !--  water table is below the soil column  --------------------------------------
-		  g = col_pp%gridcell(c)
+		    g = col_pp%gridcell(c)
           l = col_pp%landunit(c)
           qcharge_temp = qcharge(c)
 
@@ -1969,7 +1972,7 @@ contains
      !
      ! !REVISION HISTORY:
      ! Created by Maoyi Huang
-     ! 11/13/2012, Maoyi Huang: rewrite the mapping modules in CLM4VIC 
+     ! 11/13/2012, Maoyi Huang: rewrite the mapping modules in CLM`VIC 
      !
      ! !ARGUMENTS:
      type(bounds_type)        , intent(in)    :: bounds    
