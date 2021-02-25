@@ -211,6 +211,8 @@ contains
     !
     ! Initialize module surface albedos to reasonable values
     !
+    use fileutils       , only : getfil
+
     ! !ARGUMENTS:
     class(surfalb_type) :: this
     type(bounds_type), intent(in) :: bounds  
