@@ -123,6 +123,7 @@ contains
          max_infil        =>    soilhydrology_vars%max_infil_col    , & ! Output: [real(r8) (:)   ]  maximum infiltration capacity in VIC (mm)          
          i_0              =>    soilhydrology_vars%i_0_col          , & ! Output: [real(r8) (:)   ]  column average soil moisture in top VIC layers (mm)
          max_drain        =>    soilhydrology_vars%max_drain        , &
+         fover            =>    soilhydrology_vars%fover            , &
          ice_imped        =>    soilhydrology_vars%ice_imped          &
          )
 
@@ -132,7 +133,7 @@ contains
 
       do fc = 1, num_hydrologyc
          c = filter_hydrologyc(fc)
-       	 nlevbed = nlev2bed(c)
+         nlevbed = nlev2bed(c)
          do j = 1,nlevbed
 
             ! Porosity of soil, partial volume of ice and liquid, fraction of ice in each layer,
@@ -153,7 +154,8 @@ contains
 
       do fc = 1, num_hydrologyc
          c = filter_hydrologyc(fc)
-         fff(c) = 0.5_r8
+         g = col_pp%gridcell(c)
+         fff(c) = fover(g)
          if (zengdecker_2009_with_var_soil_thick) then
             nlevbed = nlev2bed(c)
             fff(c) = 0.5_r8 * col_pp%zi(c,nlevsoi) / min(col_pp%zi(c,nlevbed), col_pp%zi(c,nlevsoi))
@@ -1018,7 +1020,7 @@ contains
           h2osoi_liq         =>    col_ws%h2osoi_liq        , & ! Output: [real(r8) (:,:) ] liquid water (kg/m2)                            
           h2osoi_ice         =>    col_ws%h2osoi_ice        , & ! Output: [real(r8) (:,:) ] ice lens (kg/m2)
           max_drain          =>    soilhydrology_vars%max_drain        , &
-          ice_imped           =>    soilhydrology_vars%ice_imped         &                                
+          ice_imped          =>    soilhydrology_vars%ice_imped          &                                
           )
 
        ! Get time step

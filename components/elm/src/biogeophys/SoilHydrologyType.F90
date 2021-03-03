@@ -63,8 +63,9 @@ Module SoilHydrologyType
      real(r8), pointer :: max_infil_col     (:)     ! col VIC maximum infiltration rate calculated in VIC
      real(r8), pointer :: i_0_col           (:)     ! col VIC average saturation in top soil layers 
      real(r8), pointer :: ice_col           (:,:)   ! col VIC soil ice (kg/m2) for VIC soil layers
-     real(r8) ,pointer :: max_drain         (:)   ! maximum bottom drainage rate for sensitivity analysis
-     real(r8) ,pointer :: ice_imped         (:)   ! ice impedance factor for sensitivity analysis
+     real(r8), pointer :: max_drain         (:)     ! maximum bottom drainage rate for sensitivity analysis
+     real(r8), pointer :: fover             (:)     ! decay factor for surface runoff
+     real(r8), pointer :: ice_imped         (:)     ! ice impedance factor for sensitivity analysis
 
    contains
 
@@ -153,6 +154,7 @@ contains
     allocate(this%i_0_col           (begc:endc))                 ; this%i_0_col           (:)     = nan
     allocate(this%ice_col           (begc:endc,nlayert))         ; this%ice_col           (:,:)   = nan
     allocate(this%max_drain         (begg:endg))                 ; this%max_drain         (:)     = nan
+    allocate(this%fover             (begg:endg))                 ; this%fover             (:)     = nan
     allocate(this%ice_imped         (begg:endg))                 ; this%ice_imped         (:)     = nan 
 
   end subroutine InitAllocate
@@ -542,6 +544,14 @@ contains
     call ncd_io(ncid=ncid, varname='max_drain', flag='read', data=this%max_drain, dim1name=grlnd, readvar=readvar)
     if (.not. readvar) then
       this%max_drain(:) = 5.5e-3_r8
+    end if
+    call ncd_pio_closefile(ncid)
+
+    call getfil (fsurdat, locfn, 0)
+    call ncd_pio_openfile (ncid, locfn, 0)
+    call ncd_io(ncid=ncid, varname='fover', flag='read', data=this%fover, dim1name=grlnd, readvar=readvar)
+    if (.not. readvar) then
+      this%fover(:) = 0.5_r8
     end if
     call ncd_pio_closefile(ncid)
 
