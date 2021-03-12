@@ -268,7 +268,7 @@ contains
      use shr_const_mod    , only : shr_const_pi
      use elm_varpar       , only : nlayer, nlayert
      use elm_varpar       , only : nlevsoi, nlevgrnd
-     use elm_varcon       , only : denh2o, denice, roverg, wimp, pc, mu, tfrz
+     use elm_varcon       , only : denh2o, denice, roverg, wimp, tfrz
      use column_varcon    , only : icol_roof, icol_road_imperv, icol_sunwall, icol_shadewall, icol_road_perv
      use landunit_varcon  , only : istsoil, istcrop
      use clm_time_manager , only : get_step_size
@@ -321,6 +321,8 @@ contains
      real(r8) :: top_ice(bounds%begc:bounds%endc)           ! temporary, ice len in top VIC layers
      real(r8) :: top_icefrac                                ! temporary, ice fraction in top VIC layers
      real(r8) :: e_ice
+     real(r8) :: pc
+     real(r8) :: mu
      !-----------------------------------------------------------------------
 
      associate(                                                                & 
@@ -371,7 +373,9 @@ contains
           h2osfcflag           =>    soilhydrology_vars%h2osfcflag           , & ! Input:  logical
           icefrac              =>    soilhydrology_vars%icefrac_col          , & ! Output: [real(r8) (:,:) ]  fraction of ice    
           max_drain            =>    soilhydrology_vars%max_drain            , &
-          ice_imped            =>    soilhydrology_vars%ice_imped              &                             
+          ice_imped            =>    soilhydrology_vars%ice_imped            , &
+          pc_grid              =>    soilhydrology_vars%pc                   , &
+          mu_grid              =>    soilhydrology_vars%mu                     &                   
               )
 
        dtime = get_step_size()
@@ -392,6 +396,8 @@ contains
           c = filter_hydrologyc(fc)
           g = col_pp%gridcell(c)
           e_ice = ice_imped(g) 
+          pc    = pc_grid(g)
+          mu    = pc_grid(g)
           ! partition moisture fluxes between soil and h2osfc       
           if (lun_pp%itype(col_pp%landunit(c)) == istsoil .or. lun_pp%itype(col_pp%landunit(c))==istcrop) then
 

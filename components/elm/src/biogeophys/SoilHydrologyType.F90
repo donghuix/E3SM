@@ -63,9 +63,13 @@ Module SoilHydrologyType
      real(r8), pointer :: max_infil_col     (:)     ! col VIC maximum infiltration rate calculated in VIC
      real(r8), pointer :: i_0_col           (:)     ! col VIC average saturation in top soil layers 
      real(r8), pointer :: ice_col           (:,:)   ! col VIC soil ice (kg/m2) for VIC soil layers
+
+     ! Runoff sensitivity analysis
      real(r8), pointer :: max_drain         (:)     ! maximum bottom drainage rate for sensitivity analysis
      real(r8), pointer :: fover             (:)     ! decay factor for surface runoff
      real(r8), pointer :: ice_imped         (:)     ! ice impedance factor for sensitivity analysis
+     real(r8), pointer :: pc                (:)     ! surface water threshold
+     real(r8), pointer :: mu                (:)     ! scaling exponent
 
    contains
 
@@ -153,9 +157,12 @@ contains
     allocate(this%max_infil_col     (begc:endc))                 ; this%max_infil_col     (:)     = nan
     allocate(this%i_0_col           (begc:endc))                 ; this%i_0_col           (:)     = nan
     allocate(this%ice_col           (begc:endc,nlayert))         ; this%ice_col           (:,:)   = nan
+
     allocate(this%max_drain         (begg:endg))                 ; this%max_drain         (:)     = nan
     allocate(this%fover             (begg:endg))                 ; this%fover             (:)     = nan
     allocate(this%ice_imped         (begg:endg))                 ; this%ice_imped         (:)     = nan 
+    allocate(this%pc                (begg:endg))                 ; this%pc                (:)     = nan 
+    allocate(this%mu                (begg:endg))                 ; this%mu                (:)     = nan 
 
   end subroutine InitAllocate
 
@@ -560,6 +567,22 @@ contains
     call ncd_io(ncid=ncid, varname='ice_imped', flag='read', data=this%ice_imped, dim1name=grlnd, readvar=readvar)
     if (.not. readvar) then
       this%ice_imped(:) = 6.0_r8
+    end if
+    call ncd_pio_closefile(ncid)
+
+    call getfil (fsurdat, locfn, 0)
+    call ncd_pio_openfile (ncid, locfn, 0)
+    call ncd_io(ncid=ncid, varname='pc', flag='read', data=this%pc, dim1name=grlnd, readvar=readvar)
+    if (.not. readvar) then
+      this%pc(:) = 0.4_r8
+    end if
+    call ncd_pio_closefile(ncid)
+
+    call getfil (fsurdat, locfn, 0)
+    call ncd_pio_openfile (ncid, locfn, 0)
+    call ncd_io(ncid=ncid, varname='mu', flag='read', data=this%mu, dim1name=grlnd, readvar=readvar)
+    if (.not. readvar) then
+      this%mu(:) = = 0.13889_r8
     end if
     call ncd_pio_closefile(ncid)
 
