@@ -582,7 +582,7 @@ contains
     call ncd_pio_openfile (ncid, locfn, 0)
     call ncd_io(ncid=ncid, varname='mu', flag='read', data=this%mu, dim1name=grlnd, readvar=readvar)
     if (.not. readvar) then
-      this%mu(:) = = 0.13889_r8
+      this%mu(:) = 0.13889_r8
     end if
     call ncd_pio_closefile(ncid)
 
