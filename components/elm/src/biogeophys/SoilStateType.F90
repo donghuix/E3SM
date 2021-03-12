@@ -899,7 +899,7 @@ contains
     ! --------------------------------------------------------------------
 
     deallocate(sand3d, clay3d, grvl3d, organic3d)
-    allocate(bsw3d,sucsat3d,xksat3d,watsat3d)
+    deallocate(bsw3d,sucsat3d,xksat3d,watsat3d)
     deallocate(zisoifl, zsoifl, dzsoifl)
 
   end subroutine InitCold
