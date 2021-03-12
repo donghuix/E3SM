@@ -370,6 +370,10 @@ contains
     integer            :: begc, endc
     integer            :: begg, endg
     real(r8), parameter :: min_liquid_pressure = -10132500._r8 ! Minimum soil liquid water pressure [mm]
+    real(r8) ,pointer  :: bsw3d (:,:)
+    real(r8) ,pointer  :: sucsat3d (:,:)
+    real(r8) ,pointer  :: xksat3d (:,:)
+    real(r8) ,pointer  :: watsat3d (:,:)
     !-----------------------------------------------------------------------
 
     begc = bounds%begc; endc= bounds%endc
