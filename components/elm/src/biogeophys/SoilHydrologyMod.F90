@@ -1271,7 +1271,8 @@ contains
                 else
                    !imped=10._r8**(-e_ice*(icefracsum/dzsum))
                    imped=10._r8**(-ice_imped(g)*(icefracsum/dzsum))
-                   rsub_top_max = min(10._r8 * sin((rpi/180.) * col_pp%topo_slope(c)), rsub_top_globalmax)
+                   !rsub_top_max = min(10._r8 * sin((rpi/180.) * col_pp%topo_slope(c)), rsub_top_globalmax)
+                   rusb_top_max = max_drain(g)
                 end if
              endif
              if (use_vichydro) then
@@ -1912,7 +1913,8 @@ contains
                    rsub_top_max = dsmax_tmp(c)
                 else
                    imped=10._r8**(-e_ice*(icefracsum/dzsum))
-                   rsub_top_max = min(10._r8 * sin((rpi/180.) * col_pp%topo_slope(c)), rsub_top_globalmax)
+                   !rsub_top_max = min(10._r8 * sin((rpi/180.) * col_pp%topo_slope(c)), rsub_top_globalmax)
+                   rsub_top_max = max_drain(g)
                 end if
              endif
              if (use_vichydro) then
