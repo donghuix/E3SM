@@ -510,9 +510,10 @@ contains
                 h2osfc(c) = 0.0
                 qflx_h2osfc_drain(c)= 0._r8
              else
-             	h2osoi_left_vol1 = frac_h2osfc(c) * h2osoi_left_vol1
+                h2osoi_left_vol1 = frac_h2osfc(c) * h2osoi_left_vol1
                 qflx_h2osfc_drain(c)=min(frac_h2osfc(c)*qinmax,h2osfc(c)/dtime)
                 qflx_h2osfc_drain(c)=min(qflx_h2osfc_drain(c),h2osoi_left_vol1/dtime)
+                qflx_h2osfc_drain(c)=0 ! assume no bottome drainage
              endif
 
              if(h2osfcflag==0) then 
