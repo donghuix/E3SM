@@ -512,7 +512,7 @@ contains
              else
                 !h2osoi_left_vol1 = frac_h2osfc(c) * h2osoi_left_vol1
                 if (frac_h2osfc(c) < fsat(c)) then
-                  qflx_h2osfc_drain(c)
+                  qflx_h2osfc_drain(c)=0
                 else
                   qflx_h2osfc_drain(c)=min((frac_h2osfc(c)-fsat(c))*qinmax,h2osfc(c)/dtime)
                 endif
