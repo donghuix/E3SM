@@ -323,6 +323,7 @@ contains
      real(r8) :: e_ice
      real(r8) :: pc
      real(r8) :: mu
+     real(r8) :: h2osoi_left_vol1                           ! temporary, available volume in the first soil layer
      !-----------------------------------------------------------------------
 
      associate(                                                                & 
@@ -500,13 +501,17 @@ contains
              h2osfc(c) = h2osfc(c) + qflx_in_h2osfc(c) * dtime
 
              !--  if all water evaporates, there will be no bottom drainage
+             h2osoi_left_vol1 = max(max(0._r8,(pondmx+watsat(c,1)*dz(c,1)*1.e3_r8-h2osoi_ice(c,1)-watmin)) - &
+                                      max(h2osoi_liq(c,1)-watmin,0._r8), 0._r8)
              if (h2osfc(c) < 0.0) then
                 qflx_infl(c) = qflx_infl(c) + h2osfc(c)/dtime
                 qflx_gross_evap_soil(c) = qflx_gross_evap_soil(c) - h2osfc(c)/dtime                
                 h2osfc(c) = 0.0
                 qflx_h2osfc_drain(c)= 0._r8
              else
+             	h2osoi_left_vol1 = frac_h2osfc(c) * h2osoi_left_vol1
                 qflx_h2osfc_drain(c)=min(frac_h2osfc(c)*qinmax,h2osfc(c)/dtime)
+                qflx_h2osfc_drain(c)=min(qflx_h2osfc_drain(c),h2osoi_left_vol1/dtime)
              endif
 
              if(h2osfcflag==0) then 
