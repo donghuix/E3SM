@@ -269,7 +269,7 @@ contains
      use elm_varpar       , only : nlayer, nlayert
      use elm_varpar       , only : nlevsoi, nlevgrnd
      use elm_varcon       , only : denh2o, denice, roverg, wimp, tfrz
-     use clm_varcon       , only : pondmx, watmin
+     use elm_varcon       , only : pondmx, watmin
      use column_varcon    , only : icol_roof, icol_road_imperv, icol_sunwall, icol_shadewall, icol_road_perv
      use landunit_varcon  , only : istsoil, istcrop
      use clm_time_manager , only : get_step_size
