@@ -649,7 +649,7 @@ contains
          write(iulog,*) 'slopebeta not in surfdata: using default value 3'
          slopebeta = 3._r8
       end if
-      allocate(tslope(bounds%begg:bounds%endg))
+      allocate(slopemax(bounds%begg:bounds%endg))
       call ncd_io(ncid=ncid, varname='slopemax', flag='read', data=slopemax, dim1name=grlnd, readvar=readvar)
       if (.not. readvar) then
          write(iulog,*) 'slopemax not in surfdata: using default value 0.4'
