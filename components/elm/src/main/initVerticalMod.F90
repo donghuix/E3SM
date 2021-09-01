@@ -60,8 +60,8 @@ contains
     integer               :: nlevbed           ! temporary
     real(r8)              :: zimid             ! temporary
     real(r8)              :: slope0            ! temporary
-    real(r8)              :: slopebeta         ! temporary
-    real(r8)              :: slopemax          ! temporary
+    real(r8) ,pointer     :: slopebeta (:)     ! read in - beta
+    real(r8) ,pointer     :: slopemax (:)      ! read in - sigma_max
     integer               :: ier               ! error status
     real(r8)              :: scalez = 0.025_r8 ! Soil layer thickness discretization (m)
     real(r8)              :: thick_equal = 0.2
@@ -643,10 +643,21 @@ contains
       !-----------------------------------------------
       ! SCA shape function defined
       !-----------------------------------------------
-
+      allocate(slopebeta(bounds%begg:bounds%endg))
+      call ncd_io(ncid=ncid, varname='slopebeta', flag='read', data=slopebeta, dim1name=grlnd, readvar=readvar)
+      if (.not. readvar) then
+         write(iulog,*) 'slopebeta not in surfdata: using default value 3'
+         slopebeta = 3._r8
+      end if
+      allocate(tslope(bounds%begg:bounds%endg))
+      call ncd_io(ncid=ncid, varname='slopemax', flag='read', data=slopemax, dim1name=grlnd, readvar=readvar)
+      if (.not. readvar) then
+         write(iulog,*) 'slopemax not in surfdata: using default value 0.4'
+         slopemax = 0.4_r8
+      end if
       do c = begc,endc
          l = col_pp%landunit(c)
-
+         g = col_pp%gridcell(c)
          if (lun_pp%itype(l)==istice_mec) then
             ! ice_mec columns already account for subgrid topographic variability through
             ! their use of multiple elevation classes; thus, to avoid double-accounting for
@@ -659,11 +670,11 @@ contains
 
          ! microtopographic parameter, units are meters (try smooth function of slope)
 
-         slopebeta = 3._r8
-         slopemax = 0.4_r8
-         slope0 = slopemax**(-1._r8/slopebeta)
-         col_pp%micro_sigma(c) = (col_pp%topo_slope(c) + slope0)**(-slopebeta)
+         slope0 = slopemax(g)**(-1._r8/slopebeta(g))
+         col_pp%micro_sigma(c) = (col_pp%topo_slope(c) + slope0)**(-slopebeta(g))
       end do
+      deallocate(slopebeta)
+      deallocate(slopemax)
 
     end associate
 
