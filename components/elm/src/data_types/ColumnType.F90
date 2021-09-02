@@ -56,8 +56,9 @@ module ColumnType
      real(r8), pointer :: topo_slope   (:) => null() ! gridcell topographic slope
      real(r8), pointer :: topo_std     (:) => null() ! gridcell elevation standard deviation
      real(r8), pointer :: hslp_p10     (:,:) => null() ! hillslope slope percentiles (unitless)
-     integer, pointer  :: nlevbed      (:) => null() ! number of layers to bedrock
+     integer,  pointer :: nlevbed      (:) => null() ! number of layers to bedrock
      real(r8), pointer :: zibed        (:) => null() ! bedrock depth in model (interface level at nlevbed)
+     real(r8), pointer :: kh2osfc      (:) => null() ! factor for surface water store outflow
 
      ! vertical levels
      integer , pointer :: snl          (:)   => null() ! number of snow layers
@@ -128,6 +129,7 @@ contains
     allocate(this%hslp_p10    (begc:endc,nlevslp))             ; this%hslp_p10    (:,:) = nan
     allocate(this%nlevbed     (begc:endc))                     ; this%nlevbed     (:)   = ispval
     allocate(this%zibed       (begc:endc))                     ; this%zibed       (:)   = nan
+    allocate(this%kh2osfc     (begc:endc))                     ; this%kh2osfc     (:)   = nan
 
     allocate(this%hydrologically_active(begc:endc))            ; this%hydrologically_active(:) = .false.
 
@@ -167,6 +169,7 @@ contains
     deallocate(this%hslp_p10   )
     deallocate(this%nlevbed    )
     deallocate(this%zibed      )
+    deallocate(this%kh2osfc    )
     deallocate(this%hydrologically_active)
 
   end subroutine col_pp_clean

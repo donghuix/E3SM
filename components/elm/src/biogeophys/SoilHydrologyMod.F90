@@ -476,7 +476,7 @@ contains
              ! limit runoff to value of storage above S(pc)
              if(h2osfc(c) >= h2osfc_thresh(c) .and. h2osfcflag/=0) then
                 ! spatially variable k_wet
-                k_wet=1.0_r8 * sin((rpi/180.) * col_pp%topo_slope(c))
+                k_wet= col_pp%kh2osfc(c) * sin((rpi/180.) * col_pp%topo_slope(c))
                 qflx_h2osfc_surf(c) = k_wet * frac_infclust * (h2osfc(c) - h2osfc_thresh(c))
 
                 qflx_h2osfc_surf(c)=min(qflx_h2osfc_surf(c),(h2osfc(c) - h2osfc_thresh(c))/dtime)
