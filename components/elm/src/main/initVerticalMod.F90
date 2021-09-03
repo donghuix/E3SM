@@ -62,7 +62,7 @@ contains
     real(r8)              :: slope0            ! temporary
     real(r8)              :: slopebeta         ! temporary
     real(r8)              :: slopemax          ! temporary
-    real(r8) ,pointer     :: kh2osfc           ! factor for surface water store outflow
+    real(r8) ,pointer     :: kh2osfc (:)       ! factor for surface water store outflow
     real(r8) ,pointer     :: micro_sigma  (:)  ! read in - microtopographic parameter [m]
     logical               :: estimate_sigma
     integer               :: ier               ! error status
@@ -652,6 +652,7 @@ contains
          write(iulog,*) 'micro_sigma: not in surfdata: using default values'
          estimate_sigma = .True.
       end if
+      allocate(kh2osfc(bounds%begg:bounds%endg))
       call ncd_io(ncid=ncid, varname='kh2osfc', flag='read', data=kh2osfc, dim1name=grlnd, readvar=readvar)
       if (.not. readvar) then
          write(iulog,*) 'kh2osfc not in surfdata: using default value 0.4'
