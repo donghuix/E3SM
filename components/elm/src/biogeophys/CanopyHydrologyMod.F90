@@ -775,7 +775,7 @@ contains
           h2osfc       => col_ws%h2osfc       , & ! Output: [real(r8) (:)   ] surface water (mm)                                
           frac_sno     => col_ws%frac_sno     , & ! Output: [real(r8) (:)   ] fraction of ground covered by snow (0 to 1)       
           frac_sno_eff => col_ws%frac_sno_eff , & ! Output: [real(r8) (:)   ] eff. fraction of ground covered by snow (0 to 1)  
-          frac_h2osfc  => col_ws%frac_h2osfc    & ! Output: [real(r8) (:)   ] col fractional area with surface water greater than zero 
+          frac_h2osfc  => col_ws%frac_h2osfc  , & ! Output: [real(r8) (:)   ] col fractional area with surface water greater than zero 
           frac_h2osfc_act => col_ws%frac_h2osfc_act & ! Output: [real(r8) (:)   ] col fractional area with surface water greater than zero without adjustment from snow fraction
           )
 
