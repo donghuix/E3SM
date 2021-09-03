@@ -297,6 +297,8 @@ contains
     namelist /elm_inparm/ &
          use_erosion, ero_ccycle
 
+    namelist /clm_inparm/ use_frac_h2osfc_act
+
     ! ----------------------------------------------------------------------
     ! Default values
     ! ----------------------------------------------------------------------
@@ -866,6 +868,8 @@ contains
     call mpi_bcast (budget_ltann , 1, MPI_INTEGER, 0, mpicom, ier)
     call mpi_bcast (budget_ltend , 1, MPI_INTEGER, 0, mpicom, ier)
 
+    call mpi_bcast (use_frac_h2osfc_act, 1, MPI_LOGICAL, 0, mpicom, ier)
+
   end subroutine control_spmd
 
   !------------------------------------------------------------------------
@@ -1102,6 +1106,8 @@ contains
        write(iulog, *) '  vsfm_use_dynamic_linesearch                            : ', vsfm_use_dynamic_linesearch
        write(iulog,*) '  vsfm_lateral_model_type                                 : ', vsfm_lateral_model_type
     endif
+
+    write(iulog,*) '    use_frac_h2osfc_act= ', use_frac_h2osfc_act
 
   end subroutine control_print
 

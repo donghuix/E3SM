@@ -776,6 +776,7 @@ contains
           frac_sno     => col_ws%frac_sno     , & ! Output: [real(r8) (:)   ] fraction of ground covered by snow (0 to 1)       
           frac_sno_eff => col_ws%frac_sno_eff , & ! Output: [real(r8) (:)   ] eff. fraction of ground covered by snow (0 to 1)  
           frac_h2osfc  => col_ws%frac_h2osfc    & ! Output: [real(r8) (:)   ] col fractional area with surface water greater than zero 
+          frac_h2osfc_act => col_ws%frac_h2osfc_act & ! Output: [real(r8) (:)   ] col fractional area with surface water greater than zero without adjustment from snow fraction
           )
 
        dtime=get_step_size()           
@@ -816,6 +817,8 @@ contains
                 h2osfc(c)=0._r8
              endif
 
+             frac_h2osfc_act(c) = frac_h2osfc(c)
+
              if (.not. present(no_update)) then
 
                 ! adjust fh2o, fsno when sum is greater than zero
@@ -836,6 +839,7 @@ contains
           else !if landunit not istsoil/istcrop, set frac_h2osfc to zero
 
              frac_h2osfc(c) = 0._r8
+             frac_h2osfc_act(c) = 0._r8
 
           endif
 
