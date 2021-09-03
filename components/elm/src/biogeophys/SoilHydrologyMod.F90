@@ -328,14 +328,15 @@ contains
      real(r8) :: h2osoi_left_vol1                           ! temporary, available volume in the first soil layer
      !-----------------------------------------------------------------------
 
-     associate(                                                                & 
-          snl                  =>    col_pp%snl                                 , & ! Input:  [integer  (:)   ]  minus number of snow layers                        
-          dz                   =>    col_pp%dz                                  , & ! Input:  [real(r8) (:,:) ]  layer depth (m)                                 
-         nlev2bed         =>    col_pp%nlevbed                                  , & ! Input:  [integer  (:)   ]  number of layers to bedrock                     
+     associate(                                                   & 
+          snl                  =>    col_pp%snl                 , & ! Input:  [integer  (:)   ]  minus number of snow layers                        
+          dz                   =>    col_pp%dz                  , & ! Input:  [real(r8) (:,:) ]  layer depth (m)                                 
+          nlev2bed             =>    col_pp%nlevbed             , & ! Input:  [integer  (:)   ]  number of layers to bedrock                     
 
-          t_soisno             =>    col_es%t_soisno           , & ! Input:  [real(r8) (:,:) ]  soil temperature (Kelvin)                       
+          t_soisno             =>    col_es%t_soisno            , & ! Input:  [real(r8) (:,:) ]  soil temperature (Kelvin)                       
 
           frac_h2osfc          =>    col_ws%frac_h2osfc         , & ! Input:  [real(r8) (:)   ]  fraction of ground covered by surface water (0 to 1)
+          frac_h2osfc_act      =>    col_ws%frac_h2osfc_act     , & ! Input:  [real(r8) (:)   ]  fraction of ground covered by surface water (0 to 1) without adjustment from snow fraction
           frac_sno             =>    col_ws%frac_sno_eff        , & ! Input:  [real(r8) (:)   ]  fraction of ground covered by snow (0 to 1)       
           h2osoi_ice           =>    col_ws%h2osoi_ice          , & ! Input:  [real(r8) (:,:) ]  ice lens (kg/m2)                                
           h2osoi_liq           =>    col_ws%h2osoi_liq          , & ! Input:  [real(r8) (:,:) ]  liquid water (kg/m2)                            
