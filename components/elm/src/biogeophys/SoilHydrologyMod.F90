@@ -456,9 +456,15 @@ contains
                 rsurf_vic = min(qflx_in_soil(c), rsurf_vic)
                 qinmax = (1._r8 - fsat(c)) * 10._r8**(-e_ice*top_icefrac)*(qflx_in_soil(c) - rsurf_vic)
              else
-                qinmax=(1._r8 - fsat(c)) * minval(10._r8**(-e_ice*(icefrac(c,1:3)))*hksat(c,1:3))
+                !qinmax=(1._r8 - fsat(c)) * minval(10._r8**(-e_ice*(icefrac(c,1:3)))*hksat(c,1:3))
+                qinmax=minval(10._r8**(-e_ice*(icefrac(c,1:3)))*hksat(c,1:3))
              end if
-             qflx_infl_excess(c) = max(0._r8,qflx_in_soil(c) -  (1.0_r8 - frac_h2osfc(c))*qinmax)
+             ! Assume frac_h2osfc occurs on fsat
+             if ( frac_h2osfc(c) >= fsat(c) ) then
+                qflx_infl_excess(c) = max(0._r8,qflx_in_soil(c) -  (1.0_r8 - frac_h2osfc(c))*qinmax)
+             else
+                qflx_infl_excess(c) = max(0._r8,qflx_in_soil(c) -  (1.0_r8 - frac_h2osfc(c))*(1.0_r8 - fsat(c) + frac_h2osfc(c))*qinmax)
+             endif
 
              !4. soil infiltration and h2osfc "run-on"
              qflx_infl(c) = qflx_in_soil(c) - qflx_infl_excess(c)
@@ -515,22 +521,25 @@ contains
              !6. update h2osfc prior to calculating bottom drainage from h2osfc
              h2osfc(c) = h2osfc(c) + qflx_in_h2osfc(c) * dtime
 
-             !--  if all water evaporates, there will be no bottom drainage
-             h2osoi_left_vol1 = max(max(0._r8,(pondmx+watsat(c,1)*dz(c,1)*1.e3_r8-h2osoi_ice(c,1)-watmin)) - &
-                                      max(h2osoi_liq(c,1)-watmin,0._r8), 0._r8)
              if (h2osfc(c) < 0.0) then
                 qflx_infl(c) = qflx_infl(c) + h2osfc(c)/dtime
                 qflx_gross_evap_soil(c) = qflx_gross_evap_soil(c) - h2osfc(c)/dtime                
                 h2osfc(c) = 0.0
                 qflx_h2osfc_drain(c)= 0._r8
              else
-                qflx_h2osfc_drain(c)=min(frac_h2osfc(c)*qinmax,h2osfc(c)/dtime)
+                ! Original scheme
+                !qflx_h2osfc_drain(c)=min(frac_h2osfc(c)*qinmax,h2osfc(c)/dtime)
+                
+                ! Assume frac_h2osfc occurs on fsat
+                if (frac_h2osfc(c) <= fsat(c)) then
+                  qflx_h2osfc_drain(c)=0
+                else
+                  qflx_h2osfc_drain(c)=min(frac_h2osfc(c)*(1._r8-fsat(c))*qinmax,h2osfc(c)/dtime)
+                endif
+                !--  if all water evaporates, there will be no bottom drainage
+                !h2osoi_left_vol1 = max(max(0._r8,(pondmx+watsat(c,1)*dz(c,1)*1.e3_r8-h2osoi_ice(c,1)-watmin)) - &
+                !                       max(h2osoi_liq(c,1)-watmin,0._r8), 0._r8)
                 !h2osoi_left_vol1 = frac_h2osfc(c) * h2osoi_left_vol1
-                !if (frac_h2osfc(c) < fsat(c)) then
-                !  qflx_h2osfc_drain(c)=0
-                !else
-                !  qflx_h2osfc_drain(c)=min((frac_h2osfc(c)-fsat(c))*qinmax,h2osfc(c)/dtime)
-                !endif
                 !qflx_h2osfc_drain(c)=min(qflx_h2osfc_drain(c),h2osoi_left_vol1/dtime)
                 !qflx_h2osfc_drain(c)=0 ! assume no bottome drainage
              endif
