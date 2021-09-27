@@ -1729,8 +1729,8 @@ If TRUE (which is the default), check consistency between pct_nat_pft on the fla
 and pct_nat_pft read from the surface dataset.
 </entry>
 
-<!-- =========================================================================================  -->
-<!-- Namelist options related to lateral grid connectivity
+<!-- ========================================================================================  -->
+<!-- Namelist options related to lateral grid connectivity                                     -->
 <!-- ========================================================================================  -->
 <entry id="lateral_connectivity" type="logical" category="elm_initialization"
        group="elm_inparm" valid_values="" >
@@ -1742,8 +1742,8 @@ If TRUE setup up lateral grid connectivity in CLM.
 Specifies the method for decomposing CLM grids across processors.
 </entry>
 
-<!-- =========================================================================================  -->
-<!-- Namelist options related to the bgc & pflotran interface
+<!-- ========================================================================================= -->
+<!-- Namelist options related to the bgc & pflotran interface                                  -->
 <!-- ========================================================================================  -->
 
 <entry id="use_elm_interface" type="logical" category="default_settings"
@@ -1930,6 +1930,24 @@ Toggle to turn on the soil erosion model.
 <entry id="ero_ccycle" type="logical" category="physics"
        group="elm_inparm" valid_values="" value=".false.">
 Toggle to turn on the soil erosion and OM pools feedback.
+</entry>
+
+<!-- ========================================================================================  -->
+<!-- Namelist options for land river coulping                                                  -->
+<!-- ========================================================================================  -->
+
+<entry id="use_lnd_rof_two_way" type="logical" category="clm_physics"
+       group="clm_inparm" valid_values="" value=".false.">
+Toggle to turn on land-river two way coupling.
+</entry>
+
+<!-- ========================================================================================  -->
+<!-- Namelist options for using actual h2osfc actual fraction                                  -->
+<!-- ========================================================================================  -->
+
+<entry id="use_frac_h2osfc_act" type="logical" category="clm_physics"
+       group="clm_inparm" valid_values="" value=".false.">
+Toggle to use actual frac_h2osfc to calculate qh2osfc.
 </entry>
 
 </namelist_definition>
