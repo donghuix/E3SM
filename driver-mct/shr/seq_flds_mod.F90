@@ -2239,6 +2239,7 @@ contains
 
     call seq_flds_add(l2x_fluxes, 'Flrl_inundinf')
     call seq_flds_add(x2r_fluxes, 'Flrl_inundinf')
+    call seq_flds_add(l2x_fluxes_to_rof,'Flrl_inundinf')
     longname = 'Infiltration from floodplain inundation volume'
     stdname  = 'floodplain_inundation_infiltration'
     units    = 'mm/s'

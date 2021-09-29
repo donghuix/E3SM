@@ -577,6 +577,8 @@ contains
 
     call ncd_pio_openfile (ncid, trim(locfn), 0)
 
+    call ncd_inqfdims(ncid, isgrid2d, rtmlon, rtmlat, rtmn)
+
    ! Allocate variables
 
     if (masterproc) then

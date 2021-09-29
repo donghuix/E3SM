@@ -319,7 +319,7 @@ contains
                   - (forc_rain_col(c) + forc_snow_col(c)  + qflx_floodc(c) + qflx_surf_irrig_col(c) + qflx_over_supply_col(c) &
                   - qflx_evap_tot(c) - qflx_surf(c)  - qflx_h2osfc_surf(c) &
                   - qflx_qrgwl(c) - qflx_drain(c) - qflx_drain_perched(c) - qflx_snwcp_ice(c) &
-                  - qflx_lateral(c)) * dtime + qflx_h2orof_drain(c)) * dtime
+                  - qflx_lateral(c) + qflx_h2orof_drain(c)) * dtime
 
              dwb(c) = (endwb(c)-begwb(c))/dtime
 

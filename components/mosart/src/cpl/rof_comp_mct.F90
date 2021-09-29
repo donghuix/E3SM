@@ -24,8 +24,8 @@ module rof_comp_mct
   use RunoffMod        , only : rtmCTL, TRunoff, THeat, TUnit, Tctl
   use RtmVar           , only : rtmlon, rtmlat, ice_runoff, iulog, &
                                 nsrStartup, nsrContinue, nsrBranch, & 
-                                iinst_index, inst_suffix, inst_name, RtmVarSet,  &
-                                wrmflag, heatflag, data_bgc_fluxes_to_ocean_flag &
+                                inst_index, inst_suffix, inst_name, RtmVarSet, &
+                                wrmflag, heatflag, data_bgc_fluxes_to_ocean_flag, &
                                 inundflag, use_lnd_rof_two_way
                                 
   use RtmSpmd          , only : masterproc, mpicom_rof, npes, iam, RtmSpmdInit, ROFID

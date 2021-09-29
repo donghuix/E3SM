@@ -2321,6 +2321,7 @@ sub setup_logic_demand {
   $settings{'use_century_decomp'}  = $nl_flags->{'use_century_decomp'};
   $settings{'use_crop'}            = $nl_flags->{'use_crop'};
   $settings{'use_lnd_rof_two_way'} = $nl_flags->{'use_lnd_rof_two_way'};
+  $settings{'use_frac_h2osfc_act'} = $nl_flags->{'use_frac_h2osfc_act'};
 
   my $demand = $nl->get_value('clm_demand');
   if (defined($demand)) {
