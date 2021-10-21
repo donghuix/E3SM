@@ -297,7 +297,7 @@ contains
     namelist /elm_inparm/ &
          use_erosion, ero_ccycle
 
-    namelist /clm_inparm/ use_frac_h2osfc_act
+    namelist /elm_inparm/ use_frac_h2osfc_act, use_modified_infil
 
     ! ----------------------------------------------------------------------
     ! Default values
@@ -1108,6 +1108,7 @@ contains
     endif
 
     write(iulog,*) '    use_frac_h2osfc_act= ', use_frac_h2osfc_act
+    write(iulog,*) '    use_modified_infil = ', use_modified_infil
 
   end subroutine control_print
 

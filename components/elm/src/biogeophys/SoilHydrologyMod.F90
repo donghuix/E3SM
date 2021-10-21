@@ -8,7 +8,7 @@ module SoilHydrologyMod
   use shr_log_mod       , only : errMsg => shr_log_errMsg
   use decompMod         , only : bounds_type
   use elm_varctl        , only : iulog, use_vichydro
-  use elm_varctl        , only : use_frac_h2osfc_act
+  use elm_varctl        , only : use_frac_h2osfc_act,use_modified_infil
   use elm_varcon        , only : denh2o, denice, rpi
   use EnergyFluxType    , only : energyflux_type
   use SoilHydrologyType , only : soilhydrology_type  
@@ -456,15 +456,23 @@ contains
                 rsurf_vic = min(qflx_in_soil(c), rsurf_vic)
                 qinmax = (1._r8 - fsat(c)) * 10._r8**(-e_ice*top_icefrac)*(qflx_in_soil(c) - rsurf_vic)
              else
-                !qinmax=(1._r8 - fsat(c)) * minval(10._r8**(-e_ice*(icefrac(c,1:3)))*hksat(c,1:3))
-                qinmax=minval(10._r8**(-e_ice*(icefrac(c,1:3)))*hksat(c,1:3))
+                if ( use_modified_infil ) then
+                  qinmax=minval(10._r8**(-e_ice*(icefrac(c,1:3)))*hksat(c,1:3))
+                else
+                  qinmax=(1._r8 - fsat(c)) * minval(10._r8**(-e_ice*(icefrac(c,1:3)))*hksat(c,1:3))
+                end if
              end if
-             ! Assume frac_h2osfc occurs on fsat
-             if ( frac_h2osfc(c) >= fsat(c) ) then
-                qflx_infl_excess(c) = max(0._r8,qflx_in_soil(c) -  (1.0_r8 - frac_h2osfc(c))*qinmax)
+
+             if ( use_modified_infil ) then
+                ! Assume frac_h2osfc occurs on fsat
+                if ( frac_h2osfc(c) >= fsat(c) ) then
+                   qflx_infl_excess(c) = max(0._r8,qflx_in_soil(c) -  (1.0_r8 - frac_h2osfc(c))*qinmax)
+                else
+                   qflx_infl_excess(c) = max(0._r8,qflx_in_soil(c) -  (1.0_r8 - frac_h2osfc(c))*(1.0_r8 - fsat(c) + frac_h2osfc(c))*qinmax)
+                end if
              else
-                qflx_infl_excess(c) = max(0._r8,qflx_in_soil(c) -  (1.0_r8 - frac_h2osfc(c))*(1.0_r8 - fsat(c) + frac_h2osfc(c))*qinmax)
-             endif
+                qflx_infl_excess(c) = max(0._r8,qflx_in_soil(c) -  (1.0_r8 - frac_h2osfc(c))*qinmax)
+             end if
 
              !4. soil infiltration and h2osfc "run-on"
              qflx_infl(c) = qflx_in_soil(c) - qflx_infl_excess(c)
@@ -527,15 +535,19 @@ contains
                 h2osfc(c) = 0.0
                 qflx_h2osfc_drain(c)= 0._r8
              else
-                ! Original scheme
-                !qflx_h2osfc_drain(c)=min(frac_h2osfc(c)*qinmax,h2osfc(c)/dtime)
-                
-                ! Assume frac_h2osfc occurs on fsat
-                if (frac_h2osfc(c) <= fsat(c)) then
-                  qflx_h2osfc_drain(c)=0
+
+                if ( use_modified_infil ) then
+                   ! Assume frac_h2osfc occurs on fsat
+                   if (frac_h2osfc(c) <= fsat(c)) then
+                     qflx_h2osfc_drain(c)=0
+                   else
+                     qflx_h2osfc_drain(c)=min(frac_h2osfc(c)*(1._r8-fsat(c))*qinmax,h2osfc(c)/dtime)
+                   endif
                 else
-                  qflx_h2osfc_drain(c)=min(frac_h2osfc(c)*(1._r8-fsat(c))*qinmax,h2osfc(c)/dtime)
-                endif
+                   ! Original scheme
+                   qflx_h2osfc_drain(c)=min(frac_h2osfc(c)*qinmax,h2osfc(c)/dtime)
+                end if
+                
                 !--  if all water evaporates, there will be no bottom drainage
                 !h2osoi_left_vol1 = max(max(0._r8,(pondmx+watsat(c,1)*dz(c,1)*1.e3_r8-h2osoi_ice(c,1)-watmin)) - &
                 !                       max(h2osoi_liq(c,1)-watmin,0._r8), 0._r8)

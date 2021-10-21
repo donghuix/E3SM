@@ -1907,7 +1907,7 @@ written only if do_budgets variable is .true.,
 0=none,
 1=+net summary budgets,
 default: 0
-  </entry>
+</entry>
 
 <!-- ========================================================================================  -->
 <!-- Namelist options for soil erosion model                                                   -->
@@ -1928,8 +1928,17 @@ Toggle to turn on the soil erosion and OM pools feedback.
 <!-- ========================================================================================  -->
 
 <entry id="use_frac_h2osfc_act" type="logical" category="clm_physics"
-       group="clm_inparm" valid_values="" value=".false.">
+       group="elm_inparm" valid_values="" value=".false.">
 Toggle to use actual frac_h2osfc to calculate qh2osfc.
+</entry>
+
+<!-- ========================================================================================  -->
+<!-- Namelist options for using modifed infiltration scheme in h2osfc                          -->
+<!-- ========================================================================================  -->
+
+<entry id="use_modified_infil" type="logical" category="clm_physics"
+       group="elm_inparm" valid_values="" value=".false.">
+Toggle to use modifed infiltration scheme in h2osfc     .
 </entry>
 
 </namelist_definition>
