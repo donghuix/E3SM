@@ -468,7 +468,7 @@ contains
                 if ( frac_h2osfc(c) >= fsat(c) ) then
                    qflx_infl_excess(c) = max(0._r8,qflx_in_soil(c) -  (1.0_r8 - frac_h2osfc(c))*qinmax)
                 else
-                   qflx_infl_excess(c) = max(0._r8,qflx_in_soil(c) -  (1.0_r8 - frac_h2osfc(c))*(1.0_r8 - fsat(c) + frac_h2osfc(c))*qinmax)
+                   qflx_infl_excess(c) = max(0._r8,qflx_in_soil(c) -  (1.0_r8 - fsat(c))*qinmax)
                 end if
              else
                 qflx_infl_excess(c) = max(0._r8,qflx_in_soil(c) -  (1.0_r8 - frac_h2osfc(c))*qinmax)
@@ -538,10 +538,10 @@ contains
 
                 if ( use_modified_infil ) then
                    ! Assume frac_h2osfc occurs on fsat
-                   if (frac_h2osfc(c) >= fsat(c)) then
+                   if (frac_h2osfc(c) <= fsat(c)) then
                      qflx_h2osfc_drain(c)=0
                    else
-                     qflx_h2osfc_drain(c)=min(frac_h2osfc(c)*(1._r8-fsat(c))*qinmax,h2osfc(c)/dtime)
+                     qflx_h2osfc_drain(c)=min((frac_h2osfc(c)-fsat(c))*qinmax,h2osfc(c)/dtime)
                    endif
                 else
                    ! Original scheme
