@@ -869,6 +869,7 @@ contains
     call mpi_bcast (budget_ltend , 1, MPI_INTEGER, 0, mpicom, ier)
 
     call mpi_bcast (use_frac_h2osfc_act, 1, MPI_LOGICAL, 0, mpicom, ier)
+    call mpi_bcast (use_modified_infil, 1, MPI_LOGICAL, 0, mpicom, ier)
 
   end subroutine control_spmd
 
