@@ -240,8 +240,8 @@ contains
     use elm_varctl      , only : fsurdat, iulog, use_vichydro, use_var_soil_thick
     use elm_varpar      , only : nlevsoi, nlevgrnd, nlevsno, nlevlak, nlevurb
     use elm_varcon      , only : denice, denh2o, sb, bdsno 
-    use elm_varcon      , only : h2osno_max, zlnd, tfrz, spval, pc
-    use elm_varcon      , only : nlvic, dzvic, pc, mu, grlnd
+    use elm_varcon      , only : h2osno_max, zlnd, tfrz, spval
+    use elm_varcon      , only : nlvic, dzvic, grlnd
     use landunit_varcon , only : istice, istwet, istsoil, istdlak, istcrop, istice_mec
     use column_varcon   , only : icol_shadewall, icol_road_perv
     use column_varcon   , only : icol_road_imperv, icol_roof, icol_sunwall
@@ -599,7 +599,7 @@ contains
          if (micro_sigma(c) > 1.e-6_r8 .and. (this%h2osfcflag /= 0)) then
             d = 0.0
             do p = 1,4
-               fd   = 0.5*(1.0_r8+shr_spfn_erf(d/(micro_sigma(c)*sqrt(2.0)))) - pc
+               fd   = 0.5*(1.0_r8+shr_spfn_erf(d/(micro_sigma(c)*sqrt(2.0)))) - this%pc(g)
                dfdd = exp(-d**2/(2.0*micro_sigma(c)**2))/(micro_sigma(c)*sqrt(2.0*shr_const_pi))
                d    = d - fd/dfdd
             enddo
