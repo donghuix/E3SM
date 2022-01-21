@@ -703,9 +703,9 @@ contains
                 !I will use the following implementation to further explore the ET problem, now
                 !I set soil order to 0 for all soils. Jinyun Tang, Mar 20, 2014
 
-                !ipedof=get_ipedof(0)
-                !call pedotransf(ipedof, sand, clay, &
-                !     this%watsat_col(c,lev), this%bsw_col(c,lev), this%sucsat_col(c,lev), xksat)
+                ipedof=get_ipedof(0)
+                call pedotransf(ipedof, sand, clay, &
+                     this%watsat_col(c,lev), this%bsw_col(c,lev), this%sucsat_col(c,lev), xksat)
                 ! Runoff sensitivity analysis
                 if (lev .eq. 1) then
                   this%watsat_col(c,lev) = watsat3d(g,1)
