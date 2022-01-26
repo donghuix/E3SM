@@ -65,6 +65,8 @@ contains
     real(r8)              :: slope0            ! temporary
     real(r8)              :: slopebeta         ! temporary
     real(r8)              :: slopemax          ! temporary
+    real(r8) ,pointer     :: micro_sigma  (:)  ! read in - microtopographic parameter [m]
+    logical               :: estimate_sigma
     integer               :: ier               ! error status
     real(r8)              :: scalez = 0.025_r8 ! Soil layer thickness discretization (m)
     real(r8)              :: thick_equal = 0.2
@@ -667,8 +669,16 @@ contains
       ! SCA shape function defined
       !-----------------------------------------------
 
+      allocate(micro_sigma(bounds%begg:bounds%endg))
+      call ncd_io(ncid=ncid, varname='micro_sigma', flag='read', data=micro_sigma, dim1name=grlnd, readvar=readvar)
+      if (.not. readvar) then
+         write(iulog,*) 'micro_sigma: not in surfdata: using default values'
+         estimate_sigma = .True.
+      end if
+
       do c = begc,endc
          l = col_pp%landunit(c)
+         g = col_pp%gridcell(c)
 
          if (lun_pp%itype(l)==istice_mec) then
             ! ice_mec columns already account for subgrid topographic variability through
@@ -681,13 +691,18 @@ contains
          end if
 
          ! microtopographic parameter, units are meters (try smooth function of slope)
+         if (estimate_sigma) then
+            slopebeta = 3._r8
+            slopemax = 0.4_r8
+            slope0 = slopemax**(-1._r8/slopebeta)
+            col_pp%micro_sigma(c) = (col_pp%topo_slope(c) + slope0)**(-slopebeta)
+         else
+            col_pp%micro_sigma(c) = micro_sigma(g)
+         endif
 
-         slopebeta = 3._r8
-         slopemax = 0.4_r8
-         slope0 = slopemax**(-1._r8/slopebeta)
-         col_pp%micro_sigma(c) = (col_pp%topo_slope(c) + slope0)**(-slopebeta)
       end do
-
+      deallocate(micro_sigma)
+      
     call ncd_pio_closefile(ncid)
 
   end subroutine initVertical

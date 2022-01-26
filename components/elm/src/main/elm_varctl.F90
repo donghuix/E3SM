@@ -499,6 +499,10 @@ module elm_varctl
    integer, public :: budget_ann   = 1
    integer, public :: budget_ltann = 1
    integer, public :: budget_ltend = 0
+
+   logical, public :: use_frac_h2osfc_act = .false.
+   logical, public :: use_modified_infil = .false.
+
 contains
 
   !---------------------------------------------------------------------------

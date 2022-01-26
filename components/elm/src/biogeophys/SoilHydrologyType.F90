@@ -66,6 +66,13 @@ Module SoilHydrologyType
      real(r8), pointer :: i_0_col           (:)     => null()! col VIC average saturation in top soil layers
      real(r8), pointer :: ice_col           (:,:)   => null()! col VIC soil ice (kg/m2) for VIC soil layers
 
+     ! Runoff sensitivity analysis
+     real(r8), pointer :: max_drain         (:)     ! maximum bottom drainage rate for sensitivity analysis
+     real(r8), pointer :: fover             (:)     ! decay factor for surface runoff
+     real(r8), pointer :: ice_imped         (:)     ! ice impedance factor for sensitivity analysis
+     real(r8), pointer :: pc                (:)     ! surface water threshold
+     real(r8), pointer :: mu                (:)     ! scaling exponent
+
    contains
 
      procedure, public  :: Init
@@ -155,6 +162,12 @@ contains
     allocate(this%i_0_col           (begc:endc))                 ; this%i_0_col           (:)     = spval
     allocate(this%ice_col           (begc:endc,nlayert))         ; this%ice_col           (:,:)   = spval
 
+    allocate(this%max_drain         (begg:endg))                 ; this%max_drain         (:)     = spval
+    allocate(this%fover             (begg:endg))                 ; this%fover             (:)     = spval
+    allocate(this%ice_imped         (begg:endg))                 ; this%ice_imped         (:)     = spval
+    allocate(this%pc                (begg:endg))                 ; this%pc                (:)     = spval
+    allocate(this%mu                (begg:endg))                 ; this%mu                (:)     = spval
+
   end subroutine InitAllocate
 
   !------------------------------------------------------------------------
@@ -231,8 +244,8 @@ contains
     use elm_varctl      , only : fsurdat, iulog, use_vichydro, use_var_soil_thick
     use elm_varpar      , only : nlevsoi, nlevgrnd, nlevsno, nlevlak, nlevurb
     use elm_varcon      , only : denice, denh2o, sb, bdsno
-    use elm_varcon      , only : h2osno_max, zlnd, tfrz, spval, pc
-    use elm_varcon      , only : nlvic, dzvic, pc, mu, grlnd
+    use elm_varcon      , only : h2osno_max, zlnd, tfrz, spval
+    use elm_varcon      , only : nlvic, dzvic, grlnd
     use landunit_varcon , only : istice, istwet, istsoil, istdlak, istcrop, istice_mec
     use column_varcon   , only : icol_shadewall, icol_road_perv
     use column_varcon   , only : icol_road_imperv, icol_roof, icol_sunwall
@@ -543,9 +556,51 @@ contains
     end if
     call ncd_pio_closefile(ncid)
 
+    call getfil (fsurdat, locfn, 0)
+    call ncd_pio_openfile (ncid, locfn, 0)
+    call ncd_io(ncid=ncid, varname='max_drain', flag='read', data=this%max_drain, dim1name=grlnd, readvar=readvar)
+    if (.not. readvar) then
+      this%max_drain(:) = 5.5e-3_r8
+    end if
+    call ncd_pio_closefile(ncid)
+
+    call getfil (fsurdat, locfn, 0)
+    call ncd_pio_openfile (ncid, locfn, 0)
+    call ncd_io(ncid=ncid, varname='fover', flag='read', data=this%fover, dim1name=grlnd, readvar=readvar)
+    if (.not. readvar) then
+      this%fover(:) = 0.5_r8
+    end if
+    call ncd_pio_closefile(ncid)
+
+    call getfil (fsurdat, locfn, 0)
+    call ncd_pio_openfile (ncid, locfn, 0)
+    call ncd_io(ncid=ncid, varname='ice_imped', flag='read', data=this%ice_imped, dim1name=grlnd, readvar=readvar)
+    if (.not. readvar) then
+      this%ice_imped(:) = 6.0_r8
+    end if
+    call ncd_pio_closefile(ncid)
+
+    call getfil (fsurdat, locfn, 0)
+    call ncd_pio_openfile (ncid, locfn, 0)
+    call ncd_io(ncid=ncid, varname='pc', flag='read', data=this%pc, dim1name=grlnd, readvar=readvar)
+    if (.not. readvar) then
+      this%pc(:) = 0.4_r8
+    end if
+    call ncd_pio_closefile(ncid)
+
+    call getfil (fsurdat, locfn, 0)
+    call ncd_pio_openfile (ncid, locfn, 0)
+    call ncd_io(ncid=ncid, varname='mu', flag='read', data=this%mu, dim1name=grlnd, readvar=readvar)
+    if (.not. readvar) then
+      this%mu(:) = 0.13889_r8
+    end if
+    call ncd_pio_closefile(ncid)
+    
     associate(micro_sigma => col_pp%micro_sigma)
       do c = bounds%begc, bounds%endc
 
+         g = col_pp%gridcell(c)
+         
          ! determine h2osfc threshold ("fill & spill" concept)
          ! set to zero for no h2osfc (w/frac_infclust =large)
 
@@ -553,7 +608,7 @@ contains
          if (micro_sigma(c) > 1.e-6_r8 .and. (this%h2osfcflag /= 0)) then
             d = 0.0
             do p = 1,4
-               fd   = 0.5*(1.0_r8+shr_spfn_erf(d/(micro_sigma(c)*sqrt(2.0)))) - pc
+               fd   = 0.5*(1.0_r8+shr_spfn_erf(d/(micro_sigma(c)*sqrt(2.0)))) - this%pc(g)
                dfdd = exp(-d**2/(2.0*micro_sigma(c)**2))/(micro_sigma(c)*sqrt(2.0*shr_const_pi))
                d    = d - fd/dfdd
             enddo
@@ -569,7 +624,7 @@ contains
          endif
 
          ! set decay factor
-         this%hkdepth_col(c) = 1._r8/2.5_r8
+         this%hkdepth_col(c) = 1._r8/fdrain(g)
 
       end do
     end associate
