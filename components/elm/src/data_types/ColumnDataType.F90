@@ -21,7 +21,7 @@ module ColumnDataType
   use elm_varcon      , only : watmin, bdsno, zsoi, zisoi, dzsoi_decomp
   use elm_varcon      , only : c13ratio, c14ratio, secspday
   use elm_varctl      , only : use_fates, use_fates_planthydro, create_glacier_mec_landunit
-  use elm_varctl      , only : use_hydrstress
+  use elm_varctl      , only : use_hydrstress, use_modified_infil
   use elm_varctl      , only : bound_h2osoi, use_cn, iulog, use_vertsoilc, spinup_state
   use elm_varctl      , only : use_erosion
   use elm_varctl      , only : use_elm_interface, use_pflotran, pf_cmode
@@ -1542,7 +1542,12 @@ contains
        this%wf(c)                     = spval
        this%wf2(c)                    = spval
        this%total_plant_stored_h2o(c) = 0._r8
-       this%h2osfc(c)                 = 0._r8
+       if (use_modified_infil) then
+          ! Intialize standing water
+          this%h2osfc(c)              = 10._r8
+       else
+          this%h2osfc(c)              = 0._r8
+       endif
        this%h2ocan(c)                 = 0._r8
        this%frac_h2osfc(c)            = 0._r8
        this%frac_h2osfc_act(c)        = 0._r8
