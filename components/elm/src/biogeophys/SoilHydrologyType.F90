@@ -8,7 +8,7 @@ Module SoilHydrologyType
   use elm_varpar            , only : nlevgrnd, nlayer, nlayert, nlevsoi
   use elm_varpar            , only : more_vertlayers, nlevsoifl, toplev_equalspace
   use elm_varcon            , only : zsoi, dzsoi, zisoi, spval
-  use elm_varctl            , only : iulog
+  use elm_varctl            , only : iulog, use_lnd_rof_two_way
   use SharedParamsMod     , only : ParamsShareInst
   use LandunitType          , only : lun_pp                
   use ColumnType            , only : col_pp      

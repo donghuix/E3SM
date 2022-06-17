@@ -501,7 +501,12 @@ module elm_varctl
    integer, public :: budget_ltend = 0
 
    logical, public :: use_frac_h2osfc_act = .false.
-   logical, public :: use_modified_infil = .false.
+   logical, public :: use_modified_infil  = .false.
+
+   !----------------------------------------------------------
+   ! land river two way coupling
+   !----------------------------------------------------------
+   logical, public :: use_lnd_rof_two_way = .false.
 
 contains
 

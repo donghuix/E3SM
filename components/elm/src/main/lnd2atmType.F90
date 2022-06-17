@@ -71,6 +71,9 @@ module lnd2atmType
      real(r8), pointer :: Tqsur_grc(:) => null()             ! grc Temperature of surface runoff
      real(r8), pointer :: Tqsub_grc(:) => null()             ! grc Temperature of subsurface runoff
      real(r8), pointer :: wslake_grc(:) => null()            ! grc lake water storage
+
+     ! lnd->rof land river two way coupling
+     real(r8), pointer :: qflx_h2orof_drain_grc(:) => null() ! grc drainage from floodplain inundation
      
    contains
 
@@ -160,6 +163,8 @@ contains
     if ( n_drydep > 0 .and. drydep_method == DD_XLND )then
        allocate(this%ddvel_grc(begg:endg,1:n_drydep));   this%ddvel_grc(:,:)=ival
     end if
+
+    allocate(this%qflx_h2orof_drain_grc(begg:endg)); this%qflx_h2orof_drain_grc(:) = ival
 
   end subroutine InitAllocate
 

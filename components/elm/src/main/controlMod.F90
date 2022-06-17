@@ -304,7 +304,9 @@ contains
     namelist /elm_inparm/ &
          use_erosion, ero_ccycle
 
-    namelist /elm_inparm/ use_frac_h2osfc_act, use_modified_infil
+    ! land river two way coupling
+    namelist /elm_inparm/ &
+         use_lnd_rof_two_way, use_frac_h2osfc_act, use_modified_infil
 
     ! ----------------------------------------------------------------------
     ! Default values
@@ -894,7 +896,9 @@ contains
 
     ! new infiltration scheme to improve surface water
     call mpi_bcast (use_frac_h2osfc_act, 1, MPI_LOGICAL, 0, mpicom, ier)
-    call mpi_bcast (use_modified_infil, 1, MPI_LOGICAL, 0, mpicom, ier)
+    call mpi_bcast (use_modified_infil,  1, MPI_LOGICAL, 0, mpicom, ier)
+    ! land river two way coupling
+    call mpi_bcast (use_lnd_rof_two_way, 1, MPI_LOGICAL, 0, mpicom, ier)
 
   end subroutine control_spmd
 
@@ -1136,6 +1140,7 @@ contains
 
     write(iulog,*) '    use_frac_h2osfc_act= ', use_frac_h2osfc_act
     write(iulog,*) '    use_modified_infil = ', use_modified_infil
+    write(iulog,*) '    use_lnd_rof_two_way= ', use_lnd_rof_two_way
     
   end subroutine control_print
 
