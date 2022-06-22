@@ -17,7 +17,7 @@ module CH4Mod
   use elm_varcon         , only : catomw, s_con, d_con_w, d_con_g, c_h_inv, kh_theta, kh_tbase
   use landunit_varcon    , only : istdlak
   use clm_time_manager   , only : get_step_size, get_nstep
-  use elm_varctl         , only : iulog, use_cn, use_lch4, use_fates
+  use elm_varctl         , only : iulog, use_cn, use_lch4, use_fates, use_lnd_rof_two_way
   use abortutils         , only : endrun
   use decompMod          , only : bounds_type
   use SharedParamsMod    , only : ParamsShareInst
@@ -1385,8 +1385,9 @@ contains
          rootfr               =>   soilstate_vars%rootfr_patch               , & ! Input:  [real(r8) (:,:) ]  fraction of roots in each soil layer  (nlevgrnd)
          rootfr_col           =>   soilstate_vars%rootfr_col                 , & ! Output: [real(r8) (:,:) ]  fraction of roots in each soil layer  (nlevgrnd) (p2c)
 
-         frac_h2osfc          =>   col_ws%frac_h2osfc           , & ! Input:  [real(r8) (:)   ]  fraction of ground covered by surface water (0 to 1)
-         qflx_surf            =>   col_wf%qflx_surf              , & ! Input:  [real(r8) (:)   ]  surface runoff (mm H2O /s)
+         frac_h2osfc          =>   col_ws%frac_h2osfc                        , & ! Input:  [real(r8) (:)   ]  fraction of ground covered by surface water (0 to 1)
+         frac_h2orof          =>   col_ws%frac_h2orof                       , & ! Output:  [real(r8) (:)   ]  floodplain inudntion fraction at column level (-) 
+         qflx_surf            =>   col_wf%qflx_surf                          , & ! Input:  [real(r8) (:)   ]  surface runoff (mm H2O /s)
 
          conc_o2_sat          =>   ch4_vars%conc_o2_sat_col                  , & ! Input:  [real(r8) (:,:) ]  O2 conc  in each soil layer (mol/m3) (nlevsoi)
          zwt0                 =>   ch4_vars%zwt0_col                         , & ! Input:  [real(r8) (:)   ]  decay factor for finundated (m)
@@ -1502,7 +1503,12 @@ contains
 
          !There may be ways to improve this for irrigated crop columns...
          if (fin_use_fsat) then
-            finundated(c) = frac_h2osfc(c)
+            ! inundation = wetland inundation + floodplain inundation
+            if (use_lnd_rof_two_way) then
+               finundated(c) = frac_h2osfc(c) + frac_h2orof(c)
+            else
+               finundated(c) = frac_h2osfc(c)
+            endif
          else
             if (zwt0(c) > 0._r8) then
                if (zwt_perched(c) < z(c,nlevsoi)-1.e-5_r8 .and. zwt_perched(c) < zwt(c)) then

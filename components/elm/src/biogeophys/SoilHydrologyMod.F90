@@ -589,6 +589,7 @@ contains
                   qflx_h2orof_drain(c)=0._r8
                endif
                
+               qflx_h2orof_drain(c)=0._r8
                ! remove drainage from inundation volume
                h2orof(c) = h2orof(c) - qflx_h2orof_drain(c) * dtime
 
