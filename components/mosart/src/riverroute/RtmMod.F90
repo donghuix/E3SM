@@ -3237,7 +3237,8 @@ contains
                 write(iulog,'(a)') trim(tracerID)//'   Surface-water balance check:'
                 write(iulog,'(a)') trim(tracerID)//'---------------------------------'
 
-                budget_input = budget_glb_inund(br_qsur, nt) + budget_glb_inund(br_qsub, nt) + budget_glb_inund(br_qgwl, nt) + budget_glb_inund(br_qdto, nt)
+                budget_input = budget_glb_inund(br_qsur, nt) + budget_glb_inund(br_qsub, nt) + budget_glb_inund(br_qgwl, nt) + budget_glb_inund(br_qdto, nt) + &
+                     budget_glb_inund(br_ehexch, nt) + budget_glb_inund(br_etexch, nt) + budget_glb_inund(br_erexch, nt)
                 budget_output = budget_glb_inund(br_ocnout, nt) + budget_glb_inund(br_direct, nt)
                 budget_other = budget_glb_inund(br_erolpn,nt) - budget_glb_inund(br_erolcn,nt)   !('previous MOSART sub-step channel outflow volume'-'current MOSART sub-step channel outflow volume'. --Inund.)                                                                                                                                                                                                
 
@@ -3254,6 +3255,9 @@ contains
                 write(iulog,'(a, f22.6)') trim(tracerID)//'   Input sub-surface runoff (km^3)            =', budget_glb_inund(br_qsub, nt)
                 write(iulog,'(a, f22.6)') trim(tracerID)//'   Input from glacier, wetland or lake (km^3) =', budget_glb_inund(br_qgwl, nt)
                 write(iulog,'(a, f22.6)') trim(tracerID)//'   Input direct-to-ocean runoff (km^3)        =', budget_glb_inund(br_qdto, nt)
+                write(iulog,'(a, f22.6)') trim(tracerID)//'   Input hillslope erosion (1e9kg)            =', budget_glb_inund(br_ehexch, nt)
+                write(iulog,'(a, f22.6)') trim(tracerID)//'   Input subnetwork channel bank erosion (1e9kg)  =', budget_glb_inund(br_etexch, nt)
+                write(iulog,'(a, f22.6)') trim(tracerID)//'   Input main channel bank erosion (1e9kg)        =', budget_glb_inund(br_erexch, nt)
                 write(iulog,'(a, f22.6)') trim(tracerID)//'   Output flows to oceans (km^3)              =', budget_glb_inund(br_ocnout, nt)
                 write(iulog,'(a, f22.6)') trim(tracerID)//'   Output direct to oceans (km^3)             =', budget_glb_inund(br_direct, nt)
 
@@ -3266,6 +3270,8 @@ contains
                 write(iulog,'(a, f22.6)') trim(tracerID)//'   Volume over hillslopes (km^3)              =', budget_glb_inund(bv_wh_i, nt)
                 write(iulog,'(a, f22.6)') trim(tracerID)//'   Volume in subnetworks (km^3)               =', budget_glb_inund(bv_wt_i, nt)
                 write(iulog,'(a, f22.6)') trim(tracerID)//'   Volume in main channels (km^3)             =', budget_glb_inund(bv_wr_i, nt)
+                write(iulog,'(a, f22.6)') trim(tracerID)//'   Volume in subnetworks active layer (1e9kg) =', budget_glb_inund(bv_t_al_i, nt)
+                write(iulog,'(a, f22.6)') trim(tracerID)//'   Volume in main channel active layer (1e9kg)=', budget_glb_inund(bv_r_al_i, nt)
 
                 ! If inundation scheme is on & the 1st tracer (liquid water) :
                 if ( inundflag .and. Tctl%OPT_inund .eq. 1 .and. nt .eq. 1 ) then
@@ -3281,6 +3287,8 @@ contains
                 write(iulog,'(a, f22.6)') trim(tracerID)//'   Volume over hillslopes (km^3)              =', budget_glb_inund(bv_wh_f, nt)
                 write(iulog,'(a, f22.6)') trim(tracerID)//'   Volume in subnetworks (km^3)               =', budget_glb_inund(bv_wt_f, nt)
                 write(iulog,'(a, f22.6)') trim(tracerID)//'   Volume in main channels (km^3)             =', budget_glb_inund(bv_wr_f, nt)
+                write(iulog,'(a, f22.6)') trim(tracerID)//'   Volume in subnetworks active layer (1e9kg) =', budget_glb_inund(bv_t_al_f, nt)
+                write(iulog,'(a, f22.6)') trim(tracerID)//'   Volume in main channel active layer (1e9kg)=', budget_glb_inund(bv_r_al_f, nt)
 
                 ! If inundation scheme is on & the 1st tracer (liquid water) :
                 if ( inundflag .and. Tctl%OPT_inund .eq. 1 .and. nt .eq. 1 ) then
@@ -3479,23 +3487,23 @@ contains
 !
 ! !INTERFACE:
   subroutine MOSART_init
-!
-! !REVISION HISTORY:
-! Author: Hongyi Li
+  !
+  ! !REVISION HISTORY:
+  ! Author: Hongyi Li
 
-! !DESCRIPTION:
-! initialize MOSART variables
-! 
-! !USES:
-! !ARGUMENTS:
-  implicit none
-!
-! !REVISION HISTORY:
-! Author: Hongyi Li
-!
-!
-! !OTHER LOCAL VARIABLES:
-!EOP
+  ! !DESCRIPTION:
+  ! initialize MOSART variables
+  ! 
+  ! !USES:
+  ! !ARGUMENTS:
+    implicit none
+  !
+  ! !REVISION HISTORY:
+  ! Author: Hongyi Li
+  !
+  !
+  ! !OTHER LOCAL VARIABLES:
+  !EOP
   type(file_desc_t)  :: ncid       ! pio file desc
   type(var_desc_t)   :: vardesc    ! pio variable desc 
   type(io_desc_t)    :: iodesc_dbl ! pio io desc
@@ -3754,8 +3762,40 @@ contains
      if (masterproc) write(iulog,FORMR) trim(subname),' read rdepth ',minval(Tunit%rdepth),maxval(Tunit%rdepth)
      call shr_sys_flush(iulog)
 
+     if(sediflag) then
+        allocate(TSedi_para%d50(begr:endr))
+        ier = pio_inq_varid(ncid, name='D50', vardesc=vardesc)
+        call pio_read_darray(ncid, vardesc, iodesc_dbl, TSedi_para%d50, ier)
+        if (masterproc) write(iulog,FORMR) trim(subname),' read D50 ',minval(TSedi_para%d50),maxval(TSedi_para%d50)
+        call shr_sys_flush(iulog)
+     end if
+
+   !! TODO: inputs for the reservoir trapping only but not for regulation
+   !  if(sediflag .and. wrmflag) then
+   !    allocate(Tres_para%Tres_t(begr:endr))  
+   !    ier = pio_inq_varid(ncid, name='deltaT_local', vardesc=vardesc)
+   !    call pio_read_darray(ncid, vardesc, iodesc_dbl, Tres_para%Tres_t, ier)
+   !    if (masterproc) write(iulog,FORMR) trim(subname),' read Tres_t ',minval(Tres_para%Tres_t),maxval(Tres_para%Tres_t)
+   !    call shr_sys_flush(iulog)
+   !    do iunit=begr,endr
+   !    if(Tres_para%Tres_t(iunit)<0._r8) then
+   !            Tres_para%Tres_t(iunit) = 0._r8
+   !        end if
+   !    end do
+   !
+   !    allocate(Tres_para%Tres_r(begr:endr))  
+   !    ier = pio_inq_varid(ncid, name='deltaT_main', vardesc=vardesc)
+   !    call pio_read_darray(ncid, vardesc, iodesc_dbl, Tres_para%Tres_r, ier)
+   !    if (masterproc) write(iulog,FORMR) trim(subname),' read Tres_r ',minval(Tres_para%Tres_r),maxval(Tres_para%Tres_r)
+   !    call shr_sys_flush(iulog)
+   !    do iunit=begr,endr
+   !        if(Tres_para%Tres_r(iunit)<0._r8) then
+   !            Tres_para%Tres_r(iunit) = 0._r8
+   !        end if        
+   !    end do
+   !  end if
+
      allocate(TUnit%nr(begr:endr))
-  
      if (inundflag) then
         ! Calculate channel Manning roughness coefficients :
         call calc_chnlMannCoe ( )
@@ -3850,6 +3890,15 @@ contains
         end do
 
      end if
+
+     allocate(TUnit%nUp(begr:endr))
+     TUnit%nUp = 0
+
+     allocate(TUnit%iUp(begr:endr,8))
+     TUnit%iUp = 0
+
+     allocate(TUnit%indexDown(begr:endr))
+     TUnit%indexDown = 0
 
      if (inundflag) then
        if ( Tctl%RoutingMethod == 2 ) then       ! Use diffusion wave method in channel routing computation.
@@ -3966,9 +4015,15 @@ contains
       
      allocate (TRunoff%qdem(begr:endr,nt_rtm)) 
      TRunoff%qdem = 0._r8
-  
+
      allocate (TRunoff%ehout(begr:endr,nt_rtm))
      TRunoff%ehout = 0._r8
+
+     allocate (TRunoff%ehexchange(begr:endr,nt_rtm))
+     TRunoff%ehexchange = 0._r8
+
+     allocate (TRunoff%ehexch_avg(begr:endr,nt_rtm))
+     TRunoff%ehexch_avg = 0._r8
 
      allocate (TRunoff%tarea(begr:endr,nt_rtm))
      TRunoff%tarea = 0._r8
@@ -3978,6 +4033,12 @@ contains
 
      allocate (TRunoff%dwt(begr:endr,nt_rtm))
      TRunoff%dwt = 0._r8
+
+     allocate (TRunoff%wt_al(begr:endr,nt_rtm))
+     TRunoff%wt_al = 0._r8
+
+     allocate (TRunoff%dwt_al(begr:endr,nt_rtm))
+     TRunoff%dwt_al = 0._r8
 
      allocate (TRunoff%yt(begr:endr,nt_rtm))
      TRunoff%yt = 0._r8
@@ -3997,11 +4058,20 @@ contains
      allocate (TRunoff%tt(begr:endr,nt_rtm))
      TRunoff%tt = 0._r8
 
+     allocate (TRunoff%conc_t(begr:endr,nt_rtm))
+     TRunoff%conc_t = 0._r8
+
      allocate (TRunoff%etin(begr:endr,nt_rtm))
      TRunoff%etin = 0._r8
 
      allocate (TRunoff%etout(begr:endr,nt_rtm))
      TRunoff%etout = 0._r8
+
+     allocate (TRunoff%etexchange(begr:endr,nt_rtm))
+     TRunoff%etexchange = 0._r8
+
+     allocate (TRunoff%etexch_avg(begr:endr,nt_rtm))
+     TRunoff%etexch_avg = 0._r8
 
      allocate (TRunoff%rarea(begr:endr,nt_rtm))
      TRunoff%rarea = 0._r8
@@ -4011,6 +4081,15 @@ contains
 
      allocate (TRunoff%dwr(begr:endr,nt_rtm))
      TRunoff%dwr = 0._r8
+
+     allocate (TRunoff%wr_al(begr:endr,nt_rtm))
+     TRunoff%wr_al = 0._r8
+
+     allocate (TRunoff%dwr_al(begr:endr,nt_rtm))
+     TRunoff%dwr_al = 0._r8
+
+     allocate (TRunoff%rslp_energy(begr:endr))
+     TRunoff%rslp_energy = 0._r8
 
      allocate (TRunoff%yr(begr:endr,nt_rtm))
      TRunoff%yr = 0._r8
@@ -4029,6 +4108,9 @@ contains
 
      allocate (TRunoff%tr(begr:endr,nt_rtm))
      TRunoff%tr = 0._r8
+
+     allocate (TRunoff%conc_r(begr:endr,nt_rtm))
+     TRunoff%conc_r = 0._r8
 
      allocate (TRunoff%erlg(begr:endr,nt_rtm))
      TRunoff%erlg = 0._r8
@@ -4068,22 +4150,31 @@ contains
 
      allocate (TRunoff%flow(begr:endr,nt_rtm))
      TRunoff%flow = 0._r8
-    
+
+     allocate (TRunoff%erexchange(begr:endr,nt_rtm))
+     TRunoff%erexchange = 0._r8
+
+     allocate (TRunoff%erexch_avg(begr:endr,nt_rtm))
+     TRunoff%erexch_avg = 0._r8
+
      allocate (TPara%c_twid(begr:endr))
      TPara%c_twid = 1.0_r8
 
      if ( Tctl%RoutingMethod == 2 ) then       ! Use diffusion wave method in channel routing computation.
         allocate (TRunoff%rslp_energy(begr:endr))
         TRunoff%rslp_energy = 0.0_r8
-        
+
         allocate (TRunoff%wr_dstrm(begr:endr, nt_rtm))
         TRunoff%wr_dstrm = 0.0_r8
 
         allocate (TRunoff%yr_dstrm(begr:endr))
-        TRunoff%yr_dstrm = 0.0_r8    
+        TRunoff%yr_dstrm = 0.0_r8
+
+        allocate (TRunoff%conc_r_dstrm(begr:endr,nt_rtm))
+        TRunoff%conc_r_dstrm = 0.0_r8
 
         allocate (TRunoff%erin_dstrm(begr:endr,nt_rtm))
-        TRunoff%erin_dstrm = 0.0_r8 
+        TRunoff%erin_dstrm = 0.0_r8
 
         do nr = rtmCTL%begr,rtmCTL%endr
             do i=1, rtmCTL%nUp(nr)
@@ -4292,6 +4383,17 @@ contains
               TUnit%hlen(iunit) = hlen_max   ! allievate the outlier in drainage density estimation. TO DO
            end if
            rlen_min = sqrt(TUnit%area(iunit))
+           if(TUnit%rlen(iunit) < rlen_min .and. TUnit%mask(iunit)==1) then
+              TUnit%rlen(iunit) = rlen_min  ! the channel length should not be small if its has downstream grids
+           else
+              if(TUnit%rlen(iunit) < rlen_min) then
+                  TUnit%rlen(iunit) = 0.5_r8*rlen_min
+              end if
+           end if
+           if(TUnit%rlen(iunit) < rlen_min .and. TUnit%mask(iunit)==1) then
+              TUnit%rlen(iunit) = rlen_min  ! the channel length should not be small if its has downstream grids
+           end if
+           
            if(TUnit%rlen(iunit) < rlen_min) then
               TUnit%tlen(iunit) = TUnit%area(iunit) / rlen_min / 2._r8 - TUnit%hlen(iunit)
            else
