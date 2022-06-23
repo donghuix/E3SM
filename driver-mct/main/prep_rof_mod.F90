@@ -636,7 +636,7 @@ contains
        if (have_irrig_field) then
           x2r_r%rAttr(index_x2r_Flrl_irrig,i) = l2x_r%rAttr(index_l2x_Flrl_irrig,i) * frac
        end if
-       x2r_r%rAttr(index_x2r_Flrl_rofmud,i) = l2x_r%rAttr(index_l2x_Flrl_rofmud,i) * lfrac
+       x2r_r%rAttr(index_x2r_Flrl_rofmud,i) = l2x_r%rAttr(index_l2x_Flrl_rofmud,i) * frac
        if(trim(cime_model) .eq. 'e3sm') then
          x2r_r%rAttr(index_x2r_Flrl_Tqsur,i) = l2x_r%rAttr(index_l2x_Flrl_Tqsur,i)
          x2r_r%rAttr(index_x2r_Flrl_Tqsub,i) = l2x_r%rAttr(index_l2x_Flrl_Tqsub,i)
