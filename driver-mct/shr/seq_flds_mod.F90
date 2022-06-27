@@ -2152,6 +2152,7 @@ contains
     endif
 
     call seq_flds_add(l2x_fluxes,'Flrl_rofmud')
+    call seq_flds_add(l2x_fluxes_to_rof,'Flrl_rofmud')
     call seq_flds_add(x2r_fluxes,'Flrl_rofmud')
     longname = 'Sediment flux from land (mud)'
     stdname  = 'mud_flux_into_runoff_surface'
