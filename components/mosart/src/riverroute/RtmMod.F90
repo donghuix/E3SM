@@ -1938,6 +1938,17 @@ contains
       rtmCTL%wr(:, 2) = 0._r8
       rtmCTL%erout(:, 2) = 0._r8
 
+      rtmCTL%wh(:, 3) = 0._r8
+      rtmCTL%wt(:, 3) = 0._r8
+      rtmCTL%wr(:, 3) = 0._r8
+      rtmCTL%erout(:, 3) = 0._r8
+
+      rtmCTL%wh(:, 4) = 0._r8
+      rtmCTL%wt(:, 4) = 0._r8
+      rtmCTL%wr(:, 4) = 0._r8
+      rtmCTL%erout(:, 4) = 0._r8
+
+
       TRunoff%wh   = rtmCTL%wh
       TRunoff%wt   = rtmCTL%wt
       TRunoff%wr   = rtmCTL%wr
@@ -1980,6 +1991,7 @@ contains
             if (inundflag .and. nt == 1) then  
                rtmCTL%volr(nr,nt) = rtmCTL%volr(nr,nt) + TRunoff%wf_ini( nr )
             endif
+
         enddo
     enddo
 
@@ -2743,6 +2755,7 @@ contains
        if (inundflag .and. Tctl%OPT_inund == 1 .and. nt == 1) then
           rtmCTL%volr(nr,nt) = rtmCTL%volr(nr,nt) + TRunoff%wf_ini(nr)
        endif
+
        rtmCTL%dvolrdt(nr,nt) = (rtmCTL%volr(nr,nt) - volr_init) / delt_coupling
        rtmCTL%runoff(nr,nt) = flow(nr,nt)
 
@@ -3508,6 +3521,7 @@ contains
   type(var_desc_t)   :: vardesc    ! pio variable desc 
   type(io_desc_t)    :: iodesc_dbl ! pio io desc
   type(io_desc_t)    :: iodesc_int ! pio io desc
+  logical            :: readvar    ! If variable exists or not
   integer, pointer   :: compdof(:) ! computational degrees of freedom for pio 
   integer :: ndims                 ! number of dimensions in the input
   integer :: dids(2)               ! variable dimension ids 
@@ -3572,8 +3586,14 @@ contains
      
      if (wrmflag) then
        allocate(TUnit%domainfrac(begr:endr))
-       ier = pio_inq_varid(ncid, name='domainfrac', vardesc=vardesc)
-       call pio_read_darray(ncid, vardesc, iodesc_dbl, TUnit%domainfrac, ier)
+       call check_var(ncid, 'domainfrac', vardesc, readvar)
+       if (readvar) then
+         ier = pio_inq_varid(ncid, name='domainfrac', vardesc=vardesc)
+         write(iulog,*) subname,' ier =',ier
+         call pio_read_darray(ncid, vardesc, iodesc_dbl, TUnit%domainfrac, ier)
+       else
+         TUnit%domainfrac = 1.0_r8
+       endif
        if (masterproc) write(iulog,FORMR) trim(subname),' read domainfrac ',minval(Tunit%domainfrac),maxval(Tunit%domainfrac)
        call shr_sys_flush(iulog)
      endif
@@ -3824,7 +3844,6 @@ contains
 
             if ( TUnit%areaTotal(n) .le. 0._r8 ) then
               write( iulog, * ) trim( subname ) // ' ERROR: TUnit%areaTotal(n) <= 0 for n=', n
-
               call shr_sys_abort( trim( subname ) // ' ERROR: TUnit%areaTotal(n) <= 0 ')
             end if
 
@@ -3835,7 +3854,6 @@ contains
 
             if ( TUnit%hslp(n) .LT. 0._r8 ) then
               write( iulog, * ) trim( subname ) // ' ERROR: TUnit%hslp(n) < 0 for n=', n
-
               call shr_sys_abort( trim( subname ) // ' ERROR: TUnit%hslp(n) < 0 ')
             end if
 
@@ -3846,7 +3864,6 @@ contains
 
             if ( TUnit%tslp(n) .LT. 0._r8 ) then
               write( iulog, * ) trim( subname ) // ' ERROR: TUnit%tslp(n) < 0 for n=', n
-
               call shr_sys_abort( trim( subname ) // ' ERROR: TUnit%tslp(n) < 0 ')
             end if
 
@@ -3867,7 +3884,6 @@ contains
 
             if ( TUnit%rslp(n) .LT. 0._r8 ) then
               write( iulog, * ) trim( subname ) // ' ERROR: TUnit%rslp(n) < 0 for n=', n
-
               call shr_sys_abort( trim( subname ) // ' ERROR: TUnit%rslp(n) < 0 ')
             end if
 
@@ -3899,100 +3915,6 @@ contains
 
      allocate(TUnit%indexDown(begr:endr))
      TUnit%indexDown = 0
-
-     if (inundflag) then
-       if ( Tctl%RoutingMethod == 2 ) then       ! Use diffusion wave method in channel routing computation.
-          allocate (TUnit%rlen_dstrm(begr:endr))
-          allocate (TUnit%rslp_dstrm(begr:endr))
-
-          ! --------------------------------- 
-          ! retrieve downstream values (TUnit%rlen_dstrm(:) and TUnit%rslp_dstrm(:)) for DW routing.
-          ! --------------------------------- 
-
-          call mct_aVect_init(avsrc,rList='rlen:rslp',lsize=rtmCTL%lnumr)
-          call mct_aVect_init(avdst,rList='rlen:rslp',lsize=rtmCTL%lnumr)
-          call mct_aVect_zero(avsrc)
-          call mct_aVect_zero(avdst)
-          cnt = 0
-          do nr = rtmCTL%begr,rtmCTL%endr
-             cnt = cnt + 1
-             avsrc%rAttr(1,cnt) = TUnit%rlen(nr)
-             avsrc%rAttr(2,cnt) = TUnit%rslp(nr)
-          enddo
-
-          call mct_sMat_avMult(avsrc, sMatP_dnstrm, avdst)
-
-          cnt = 0
-          do nr = rtmCTL%begr,rtmCTL%endr
-             cnt = cnt + 1
-             TUnit%rlen_dstrm(nr) = avdst%rAttr(1,cnt)
-             TUnit%rslp_dstrm(nr) = avdst%rAttr(2,cnt)
-          enddo
-
-          call mct_aVect_clean(avsrc)
-          call mct_aVect_clean(avdst)
-
-          if (masterproc) write(iulog,FORMR) trim(subname),' set rlen_dstrm ',minval(Tunit%rlen_dstrm),maxval(Tunit%rlen_dstrm)
-          call shr_sys_flush(iulog)
-          if (masterproc) write(iulog,FORMR) trim(subname),' set rslp_dstrm ',minval(Tunit%rslp_dstrm),maxval(Tunit%rslp_dstrm)
-          call shr_sys_flush(iulog)
-       end if
-
-       if (Tctl%OPT_inund == 1) then
-          allocate (TUnit%wr_bf(begr:endr))
-          TUnit%wr_bf = 0.0_r8   
-
-          allocate( TUnit%e_eprof_in2( Tctl%npt_elevProf, begr:endr ) )    
-
-          ! --------------------------------- 
-          ! (assign elevation values to TUnit%e_eprof_in2( :, : ) ).
-
-          if ( Tctl%OPT_elevProf .eq. 1 ) then 
-            call read_elevation_profile(ncid, 'ele', TUnit%e_eprof_in2)
-          endif
-          ! --------------------------------- 
-
-          allocate (TUnit%a_eprof(begr:endr,12))
-          TUnit%a_eprof = 0.0_r8
-
-          allocate (TUnit%e_eprof(begr:endr,12))
-          TUnit%e_eprof = 0.0_r8
-
-          allocate (TUnit%a_chnl(begr:endr))
-          TUnit%a_chnl = 0.0_r8
-
-          allocate (TUnit%e_chnl(begr:endr))
-          TUnit%e_chnl = 0.0_r8
- 
-          allocate (TUnit%ipt_bl_bktp(begr:endr))
-          TUnit%ipt_bl_bktp = 0
-
-          allocate (TUnit%a_eprof3(begr:endr, 13))
-          TUnit%a_eprof3 = 0.0_r8
-
-          allocate (TUnit%e_eprof3(begr:endr, 13))
-          TUnit%e_eprof3 = 0.0_r8
-
-          allocate (TUnit%npt_eprof3(begr:endr))
-          TUnit%npt_eprof3 = 0
-
-          allocate (TUnit%s_eprof3(begr:endr, 13))
-          TUnit%s_eprof3 = 0.0_r8
-
-          allocate (TUnit%alfa3(begr:endr, 13))
-          TUnit%alfa3 = 0.0_r8
-
-          allocate (TUnit%p3(begr:endr, 13))
-          TUnit%p3 = 0.0_r8
-
-          allocate (TUnit%q3(begr:endr, 13))
-          TUnit%q3 = 0.0_r8      
-
-          ! Pre-process elevation-profile parameters :
-          call preprocess_elevProf ( )
-       endif
-
-     end if  ! inundflag
   
      ! initialize water states and fluxes
      allocate (TRunoff%wh(begr:endr,nt_rtm))
@@ -4344,23 +4266,8 @@ contains
         
      end if
     
-     call pio_freedecomp(ncid, iodesc_dbl)
-     call pio_freedecomp(ncid, iodesc_int)
-     call pio_closefile(ncid)
-
    ! control parameters and some other derived parameters
    ! estimate derived input variables
-
-     if (inundflag .and. Tctl%OPT_inund == 1) then
-        do iunit = rtmCTL%begr, rtmCTL%endr
-          if ( rtmCTL%mask(iunit) .eq. 1 .or. rtmCTL%mask(iunit) .eq. 3 ) then   ! 1--Land; 3--Basin outlet (downstream is ocean).
-
-            ! Main channel storage capacity :
-            TUnit%wr_bf( iunit ) = TUnit%rwidth( iunit ) * TUnit%rlen( iunit ) * TUnit%rdepth( iunit )
-
-          end if 
-        end do
-     end if
 
      do iunit=rtmCTL%begr,rtmCTL%endr
         if(TUnit%Gxr(iunit) > 0._r8) then
@@ -4438,6 +4345,116 @@ contains
         TUnit%tslpsqrt(iunit) = sqrt(Tunit%tslp(iunit))
         TUnit%hslpsqrt(iunit) = sqrt(Tunit%hslp(iunit))
      end do
+
+     if (inundflag) then
+       if ( Tctl%RoutingMethod == 2 ) then       ! Use diffusion wave method in channel routing computation.
+          allocate (TUnit%rlen_dstrm(begr:endr))
+          allocate (TUnit%rslp_dstrm(begr:endr))
+
+          ! ---------------------------------
+          ! retrieve downstream values (TUnit%rlen_dstrm(:) and TUnit%rslp_dstrm(:)) for DW routing.
+          ! ---------------------------------
+
+          call mct_aVect_init(avsrc,rList='rlen:rslp',lsize=rtmCTL%lnumr)
+          call mct_aVect_init(avdst,rList='rlen:rslp',lsize=rtmCTL%lnumr)
+          call mct_aVect_zero(avsrc)
+          call mct_aVect_zero(avdst)
+          cnt = 0
+          do nr = rtmCTL%begr,rtmCTL%endr
+             cnt = cnt + 1
+             avsrc%rAttr(1,cnt) = TUnit%rlen(nr)
+             avsrc%rAttr(2,cnt) = TUnit%rslp(nr)
+          enddo
+
+          call mct_sMat_avMult(avsrc, sMatP_dnstrm, avdst)
+
+          cnt = 0
+          do nr = rtmCTL%begr,rtmCTL%endr
+             cnt = cnt + 1
+             TUnit%rlen_dstrm(nr) = avdst%rAttr(1,cnt)
+             TUnit%rslp_dstrm(nr) = avdst%rAttr(2,cnt)
+          enddo
+
+          call mct_aVect_clean(avsrc)
+          call mct_aVect_clean(avdst)
+
+          if (masterproc) write(iulog,FORMR) trim(subname),' set rlen_dstrm ',minval(Tunit%rlen_dstrm),maxval(Tunit%rlen_dstrm)
+          call shr_sys_flush(iulog)
+          if (masterproc) write(iulog,FORMR) trim(subname),' set rslp_dstrm ',minval(Tunit%rslp_dstrm),maxval(Tunit%rslp_dstrm)
+          call shr_sys_flush(iulog)
+       end if
+
+       if (Tctl%OPT_inund == 1) then
+          allocate (TUnit%wr_bf(begr:endr))
+          TUnit%wr_bf = 0.0_r8
+
+          allocate( TUnit%e_eprof_in2( Tctl%npt_elevProf, begr:endr ) )
+
+          ! ---------------------------------
+          ! (assign elevation values to TUnit%e_eprof_in2( :, : ) ).
+
+          if ( Tctl%OPT_elevProf .eq. 1 ) then
+            call read_elevation_profile(ncid, 'ele', TUnit%e_eprof_in2)
+          endif
+          ! ---------------------------------
+
+          allocate (TUnit%a_eprof(begr:endr,12))
+          TUnit%a_eprof = 0.0_r8
+
+          allocate (TUnit%e_eprof(begr:endr,12))
+          TUnit%e_eprof = 0.0_r8
+
+          allocate (TUnit%a_chnl(begr:endr))
+          TUnit%a_chnl = 0.0_r8
+
+          allocate (TUnit%e_chnl(begr:endr))
+          TUnit%e_chnl = 0.0_r8
+
+          allocate (TUnit%ipt_bl_bktp(begr:endr))
+          TUnit%ipt_bl_bktp = 0
+
+          allocate (TUnit%a_eprof3(begr:endr, 13))
+          TUnit%a_eprof3 = 0.0_r8
+
+          allocate (TUnit%e_eprof3(begr:endr, 13))
+          TUnit%e_eprof3 = 0.0_r8
+
+          allocate (TUnit%npt_eprof3(begr:endr))
+          TUnit%npt_eprof3 = 0
+
+          allocate (TUnit%s_eprof3(begr:endr, 13))
+          TUnit%s_eprof3 = 0.0_r8
+
+          allocate (TUnit%alfa3(begr:endr, 13))
+          TUnit%alfa3 = 0.0_r8
+
+          allocate (TUnit%p3(begr:endr, 13))
+          TUnit%p3 = 0.0_r8
+
+          allocate (TUnit%q3(begr:endr, 13))
+          TUnit%q3 = 0.0_r8
+
+          ! Pre-process elevation-profile parameters :
+          call preprocess_elevProf ( )
+       endif
+
+     end if  ! inundflag
+
+     if (inundflag .and. Tctl%OPT_inund == 1) then
+        do iunit = rtmCTL%begr, rtmCTL%endr
+          if ( rtmCTL%mask(iunit) .eq. 1 .or. rtmCTL%mask(iunit) .eq. 3 ) then   ! 1--Land; 3--Basin outlet (downstream is ocean).
+
+            ! Main channel storage capacity :
+            TUnit%wr_bf( iunit ) = TUnit%rwidth( iunit ) * TUnit%rlen( iunit ) * TUnit%rdepth( iunit )
+
+          end if
+        end do
+     end if
+
+     call pio_freedecomp(ncid, iodesc_dbl)
+     call pio_freedecomp(ncid, iodesc_int)
+     call pio_closefile(ncid)
+
   end if  ! endr >= begr
 
   ! retrieve the downstream channel attributes after some post-processing above
