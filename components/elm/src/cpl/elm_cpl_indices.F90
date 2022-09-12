@@ -114,6 +114,7 @@ module elm_cpl_indices
   integer, public ::index_x2l_Flrr_volrmch    ! rtm->lnd rof volr main channel volume
   integer, public ::index_x2l_Flrr_supply     ! rtm->lnd rof supply for land use
   integer, public ::index_x2l_Flrr_deficit    ! rtm->lnd supply deficit
+  integer, public ::index_x2l_So_ssh          ! ocn->lnd sea surface height
 
   ! In the following, index 0 is bare land, other indices are glc elevation classes
   integer, public ::index_x2l_Sg_frac(0:glc_nec_max)   = 0   ! Fraction of glacier from glc model
@@ -275,6 +276,8 @@ contains
     index_x2l_Faxa_dstwet4  = mct_avect_indexra(x2l,'Faxa_dstwet4')
 
     index_x2l_Flrr_flood    = mct_avect_indexra(x2l,'Flrr_flood')
+
+    index_x2l_So_ssh        = mct_avect_indexra(x2l,'So_ssh')
 
     !-------------------------------------------------------------
     ! glc coupling

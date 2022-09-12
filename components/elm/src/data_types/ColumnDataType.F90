@@ -161,6 +161,8 @@ module ColumnDataType
     real(r8), pointer :: vsfm_mass_col_1d   (:)   => null() ! liquid mass per unit area from VSFM [kg H2O/m^2]
     real(r8), pointer :: vsfm_smpl_col_1d   (:)   => null() ! 1D soil matrix potential liquid from VSFM [m]
     real(r8), pointer :: vsfm_soilp_col_1d  (:)   => null() ! 1D soil liquid pressure from VSFM [Pa]
+    ! land-ocean two way copuling
+    real(r8), pointer :: ssh                (:)   => null() ! sea surface height recevied from MPAS [m]
 
   contains
     procedure, public :: Init    => col_ws_init
@@ -1358,6 +1360,7 @@ contains
     allocate(this%vsfm_mass_col_1d   (ncells))                        ; this%vsfm_mass_col_1d   (:)   = nan
     allocate(this%vsfm_smpl_col_1d   (ncells))                        ; this%vsfm_smpl_col_1d   (:)   = nan
     allocate(this%vsfm_soilp_col_1d  (ncells))                        ; this%vsfm_soilp_col_1d  (:)   = nan
+    allocate(this%ssh                (begc:endc))                     ; this%ssh                (:)   = nan
 
     !-----------------------------------------------------------------------
     ! initialize history fields for select members of col_ws
@@ -1538,6 +1541,7 @@ contains
        this%h2osfc(c)                 = 0._r8
        this%h2ocan(c)                 = 0._r8
        this%frac_h2osfc(c)            = 0._r8
+       this%ssh(c)                    = 0._r8
 
        if (lun_pp%urbpoi(l)) then
           ! From Bonan 1996 (LSM technical note)
