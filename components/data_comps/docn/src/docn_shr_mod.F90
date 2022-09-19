@@ -153,7 +153,8 @@ CONTAINS
         trim(datamode) == 'COPYALL'             .or. &
         trim(datamode) == 'IAF'                 .or. &
         trim(datamode) == 'SOM'                 .or. &
-        trim(datamode) == 'SOM_AQUAP') then
+        trim(datamode) == 'SOM_AQUAP'           .or. &
+        trim(datamode) == 'GTSM') then
        if (my_task == master_task) then
           write(logunit,F00) ' docn datamode = ',trim(datamode)
        end if

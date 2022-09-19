@@ -157,6 +157,7 @@ module seq_flds_mod
   logical            :: rof2ocn_nutrients   ! .true. if the runoff model passes nutrient fields to the ocn
   logical            :: lnd_rof_two_way     ! .true. if land-river two-way coupling turned on
   logical            :: ocn_rof_two_way     ! .true. if river-ocean two-way coupling turned on
+  logical            :: ocn_lnd_one_way     ! .true. if ocean to land one-way coupling turned on
 
   !----------------------------------------------------------------------------
   ! metadata
@@ -199,6 +200,8 @@ module seq_flds_mod
   character(CXX) :: seq_flds_x2o_fluxes
   character(CXX) :: seq_flds_o2x_states_to_rof
   character(CXX) :: seq_flds_o2x_fluxes_to_rof
+  character(CXX) :: seq_flds_o2x_states_to_lnd
+  character(CXX) :: seq_flds_o2x_fluxes_to_lnd
 
   character(CXX) :: seq_flds_g2x_states
   character(CXX) :: seq_flds_g2x_states_to_lnd
@@ -259,6 +262,7 @@ module seq_flds_mod
   character(CXX) :: seq_flds_w2x_fields
   character(CXX) :: seq_flds_x2w_fields
   character(CXX) :: seq_flds_o2x_fields_to_rof
+  character(CXX) :: seq_flds_o2x_fields_to_lnd
 
   !----------------------------------------------------------------------------
   ! component names
@@ -333,6 +337,8 @@ contains
     character(CXX) :: o2x_fluxes = ''
     character(CXX) :: o2x_states_to_rof = ''
     character(CXX) :: o2x_fluxes_to_rof = ''
+    character(CXX) :: o2x_states_to_lnd = ''
+    character(CXX) :: o2x_fluxes_to_lnd = ''
     character(CXX) :: x2o_states = ''
     character(CXX) :: x2o_fluxes = ''
     character(CXX) :: g2x_states = ''
@@ -381,7 +387,7 @@ contains
          flds_co2a, flds_co2b, flds_co2c, flds_co2_dmsa, flds_wiso, glc_nec, &
          ice_ncat, seq_flds_i2o_per_cat, flds_bgc_oi, &
          nan_check_component_fields, rof_heat, atm_flux_method, atm_gustiness, &
-         rof2ocn_nutrients, lnd_rof_two_way, ocn_rof_two_way
+         rof2ocn_nutrients, lnd_rof_two_way, ocn_rof_two_way, ocn_lnd_one_way
 
     ! user specified new fields
     integer,  parameter :: nfldmax = 200
@@ -422,6 +428,7 @@ contains
        rof2ocn_nutrients = .false.
        lnd_rof_two_way   = .false.
        ocn_rof_two_way   = .false.
+       ocn_lnd_one_way   = .false.
 
        unitn = shr_file_getUnit()
        write(logunit,"(A)") subname//': read seq_cplflds_inparm namelist from: '&
@@ -454,6 +461,7 @@ contains
     call shr_mpi_bcast(rof2ocn_nutrients, mpicom)
     call shr_mpi_bcast(lnd_rof_two_way,   mpicom)
     call shr_mpi_bcast(ocn_rof_two_way,   mpicom)
+    call shr_mpi_bcast(ocn_lnd_one_way,   mpicom)
 
     call glc_elevclass_init(glc_nec)
 
@@ -1655,6 +1663,15 @@ contains
       attname  = 'So_ssh'
       call metadata_set(attname, longname, stdname, units)
     endif
+
+    call seq_flds_add(o2x_states,"So_frac_h2oocn")
+    call seq_flds_add(x2l_states,"So_frac_h2oocn")
+    call seq_flds_add(o2x_states_to_lnd,"So_frac_h2oocn")
+    longname = 'Oceanic inundation fraction'
+    stdname  = 'oceanic_inundation_fraction'
+    units    = '-'
+    attname  = 'So_frac_h2oocn'
+    call metadata_set(attname, longname, stdname, units)
 
     ! Meridional sea surface slope
     call seq_flds_add(o2x_states,"So_dhdy")
@@ -3756,6 +3773,8 @@ contains
     seq_flds_r2o_ice_fluxes = trim(r2o_ice_fluxes)
     seq_flds_o2x_states_to_rof = trim(o2x_states_to_rof)
     seq_flds_o2x_fluxes_to_rof = trim(o2x_fluxes_to_rof)
+    seq_flds_o2x_states_to_lnd = trim(o2x_states_to_lnd)
+    seq_flds_o2x_fluxes_to_lnd = trim(o2x_fluxes_to_lnd)
 
     if (seq_comm_iamroot(ID)) then
        write(logunit,*) subname//': seq_flds_a2x_states= ',trim(seq_flds_a2x_states)
@@ -3806,6 +3825,7 @@ contains
        write(logunit,*) subname//': seq_flds_x2w_states= ',trim(seq_flds_x2w_states)
        write(logunit,*) subname//': seq_flds_x2w_fluxes= ',trim(seq_flds_x2w_fluxes)
        write(logunit,*) subname//': seq_flds_o2x_states_to_rof=',trim(seq_flds_o2x_states_to_rof)
+       write(logunit,*) subname//': seq_flds_o2x_states_to_lnd=',trim(seq_flds_o2x_states_to_lnd)
     end if
 
     call catFields(seq_flds_dom_fields, seq_flds_dom_coord , seq_flds_dom_other )
@@ -3831,6 +3851,7 @@ contains
     call catFields(seq_flds_w2x_fields, seq_flds_w2x_states, seq_flds_w2x_fluxes)
     call catFields(seq_flds_x2w_fields, seq_flds_x2w_states, seq_flds_x2w_fluxes)
     call catFields(seq_flds_o2x_fields_to_rof, seq_flds_o2x_states_to_rof, seq_flds_o2x_fluxes_to_rof)
+    call catFields(seq_flds_o2x_fields_to_lnd, seq_flds_o2x_states_to_lnd, seq_flds_o2x_fluxes_to_lnd)
 
   end subroutine seq_flds_set
 

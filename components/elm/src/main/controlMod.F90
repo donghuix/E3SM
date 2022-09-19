@@ -932,12 +932,14 @@ contains
     ! land river two way coupling
     call mpi_bcast (use_lnd_rof_two_way   , 1, MPI_LOGICAL, 0, mpicom, ier)
     call mpi_bcast (lnd_rof_coupling_nstep, 1, MPI_INTEGER, 0, mpicom, ier)
+    ! ocean land one way coupling
+    call mpi_bcast (use_ocn_lnd_one_way   , 1, MPI_LOGICAL, 0, mpicom, ier)
 
     !SNICAR-AD
     call mpi_bcast (snow_shape, len(snow_shape), MPI_CHARACTER, 0, mpicom, ier)
     call mpi_bcast (snicar_atm_type, len(snicar_atm_type), MPI_CHARACTER, 0, mpicom, ier)
     call mpi_bcast (use_dust_snow_internal_mixing, 1, MPI_LOGICAL, 0, mpicom, ier)
-	
+
   end subroutine control_spmd
 
   !------------------------------------------------------------------------
@@ -1195,6 +1197,8 @@ contains
     ! land river two way coupling
     write(iulog,*) '    use_lnd_rof_two_way    = ', use_lnd_rof_two_way
     write(iulog,*) '    lnd_rof_coupling_nstep = ', lnd_rof_coupling_nstep
+    ! ocean land one way coupling
+    write(iulog,*) '    use_ocn_lnd_one_way    = ', use_ocn_lnd_one_way
 
   end subroutine control_print
 
