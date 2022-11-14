@@ -573,7 +573,8 @@ contains
             g = col_pp%gridcell(c)
             this%hkdepth_col(c) = 1._r8/fdrain(g)
          else
-            this%hkdepth_col(c) = 1._r8/2.5_r8
+            g = col_pp%gridcell(c)
+            this%hkdepth_col(c) = 1._r8/fdrain(g)
          endif
 
       end do

@@ -1195,7 +1195,7 @@ contains
             filter(nc)%num_hydrononsoic, filter(nc)%hydrononsoic, &
             filter(nc)%num_urbanc, filter(nc)%urbanc,             &
             filter(nc)%num_do_smb_c, filter(nc)%do_smb_c,         &
-            atm2lnd_vars, glc2lnd_vars,        &
+            atm2lnd_vars, glc2lnd_vars, ocn2lnd_vars,             &
             soilhydrology_vars, soilstate_vars)
 
        else
@@ -1205,7 +1205,7 @@ contains
             filter(nc)%num_hydrologyc, filter(nc)%hydrologyc, &
             filter(nc)%num_urbanc, filter(nc)%urbanc,         &
             filter(nc)%num_do_smb_c, filter(nc)%do_smb_c,     &
-            atm2lnd_vars, glc2lnd_vars,      &
+            atm2lnd_vars, glc2lnd_vars, ocn2lnd_vars,         &
             soilhydrology_vars, soilstate_vars)
 
        end if
