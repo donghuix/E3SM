@@ -452,8 +452,10 @@ def buildnml(case, caseroot, compname):
 
     with open(os.path.join(casebuild, "mpaso.input_data_list"), "w") as input_list:
 
-        input_list.write("mesh = {}/ocn/mpas-o/{}/{}.{}.nc\n".format(din_loc_root, ocn_mask, ic_prefix, ic_date))
-        input_list.write("ic = {}\n".format(input_file))
+        #input_list.write("mesh = {}/ocn/mpas-o/{}/{}.{}.nc\n".format(din_loc_root, ocn_mask, ic_prefix, ic_date))
+        #input_list.write("ic = {}\n".format(input_file))
+        input_list.write(" mesh = /global/cscratch1/sd/jonbob/for_Dongyu/ocean.surge25p25.220712.nc\n")
+        input_list.write("ic = /global/cscratch1/sd/jonbob/for_Dongyu/ocean.surge25p25.220712.nc\n")
         if analysis_mask_file != '':
             input_list.write("moc = {}/ocn/mpas-o/{}/{}\n".format(din_loc_root, ocn_mask, analysis_mask_file))
 
