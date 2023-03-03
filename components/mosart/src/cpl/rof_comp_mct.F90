@@ -278,6 +278,7 @@ contains
                    hostname_in=hostname, username_in=username)
 
     use_lnd_rof_two_way = lnd_rof_two_way
+
     use_ocn_rof_two_way = ocn_rof_two_way
 
     ! Read namelist, grid and surface data

@@ -331,6 +331,8 @@ contains
         rtmCTL%qsur_nt3(:)       = rtmCTL%qsur(:,3)
     end if
 
+    rtmCTL%yr_nt1(:)         = rtmCTL%yr(:,1)  ! water depth
+
     if (wrmflag) then
        StorWater%storageG = 0._r8
        do idam = 1, ctlSubwWRM%localNumDam

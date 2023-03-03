@@ -36,6 +36,13 @@ _TESTS = {
             )
         },
 
+    "e3sm_mosart_exenoshare": {
+        "time"  : "0:45:00",
+        "tests" : (
+            "ERS.ne30pg2_r05_EC30to60E2r2.GPMPAS-JRA.mosart-rof_ocn_2way",
+            )
+        },
+
     "e3sm_land_exeshare" : {
         "share" : True,
         "time"  : "0:45:00",

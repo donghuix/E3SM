@@ -178,6 +178,9 @@ module RunoffMod
      real(r8), pointer :: ssh(:)
      real(r8), pointer :: yr_nt1(:)
      
+     real(r8), pointer :: ssh(:)
+     real(r8), pointer :: yr_nt1(:)
+     
   end type runoff_flow
 
   
