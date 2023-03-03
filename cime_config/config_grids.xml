@@ -506,6 +506,26 @@
       <mask>EC30to60E2r2</mask>
     </model_grid>
 
+    <model_grid alias="TL319_r05_EC30to60E2r2" compset="(DATM|XATM|SATM)">
+      <grid name="atm">TL319</grid>
+      <grid name="lnd">r05</grid>
+      <grid name="ocnice">EC30to60E2r2</grid>
+      <grid name="rof">r05</grid>
+      <grid name="glc">null</grid>
+      <grid name="wav">null</grid>
+      <mask>EC30to60E2r2</mask>
+    </model_grid>
+
+    <model_grid alias="TL319_r0125_EC30to60E2r2" compset="(DATM|XATM|SATM)">
+      <grid name="atm">TL319</grid>
+      <grid name="lnd">r0125</grid>
+      <grid name="ocnice">EC30to60E2r2</grid>
+      <grid name="rof">r0125</grid>
+      <grid name="glc">null</grid>
+      <grid name="wav">null</grid>
+      <mask>EC30to60E2r2</mask>
+    </model_grid>
+
     <model_grid alias="TL319_WC14to60E2r3" compset="(DATM|XATM|SATM)">
       <grid name="atm">TL319</grid>
       <grid name="lnd">TL319</grid>
@@ -526,14 +546,14 @@
       <mask>WC14to60E2r3</mask>
     </model_grid>
 
-    <model_grid alias="TL319_r05_EC30to60E2r2" compset="(DATM|XATM|SATM)">
+    <model_grid alias="TL319_r0125_WC14to60E2r3" compset="(DATM|XATM|SATM)">
       <grid name="atm">TL319</grid>
-      <grid name="lnd">r05</grid>
-      <grid name="ocnice">EC30to60E2r2</grid>
-      <grid name="rof">r05</grid>
+      <grid name="lnd">r0125</grid>
+      <grid name="ocnice">WC14to60E2r3</grid>
+      <grid name="rof">r0125</grid>
       <grid name="glc">null</grid>
       <grid name="wav">null</grid>
-      <mask>EC30to60E2r2</mask>
+      <mask>WC14to60E2r3</mask>
     </model_grid>
 
     <model_grid alias="TL319_r05_ARRM10to60E2r1" compset="(DATM|XATM|SATM)">
@@ -4828,6 +4848,20 @@
       <map name="OCN2ATM_SMAPNAME">cpl/gridmaps/ECwISC30to60E1r2/map_ECwISC30to60E1r2_to_TL319_aave.200819.nc</map>
     </gridmap>
 
+    <gridmap atm_grid="TL319" lnd_grid="r05">
+      <map name="ATM2LND_FMAPNAME">cpl/gridmaps/TL319/map_TL319_to_r05_mono.210203.nc</map>
+      <map name="ATM2LND_SMAPNAME">cpl/gridmaps/TL319/map_TL319_to_r05_bilin.210203.nc</map>
+      <map name="LND2ATM_FMAPNAME">cpl/gridmaps/TL319/map_r05_to_TL319_mono.210203.nc</map>
+      <map name="LND2ATM_SMAPNAME">cpl/gridmaps/TL319/map_r05_to_TL319_mono.210203.nc</map>
+    </gridmap>
+
+    <gridmap atm_grid="TL319" lnd_grid="r0125">
+      <map name="ATM2LND_FMAPNAME">cpl/gridmaps/TL319/map_TL319_to_r0125_mono.210726.nc</map>
+      <map name="ATM2LND_SMAPNAME">cpl/gridmaps/TL319/map_TL319_to_r0125_bilin.210726.nc</map>
+      <map name="LND2ATM_FMAPNAME">cpl/gridmaps/TL319/map_r0125_to_TL319_mono.210726.nc</map>
+      <map name="LND2ATM_SMAPNAME">cpl/gridmaps/TL319/map_r0125_to_TL319_mono.210726.nc</map>
+    </gridmap>
+
     <gridmap atm_grid="TL319" ocn_grid="oARRM60to10">
       <map name="ATM2OCN_FMAPNAME">cpl/gridmaps/TL319/map_TL319_to_oARRM60to10_aave.180904.nc</map>
       <map name="ATM2OCN_SMAPNAME">cpl/gridmaps/TL319/map_TL319_to_oARRM60to10_bilin.180904.nc</map>
@@ -5184,6 +5218,14 @@
        <map name="ATM2ROF_FMAPNAME">cpl/gridmaps/TL319/map_TL319_to_r05_traave.20240212.nc</map>
        <map name="ATM2ROF_SMAPNAME">cpl/gridmaps/TL319/map_TL319_to_r05_trbilin.20240212.nc</map>
     </gridmap>
+    <!-- from previous river-ocean two-way coupling -->
+    <!--  <map name="ATM2ROF_FMAPNAME">cpl/gridmaps/TL319/map_TL319_to_r05_mono.210203.nc</map>  -->
+    <!--  <map name="ATM2ROF_SMAPNAME">cpl/gridmaps/TL319/map_TL319_to_r05_bilin.210203.nc</map> -->
+
+    <gridmap atm_grid="TL319" rof_grid="r0125">
+      <map name="ATM2ROF_FMAPNAME">cpl/gridmaps/TL319/map_TL319_to_r0125_mono.210726.nc</map>
+      <map name="ATM2ROF_SMAPNAME">cpl/gridmaps/TL319/map_TL319_to_r0125_bilin.210726.nc</map>
+    </gridmap>
 
     <!--  QL, 150525, wav to ocn, atm, ice mapping files  -->
 
@@ -5464,6 +5506,11 @@
 
     <gridmap rof_grid="r025" ocn_grid="IcoswISC30E3r5">
       <map name="OCN2ROF_SMAPNAME">cpl/gridmaps/IcoswISC30E3r5/map_IcoswISC30E3r5_to_r025_traave.20240401.nc</map>
+    </gridmap>
+
+    <!--- ocean to river mapping files -->
+    <gridmap rof_grid="r05" ocn_grid="EC30to60E2r2">
+      <map name="OCN2ROF_SMAPNAME">cpl/cpl6/map_EC30to60E2r2_to_r05_neareststod.220728.nc</map>
     </gridmap>
 
     <!--- current MPAS grids -->

@@ -2697,6 +2697,8 @@ contains
 
    real (kind=RKIND) :: surfaceFreezingTemp
 
+   real (kind=RKIND), dimension(:), pointer :: ssh
+
    logical, pointer :: frazilIceActive,          &
                        config_remove_ais_river_runoff, &
                        config_remove_ais_ice_runoff, &
@@ -2836,6 +2838,9 @@ contains
           o2x_o % rAttr(index_o2x_Foxo_rrofi, n) = avgRemovedIceRunoffFlux(i)
           o2x_o % rAttr(index_o2x_Foxo_rrofih, n) = avgRemovedIceRunoffHeatFlux(i)
        endif
+       if (ocn_rof_two_way) then
+         o2x_o % rAttr(index_o2x_So_ssh, n)       = ssh(i)
+       end if
 
        if ( frazilIceActive ) then
           ! negative when frazil ice can be melted
