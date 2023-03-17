@@ -716,6 +716,16 @@
       <mask>ocn-delawareV2</mask>
     </model_grid>
 
+    <model_grid alias="ne0vr28natlref_0125" compset="(DATM|XATM|SATM)">
+      <grid name="atm">ne0np4_vr28natlref</grid>
+      <grid name="lnd">r0125</grid>
+      <grid name="ocnice">ne0np4_vr28natlref</grid>
+      <grid name="rof">r0125</grid>
+      <grid name="glc">null</grid>
+      <grid name="wav">null</grid>
+      <mask>tx0.1v2</mask>
+    </model_grid>
+
     <model_grid alias="ne0vr28natlref_delawareV2" compset="(DATM|XATM|SATM)">
       <grid name="atm">ne0np4_vr28natlref</grid>
       <grid name="lnd">lnd-delawareV2</grid>
@@ -3467,6 +3477,8 @@
       <file grid="lnd" mask="gx1v6">$DIN_LOC_ROOT/share/domains/domain.lnd.r0125_gx1v6.191017.nc</file>
       <file grid="atm" mask="oARRM60to10">$DIN_LOC_ROOT/share/domains/domain.lnd.r0125_oARRM60to10.210630.nc</file>
       <file grid="lnd" mask="oARRM60to10">$DIN_LOC_ROOT/share/domains/domain.lnd.r0125_oARRM60to10.210630.nc</file>
+      <file grid="lnd" mask="tx0.1v2">$DIN_LOC_ROOT/share/domains/domain.lnd.r0125_tx01.201025.nc</file>
+      <file grid="atm" mask="tx0.1v2">$DIN_LOC_ROOT/share/domains/domain.lnd.r0125_tx01.201025.nc</file>
       <desc>r0125 is 1/8 degree river routing grid:</desc>
     </domain>
 
@@ -5071,6 +5083,13 @@
       <map name="ATM2ROF_SMAPNAME">cpl/gridmaps/TL319/map_TL319_to_lnd-delawareV2_aave.230104.nc</map>
     </gridmap>
 
+    <gridmap atm_grid="ne0np4_vr28natlref" lnd_grid="r0125">
+      <map name="ATM2LND_FMAPNAME">cpl/gridmaps/ne0np4natlanticref.ne30x4/map_ne0np4natlanticref.ne30x4_TO_r0125_aave.210126.nc</map>
+      <map name="ATM2LND_SMAPNAME">cpl/gridmaps/ne0np4natlanticref.ne30x4/map_ne0np4natlanticref.ne30x4_TO_r0125_aave.210126.nc</map>
+      <map name="LND2ATM_FMAPNAME">cpl/gridmaps/r0125/map_r0125_TO_ne0np4natlanticref.ne30x4_aave.210126.nc</map>
+      <map name="LND2ATM_SMAPNAME">cpl/gridmaps/r0125/map_r0125_TO_ne0np4natlanticref.ne30x4_aave.210126.nc</map>
+    </gridmap>
+
     <gridmap atm_grid="ne0np4_vr28natlref" ocn_grid="ocn-surge25p25">
       <map name="ATM2OCN_FMAPNAME">cpl/gridmaps/vr28natlref/map_ne0np4natlanticref_to_ocn-surge25p25_aave.220818.nc</map>
       <map name="ATM2OCN_SMAPNAME">cpl/gridmaps/vr28natlref/map_ne0np4natlanticref_to_ocn-surge25p25_bilin.220818.nc</map>
@@ -5092,6 +5111,11 @@
       <map name="ATM2LND_SMAPNAME">cpl/gridmaps/vr28natlref/map_ne0np4natlanticref_to_lnd-delawareV2_bilin.221208.nc</map>
       <map name="LND2ATM_FMAPNAME">cpl/gridmaps/delawareV2/map_lnd-delawareV2_to_ne0np4natlanticref_aave.221212.nc</map>
       <map name="LND2ATM_SMAPNAME">cpl/gridmaps/delawareV2/map_lnd-delawareV2_to_ne0np4natlanticref_aave.221212.nc</map>
+    </gridmap>
+
+    <gridmap atm_grid="ne0np4_vr28natlref" rof_grid="r0125">
+      <map name="ATM2ROF_FMAPNAME">cpl/gridmaps/ne0np4natlanticref.ne30x4/map_ne0np4natlanticref.ne30x4_TO_r0125_aave.210126.nc</map>
+      <map name="ATM2ROF_SMAPNAME">cpl/gridmaps/ne0np4natlanticref.ne30x4/map_ne0np4natlanticref.ne30x4_TO_r0125_aave.210126.nc</map>
     </gridmap>
 
     <gridmap atm_grid="ne0np4_vr28natlref" rof_grid="lnd-delawareV2">
