@@ -580,7 +580,9 @@ def buildnml(case, caseroot, compname):
             else:
                 lines.append('                  io_type="{}"'.format(ocn_pio_typename))
 
-            lines.append('                  filename_template="{}/ocn/mpas-o/{}/{}.{}.nc"'.format(din_loc_root, ocn_mask, ic_prefix, ic_date))
+            #lines.append('                  filename_template="{}/ocn/mpas-o/{}/{}.{}.nc"'.format(din_loc_root, ocn_mask, ic_prefix, ic_date))
+            # TODO: this is hard coded now, need to change in the future
+            lines.append('                  filename_template="{}"'.format("/global/cfs/cdirs/m3780/dongyu/for_Dongyu/ocean.surge25p25.220712.nc"))
             lines.append('/>')
             lines.append('<immutable_stream name="input"')
             lines.append('                  type="input"')
@@ -591,7 +593,9 @@ def buildnml(case, caseroot, compname):
                 lines.append('                  io_type="{}"'.format(ocn_pio_typename))
 
             lines.append('                  input_interval="initial_only"')
-            lines.append('                  filename_template="{}"'.format(input_file))
+            #lines.append('                  filename_template="{}"'.format(input_file))
+            # TODO: this is hard coded now, need to change in the future
+            ines.append('                  filename_template="{}"'.format("/global/cfs/cdirs/m3780/dongyu/for_Dongyu/ocean.surge25p25.220712.nc"))
             lines.append('/>')
             lines.append('')
             lines.append('<!--')
