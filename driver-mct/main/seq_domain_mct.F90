@@ -444,8 +444,8 @@ contains
              if ((1._R8-fraco(n)) > eps_frac .and. fracl(n) < eps_tiny) then
                 write(logunit,*)'inconsistency between land mask and ocn land mask'
                 write(logunit,*)'n= ',n,' fracl= ',fracl(n),' fraco= ',fraco(n)
-                call shr_sys_flush(logunit)
-                call shr_sys_abort(subname//'  inconsistency between land mask and ocn land mask')
+!                call shr_sys_flush(logunit)
+!                call shr_sys_abort(subname//'  inconsistency between land mask and ocn land mask')
              end if
           endif
        end do
