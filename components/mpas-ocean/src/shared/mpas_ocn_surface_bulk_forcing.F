@@ -402,8 +402,8 @@ contains
       !$omp do schedule(runtime)
 #endif
       do iCell = 1, nCells
-        surfaceThicknessFlux(iCell) = surfaceThicknessFlux(iCell) + ( snowFlux(iCell) + rainFlux(iCell) + evaporationFlux(iCell) &
-                                    + seaIceFreshWaterFlux(iCell) + icebergFreshWaterFlux(iCell) + iceRunoffFlux(iCell) ) / rho_sw
+!JW        surfaceThicknessFlux(iCell) = surfaceThicknessFlux(iCell) + ( snowFlux(iCell) + rainFlux(iCell) + evaporationFlux(iCell) &
+!JW                                    + seaIceFreshWaterFlux(iCell) + icebergFreshWaterFlux(iCell) + iceRunoffFlux(iCell) ) / rho_sw
         surfaceThicknessFluxRunoff(iCell) = riverRunoffFlux(iCell) / rho_sw
       end do
 #ifndef MPAS_OPENACC
@@ -717,8 +717,9 @@ contains
                ocn_freezing_temperature( tracerGroup(index_salinity_flux, minLevelCell(iCell), iCell), pressure=0.0_RKIND, &
                                          inLandIceCavity=.false.) / rho_sw
 
-           surfaceTemperatureFluxWithoutRunoff = rainTemperatureFlux(iCell) + evapTemperatureFlux(iCell) + &
-                                                 seaIceTemperatureFlux(iCell) + icebergTemperatureFlux(iCell)
+!JW           surfaceTemperatureFluxWithoutRunoff = rainTemperatureFlux(iCell) + evapTemperatureFlux(iCell) + &
+!JW                                                 seaIceTemperatureFlux(iCell) + icebergTemperatureFlux(iCell)
+           surfaceTemperatureFluxWithoutRunoff = 0.0_RKIND
 
            tracersSurfaceFlux(index_temperature_flux, iCell) = tracersSurfaceFlux(index_temperature_flux, iCell) &
               + surfaceTemperatureFluxWithoutRunoff

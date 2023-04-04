@@ -462,8 +462,8 @@ def buildnml(case, caseroot, compname):
 
         #input_list.write("mesh = {}/ocn/mpas-o/{}/{}.{}.nc\n".format(din_loc_root, ocn_mask, ic_prefix, ic_date))
         #input_list.write("ic = {}\n".format(input_file))
-        input_list.write(" mesh = /global/cfs/cdirs/m3780/dongyu/for_Dongyu/ocean.surge25p25.220712.nc\n")
-        input_list.write("ic = /global/cfs/cdirs/m3780/dongyu/for_Dongyu/ocean.surge25p25.220712.nc\n")
+        input_list.write(" mesh = /compyfs/feng779/files_Jim_datm/for_Dongyu/ocean.surge25p25.220712.nc\n")
+        input_list.write("ic = /compyfs/feng779/files_Jim_datm/for_Dongyu/ocean.surge25p25.220712.nc\n")
         if analysis_mask_file != '':
             input_list.write("moc = {}/ocn/mpas-o/{}/{}\n".format(din_loc_root, ocn_mask, analysis_mask_file))
 
@@ -582,7 +582,7 @@ def buildnml(case, caseroot, compname):
 
             #lines.append('                  filename_template="{}/ocn/mpas-o/{}/{}.{}.nc"'.format(din_loc_root, ocn_mask, ic_prefix, ic_date))
             # TODO: this is hard coded now, need to change in the future
-            lines.append('                  filename_template="{}"'.format("/global/cfs/cdirs/m3780/dongyu/for_Dongyu/ocean.surge25p25.220712.nc"))
+            lines.append('                  filename_template="{}"'.format("/compyfs/feng779/files_Jim_datm/for_Dongyu/ocean.surge25p25.220712.nc"))
             lines.append('/>')
             lines.append('<immutable_stream name="input"')
             lines.append('                  type="input"')
@@ -595,7 +595,7 @@ def buildnml(case, caseroot, compname):
             lines.append('                  input_interval="initial_only"')
             #lines.append('                  filename_template="{}"'.format(input_file))
             # TODO: this is hard coded now, need to change in the future
-            ines.append('                  filename_template="{}"'.format("/global/cfs/cdirs/m3780/dongyu/for_Dongyu/ocean.surge25p25.220712.nc"))
+            lines.append('                  filename_template="{}"'.format("/compyfs/feng779/files_Jim_datm/for_Dongyu/ocean.surge25p25.220712.nc"))
             lines.append('/>')
             lines.append('')
             lines.append('<!--')
