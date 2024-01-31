@@ -2702,8 +2702,6 @@ contains
 
    real (kind=RKIND) :: surfaceFreezingTemp
 
-   real (kind=RKIND), dimension(:), pointer :: ssh
-
    logical, pointer :: frazilIceActive,          &
                        config_use_ecosysTracers, &
                        config_use_DMSTracers,    &
