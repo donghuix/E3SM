@@ -2697,8 +2697,6 @@ contains
 
    real (kind=RKIND) :: surfaceFreezingTemp
 
-   real (kind=RKIND), dimension(:), pointer :: ssh
-
    logical, pointer :: frazilIceActive,          &
                        config_remove_ais_river_runoff, &
                        config_remove_ais_ice_runoff, &

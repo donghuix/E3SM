@@ -541,7 +541,6 @@ contains
     ! Arguments
     type(mct_aVect),intent(in)    :: l2x_r
     type(mct_aVect),intent(in)    :: a2x_r
-    type(mct_aVect),intent(in)    :: o2x_r
     type(mct_aVect),intent(in)    :: fractions_r
     type(mct_aVect),intent(inout) :: x2r_r
     character(len=*)        , intent(in)    :: cime_model
