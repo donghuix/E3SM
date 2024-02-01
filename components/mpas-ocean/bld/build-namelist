@@ -557,9 +557,9 @@ add_default($nl, 'config_Redi_constant_kappa');
 add_default($nl, 'config_Redi_maximum_slope');
 add_default($nl, 'config_Redi_use_slope_taper');
 add_default($nl, 'config_Redi_use_surface_taper');
+add_default($nl, 'config_Redi_limit_term1');
 add_default($nl, 'config_Redi_use_quasi_monotone_limiter');
 add_default($nl, 'config_Redi_quasi_monotone_safety_factor');
-add_default($nl, 'config_Redi_limit_term1');
 add_default($nl, 'config_Redi_min_layers_diag_terms');
 add_default($nl, 'config_Redi_horizontal_taper');
 add_default($nl, 'config_Redi_horizontal_ramp_min');
@@ -845,8 +845,10 @@ add_default($nl, 'config_use_wetting_drying');
 add_default($nl, 'config_prevent_drying');
 add_default($nl, 'config_drying_min_cell_height');
 add_default($nl, 'config_zero_drying_velocity');
+add_default($nl, 'config_zero_drying_velocity_ramp');
+add_default($nl, 'config_zero_drying_velocity_ramp_hmin');
+add_default($nl, 'config_zero_drying_velocity_ramp_hmax');
 add_default($nl, 'config_verify_not_dry');
-add_default($nl, 'config_thickness_flux_type');
 add_default($nl, 'config_drying_safety_height');
 
 ###################################
