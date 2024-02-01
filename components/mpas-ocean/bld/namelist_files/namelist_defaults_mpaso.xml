@@ -494,6 +494,7 @@
 <config_flux_limiter>'monotonic'</config_flux_limiter>
 <config_remap_limiter>'monotonic'</config_remap_limiter>
 <config_thickness_flux_type>'centered'</config_thickness_flux_type>
+<config_thickness_flux_type>'centered'</config_thickness_flux_type>
 
 <!-- bottom_drag -->
 <config_bottom_drag_mode>'implicit'</config_bottom_drag_mode>
@@ -540,8 +541,10 @@
 <config_prevent_drying>.false.</config_prevent_drying>
 <config_drying_min_cell_height>1.0e-3</config_drying_min_cell_height>
 <config_zero_drying_velocity>.false.</config_zero_drying_velocity>
+<config_zero_drying_velocity_ramp>.false.</config_zero_drying_velocity_ramp>
+<config_zero_drying_velocity_ramp_hmin>1e-3</config_zero_drying_velocity_ramp_hmin>
+<config_zero_drying_velocity_ramp_hmax>2e-3</config_zero_drying_velocity_ramp_hmax>
 <config_verify_not_dry>.false.</config_verify_not_dry>
-<config_thickness_flux_type>'centered'</config_thickness_flux_type>
 <config_drying_safety_height>1.0e-10</config_drying_safety_height>
 
 <!-- ocean_constants -->
