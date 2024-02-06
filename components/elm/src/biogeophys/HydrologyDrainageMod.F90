@@ -11,6 +11,7 @@ module HydrologyDrainageMod
   use elm_varcon        , only : e_ice, denh2o, denice, rpi, spval
   use atm2lndType       , only : atm2lnd_type
   use glc2lndMod        , only : glc2lnd_type
+  use ocn2lndType       , only : ocn2lnd_type
   use SoilHydrologyType , only : soilhydrology_type
   use SoilStateType     , only : soilstate_type
   use SoilHydrologyMod  , only : WaterTable
@@ -40,7 +41,7 @@ contains
        num_hydrologyc, filter_hydrologyc, &
        num_urbanc, filter_urbanc,         &
        num_do_smb_c, filter_do_smb_c,     &
-       atm2lnd_vars, glc2lnd_vars,    &
+       atm2lnd_vars, glc2lnd_vars, ocn2lnd_vars, &
        soilhydrology_vars, soilstate_vars )
     ! !DESCRIPTION:
     ! Calculates soil/snow hydrology with drainage (subsurface runoff)
@@ -52,8 +53,8 @@ contains
     use elm_varcon       , only : denh2o, denice, secspday
     use elm_varctl       , only : glc_snow_persistence_max_days, use_vichydro, use_betr
     !use domainMod        , only : ldomain
-    use elm_varsur         , only : f_surf
-    use TopounitType       , only : top_pp
+    use elm_varsur       , only : f_surf
+    use TopounitType     , only : top_pp
     use atm2lndType      , only : atm2lnd_type
     use elm_varpar       , only : nlevgrnd, nlevurb, nlevsoi
     use SoilHydrologyMod , only : ELMVICMap, Drainage
@@ -71,6 +72,7 @@ contains
     integer                  , intent(in)    :: filter_do_smb_c(:)   ! column filter for bare land SMB columns
     type(atm2lnd_type)       , intent(in)    :: atm2lnd_vars
     type(glc2lnd_type)       , intent(in)    :: glc2lnd_vars
+    type(ocn2lnd_type)       , intent(in)    :: ocn2lnd_vars
     type(soilhydrology_type) , intent(inout) :: soilhydrology_vars
     type(soilstate_type)     , intent(inout) :: soilstate_vars
 
