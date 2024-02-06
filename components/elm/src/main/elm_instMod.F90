@@ -42,6 +42,7 @@ module elm_instMod
   use VOCEmissionMod             , only : vocemis_type
   use atm2lndType                , only : atm2lnd_type
   use lnd2atmType                , only : lnd2atm_type
+  use ocn2lndType                , only : ocn2lnd_type
   use lnd2glcMod                 , only : lnd2glc_type
   use glc2lndMod                 , only : glc2lnd_type
   use glcDiagnosticsMod          , only : glc_diagnostics_type
@@ -118,6 +119,7 @@ module elm_instMod
   type(surfalb_type)                                  :: surfalb_vars
   type(surfrad_type)                                  :: surfrad_vars
   type(atm2lnd_type)                                  :: atm2lnd_vars
+  type(ocn2lnd_type)                                  :: ocn2lnd_vars
   type(glc2lnd_type)                                  :: glc2lnd_vars
   type(lnd2atm_type)                                  :: lnd2atm_vars
   type(lnd2glc_type)                                  :: lnd2glc_vars
@@ -393,6 +395,8 @@ contains
     ! is executed even when running without glc_mec.
     call glc2lnd_vars%Init( bounds_proc )
     call lnd2glc_vars%Init( bounds_proc )
+
+    call ocn2lnd_vars%Init( bounds_proc )
 
     ! If single-column determine closest latitude and longitude
 
