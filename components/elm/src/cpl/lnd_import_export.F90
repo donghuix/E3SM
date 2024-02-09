@@ -205,6 +205,9 @@ contains
        if (index_x2l_So_ssh /= 0) then
          ocn2lnd_vars%ssh_grc(g) = x2l(index_x2l_So_ssh,i)
        endif
+       if (index_x2l_So_lt /= 0) then
+         ocn2lnd_vars%lt_grc(g)  = x2l(index_x2l_So_lt,i)
+       endif
 
        ! Determine required receive fields
 

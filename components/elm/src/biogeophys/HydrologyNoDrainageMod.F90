@@ -196,15 +196,16 @@ contains
       !------------------------------------------------------------------------------------
       if (use_pflotran .and. pf_hmode) then
 
-        call Infiltration(bounds, num_hydrononsoic, filter_hydrononsoic, &
-             num_urbanc, filter_urbanc, atm2lnd_vars, lnd2atm_vars,      &
+        call Infiltration(bounds, num_hydrononsoic, filter_hydrononsoic,          &
+             num_urbanc, filter_urbanc, atm2lnd_vars, ocn2lnd_vars, lnd2atm_vars, &
              energyflux_vars, soilhydrology_vars, soilstate_vars, dtime)
 
       else
       !------------------------------------------------------------------------------------
 
-        call Infiltration(bounds, num_hydrologyc, filter_hydrologyc, num_urbanc, filter_urbanc, &
-             atm2lnd_vars, lnd2atm_vars, energyflux_vars, soilhydrology_vars, soilstate_vars, dtime)
+        call Infiltration(bounds, num_hydrologyc, filter_hydrologyc,              &
+             num_urbanc, filter_urbanc, atm2lnd_vars, ocn2lnd_vars, lnd2atm_vars, &
+             energyflux_vars, soilhydrology_vars, soilstate_vars, dtime)
 
       !------------------------------------------------------------------------------------
       end if

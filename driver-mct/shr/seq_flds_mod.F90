@@ -1749,6 +1749,16 @@ contains
     attname  = 'So_ssh'
     call metadata_set(attname, longname, stdname, units)
 
+    ! layerThickness
+    call seq_flds_add(o2x_states,"So_lt")
+    call seq_flds_add(x2l_states,"So_lt")
+    call seq_flds_add(o2x_states_to_lnd,"So_lt")
+    longname = 'layerThickness'
+    stdname  = 'layerThickness'
+    units    = 'm'
+    attname  = 'So_lt'
+    call metadata_set(attname, longname, stdname, units)
+
     ! Meridional sea surface slope
     call seq_flds_add(o2x_states,"So_dhdy")
     call seq_flds_add(x2i_states,"So_dhdy")

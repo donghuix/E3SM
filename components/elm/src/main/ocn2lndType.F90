@@ -28,7 +28,8 @@ module ocn2lndType
   !
   type, public :: ocn2lnd_type
 
-      real(r8), pointer :: ssh_grc(:)           => null() ! sea surface height [m]
+      real(r8), pointer :: ssh_grc(:) => null() ! sea surface height [m]
+      real(r8), pointer :: lt_grc(:)  => null() ! layerThickness     [m]         
 
     contains
 
@@ -76,7 +77,8 @@ module ocn2lndType
       begc = bounds%begc; endc= bounds%endc
       begp = bounds%begp; endp= bounds%endp
 
-      allocate(this%ssh_grc(begg:endg));         this%ssh_grc(:)          = ival
+      allocate(this%ssh_grc(begg:endg)); this%ssh_grc(:) = ival
+      allocate(this%lt_grc(begg:endg));  this%lt_grc(:)  = ival
 
     end subroutine InitAllocate
 
@@ -100,9 +102,14 @@ module ocn2lndType
 
       if (lnd_ocn_two_way) then
          this%ssh_grc(begg:endg) = spval
-         call hist_addfld1d (fname='SSH',  units='meter'          , &
+         call hist_addfld1d (fname='SSH',          units='meter'  , &
               avgflag='A', long_name='sea surface height'         , &
               ptr_lnd=this%ssh_grc)
+
+         this%lt_grc(begg:endg)  = spval
+         call hist_addfld1d (fname='layerThickness',units='meter' , &
+              avgflag='A', long_name='ocean layerThickness'       , &
+              ptr_lnd=this%lt_grc)
       endif
 
     end subroutine InitHistory
