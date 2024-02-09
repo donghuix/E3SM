@@ -2712,6 +2712,8 @@ contains
 
    character (len=StrKIND), pointer :: config_land_ice_flux_mode
 
+   real (kind=RKIND), pointer       :: config_drying_min_cell_height
+
    logical :: keepFrazil
 
 
@@ -2727,6 +2729,7 @@ contains
                                                 config_use_DMSTracers_sea_ice_coupling)
    call mpas_pool_get_config(domain % configs, 'config_use_MacroMoleculesTracers_sea_ice_coupling',  &
                                                 config_use_MacroMoleculesTracers_sea_ice_coupling)
+   call mpas_pool_get_config(domain % configs, 'config_drying_min_cell_height', config_drying_min_cell_height)
 
    n = 0
    block_ptr => domain % blocklist
@@ -2813,7 +2816,15 @@ contains
        o2x_o % rAttr(index_o2x_Faoo_h2otemp, n) = avgTotalFreshWaterTemperatureFlux(i) * rho_sw * cp_sw
 
        if (ocn_rof_two_way) then
-         o2x_o % rAttr(index_o2x_So_ssh, n)       = ssh(i)
+         o2x_o % rAttr(index_o2x_So_ssh, n)  = ssh(i)
+       end if
+
+       if (lnd_ocn_two_way) then
+         if (layerThickness(1,i) <= config_drying_min_cell_height) then
+           o2x_o % rAttr(index_o2x_So_lt,  n)  = 0.0_RKIND
+         else
+           o2x_o % rAttr(index_o2x_So_lt,  n)  = layerThickness(1,i) - config_drying_min_cell_height
+         end if
        end if
 
        if ( frazilIceActive ) then

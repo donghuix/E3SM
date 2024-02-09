@@ -121,6 +121,7 @@ module elm_cpl_indices
   integer, public ::index_x2l_Sr_h2orof       ! rtm->lnd floodplain inundation volume
   integer, public ::index_x2l_Sr_frac_h2orof  ! rtm->lnd floodplain inundation fraction
   integer, public ::index_x2l_So_ssh          ! ocn->lnd sea surface height
+  integer, public ::index_x2l_So_lt           ! ocn->lnd layerThickness
 
   ! In the following, index 0 is bare land, other indices are glc elevation classes
   integer, public ::index_x2l_Sg_frac(0:glc_nec_max)   = 0   ! Fraction of glacier from glc model
@@ -304,6 +305,7 @@ contains
     endif
     if (lnd_ocn_two_way) then
        index_x2l_So_ssh        = mct_avect_indexra(x2l,'So_ssh')
+       index_x2l_So_lt         = mct_avect_indexra(x2l,'So_lt')
     endif
 
     !-------------------------------------------------------------
