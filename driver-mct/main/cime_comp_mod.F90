@@ -418,6 +418,7 @@ module cime_comp_mod
   logical  :: iceberg_prognostic     ! .true.  => ice comp can handle iceberg input
   logical  :: ocn_prognostic         ! .true.  => ocn comp expects input
   logical  :: ocnrof_prognostic      ! .true.  => ocn comp expects runoff input
+  logical  :: ocnlnd_prognostic      ! .true.  => ocn comp expects input
   logical  :: glc_prognostic         ! .true.  => glc comp expects input
   logical  :: rof_prognostic         ! .true.  => rof comp expects input
   logical  :: rofocn_prognostic      ! .true.  => rof comp expects ssh input
@@ -433,6 +434,7 @@ module cime_comp_mod
   logical  :: lnd_c2_atm             ! .true.  => lnd to atm coupling on
   logical  :: lnd_c2_rof             ! .true.  => lnd to rof coupling on
   logical  :: lnd_c2_glc             ! .true.  => lnd to glc coupling on
+  logical  :: lnd_c2_ocn             ! .true.  => lnd to ocn coupling on
   logical  :: ocn_c2_atm             ! .true.  => ocn to atm coupling on
   logical  :: ocn_c2_ice             ! .true.  => ocn to ice coupling on
   logical  :: ocn_c2_glcshelf        ! .true.  => ocn to glc ice shelf coupling on
@@ -1676,6 +1678,7 @@ contains
          iceberg_prognostic=iceberg_prognostic, &
          ocn_prognostic=ocn_prognostic,         &
          ocnrof_prognostic=ocnrof_prognostic,   &
+         ocnlnd_prognostic=ocnlnd_prognostic,   &
          ocn_c2_glcshelf=ocn_c2_glcshelf,       &
          glc_prognostic=glc_prognostic,         &
          rof_prognostic=rof_prognostic,         &
@@ -1739,6 +1742,7 @@ contains
     lnd_c2_atm = .false.
     lnd_c2_rof = .false.
     lnd_c2_glc = .false.
+    lnd_c2_ocn = .false.
     ocn_c2_atm = .false.
     ocn_c2_ice = .false.
     ocn_c2_wav = .false.
@@ -1774,6 +1778,7 @@ contains
        if (rof_prognostic) lnd_c2_rof = .true.
        if (glc_prognostic) lnd_c2_glc = .true.
        if (iac_prognostic) lnd_c2_iac = .true.
+       if (ocnlnd_prognostic) lnd_c2_ocn = .true.
     endif
     if (ocn_present) then
        if (atm_prognostic) ocn_c2_atm = .true.
@@ -1865,6 +1870,7 @@ contains
        write(logunit,F0L)'rof ocn   prognostic  = ',rofocn_prognostic
        write(logunit,F0L)'ocn rof   prognostic  = ',ocnrof_prognostic
        write(logunit,F0L)'lnd ocn   prognostic  = ',lndocn_prognostic
+       write(logunit,F0L)'ocn lnd   prognostic  = ',ocnlnd_prognostic
        write(logunit,F0L)'wav model prognostic  = ',wav_prognostic
        write(logunit,F0L)'iac model prognostic  = ',iac_prognostic
        write(logunit,F0L)'esp model prognostic  = ',esp_prognostic
@@ -1991,6 +1997,13 @@ contains
        endif
     endif
 
+    if (ocnlnd_prognostic .and. .not.lnd_present) then
+       if (iamroot_CPLID) then
+          write(logunit,F00) 'WARNING: ocnlnd_prognostic is TRUE but lnd_present is FALSE'
+          call shr_sys_flush(logunit)
+       endif
+    endif
+
     !----------------------------------------------------------
     !| Samegrid checks
     !----------------------------------------------------------
@@ -2035,7 +2048,7 @@ contains
 
        call prep_lnd_init(infodata, atm_c2_lnd, rof_c2_lnd, glc_c2_lnd, iac_c2_lnd, ocn_c2_lnd)
 
-       call prep_ocn_init(infodata, atm_c2_ocn, atm_c2_ice, ice_c2_ocn, rof_c2_ocn, wav_c2_ocn, glc_c2_ocn, glcshelf_c2_ocn)
+       call prep_ocn_init(infodata, atm_c2_ocn, atm_c2_ice, ice_c2_ocn, rof_c2_ocn, wav_c2_ocn, glc_c2_ocn, lnd_c2_ocn, glcshelf_c2_ocn)
 
        call prep_ice_init(infodata, ocn_c2_ice, glc_c2_ice, glcshelf_c2_ice, rof_c2_ice )
 
@@ -4174,6 +4187,7 @@ contains
              if (rof_c2_ocn) call prep_ocn_calc_r2x_ox(timer='CPL:atmocnp_rof2ocn')
              if (glc_c2_ocn) call prep_ocn_calc_g2x_ox(timer='CPL:atmocnp_glc2ocn')
           end if
+          if (lnd_c2_ocn) call prep_ocn_calc_l2x_ox(timer='CPL:atmocnp_lnd2ocn')
        end if
 
        ! atm/ocn flux on either atm or ocean grid

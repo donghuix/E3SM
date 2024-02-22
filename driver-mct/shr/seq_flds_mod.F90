@@ -190,6 +190,7 @@ module seq_flds_mod
 
   character(CXX) :: seq_flds_l2x_states
   character(CXX) :: seq_flds_l2x_states_to_glc
+  character(CXX) :: seq_flds_l2x_states_to_ocn
   character(CXX) :: seq_flds_l2x_fluxes
   character(CXX) :: seq_flds_l2x_fluxes_to_glc
   character(CXX) :: seq_flds_l2x_fluxes_to_rof
@@ -330,6 +331,7 @@ contains
     character(CXX) :: x2i_fluxes = ''
     character(CXX) :: l2x_states = ''
     character(CXX) :: l2x_states_to_glc = ''
+    character(CXX) :: l2x_states_to_ocn = ''
     character(CXX) :: l2x_fluxes = ''
     character(CXX) :: l2x_fluxes_to_glc = ''
     character(CXX) :: l2x_fluxes_to_rof = ''
@@ -1757,6 +1759,16 @@ contains
     stdname  = 'layerThickness'
     units    = 'm'
     attname  = 'So_lt'
+    call metadata_set(attname, longname, stdname, units)
+
+    ! coastal inundation drainage volume
+    call seq_flds_add(l2x_states,"Sl_coastalinf")
+    call seq_flds_add(x2o_states,"Sl_coastalinf")
+    call seq_flds_add(l2x_states_to_ocn,"So_coastalinf")
+    longname = 'Infiltration volume from coastal inundation volume'
+    stdname  = 'coastal_inundation_infiltration'
+    units    = 'mm'
+    attname  = 'coastalinf'
     call metadata_set(attname, longname, stdname, units)
 
     ! Meridional sea surface slope
@@ -3948,6 +3960,7 @@ contains
     seq_flds_x2i_states = trim(x2i_states)
     seq_flds_l2x_states = trim(l2x_states)
     seq_flds_l2x_states_to_glc = trim(l2x_states_to_glc)
+    seq_flds_l2x_states_to_ocn = trim(l2x_states_to_ocn)
     seq_flds_x2l_states = trim(x2l_states)
     seq_flds_x2l_states_from_glc = trim(x2l_states_from_glc)
     seq_flds_o2x_states = trim(o2x_states)
@@ -4025,6 +4038,7 @@ contains
        write(logunit,*) subname//': seq_flds_x2g_states= ',trim(seq_flds_x2g_states)
        write(logunit,*) subname//': seq_flds_x2g_states_from_lnd= ',trim(seq_flds_x2g_states_from_lnd)
        write(logunit,*) subname//': seq_flds_l2x_states_to_glc= ',trim(seq_flds_l2x_states_to_glc)
+       write(logunit,*) subname//': seq_flds_l2x_states_to_ocn= ',trim(seq_flds_l2x_states_to_ocn)
        write(logunit,*) subname//': seq_flds_x2g_states_from_ocn= ',trim(seq_flds_x2g_states_from_ocn)
        write(logunit,*) subname//': seq_flds_x2g_fluxes= ',trim(seq_flds_x2g_fluxes)
        write(logunit,*) subname//': seq_flds_x2g_fluxes_from_lnd= ',trim(seq_flds_x2g_fluxes_from_lnd)

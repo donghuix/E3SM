@@ -168,6 +168,7 @@ module mpaso_cpl_indices
   integer :: index_x2o_Fioi_fed1
   integer :: index_x2o_Fioi_fed2
   integer :: index_x2o_Fioi_dust1
+  integer :: index_x2o_Sl_coastalinf
 
 contains
 
@@ -333,6 +334,10 @@ contains
     index_x2o_Sw_Hs = mct_avect_indexra(x2o,'Sw_Hs')
     index_x2o_Sw_Fp = mct_avect_indexra(x2o,'Sw_Fp')
     index_x2o_Sw_Dp = mct_avect_indexra(x2o,'Sw_Dp')
+
+    if (lnd_ocn_two_way) then
+       index_x2o_Sl_coastalinf = mct_avect_indexra(x2o,'Sl_coastalinf')
+    endif
 
     call mct_aVect_clean(x2o)
     call mct_aVect_clean(o2x)
