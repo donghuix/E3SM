@@ -9,7 +9,7 @@ module SoilHydrologyMod
   use decompMod         , only : bounds_type
   use elm_varctl        , only : iulog, use_vichydro
   use elm_varctl        , only : use_lnd_rof_two_way, lnd_rof_coupling_nstep
-  use elm_varctl        , only : use_lnd_ocn_two_way
+  use elm_varctl        , only : use_lnd_ocn_two_way, lnd_ocn_coupling_nstep
   use elm_varctl        , only : use_modified_infil
   use elm_varcon        , only : e_ice, denh2o, denice, rpi
   use EnergyFluxType    , only : energyflux_type
@@ -346,6 +346,7 @@ contains
           h2orof               =>    col_ws%h2orof               , & ! Output: [real(r8) (:)   ]  floodplain inudntion volume (mm)
           frac_h2orof          =>    col_ws%frac_h2orof          , & ! Output: [real(r8) (:)   ]  floodplain inudntion fraction (-)
           h2oocn               =>    col_ws%h2oocn               , & ! Output: [real(r8) (:)   ]  coastal inundation volume (mm)
+          h2oocn_drain         =>    col_ws%h2oocn_drain         , & ! Output: [real(r8) (:)] accumulated drainage volume from coastal inundation volume (mm H2O)
 
           qflx_ev_soil         =>    col_wf%qflx_ev_soil         , & ! Input:  [real(r8) (:)   ]  evaporation flux from soil (W/m**2) [+ to atm]
           qflx_evap_soi        =>    col_wf%qflx_evap_soi        , & ! Input:  [real(r8) (:)   ]  ground surface evaporation rate (mm H2O/s) [+]
@@ -428,7 +429,10 @@ contains
              endif
 
              if (use_lnd_ocn_two_way) then
-                h2oocn(c) = ocn2lnd_vars%lt_grc(g) * wtgcell(c)
+                if (mod(get_nstep(),lnd_ocn_coupling_nstep) == 1 .or. get_nstep() <= 1 .or. lnd_ocn_coupling_nstep == 1) then
+                   h2oocn(c)       = ocn2lnd_vars%lt_grc(g) * wtgcell(c)
+                   h2oocn_drain(c) = 0._r8
+                endif
                 ! how to account for the snow fraction? 
                 ! Can we assume snow fraction is zero?
              endif
@@ -496,8 +500,8 @@ contains
                 qflx_infl_excess(c) = max(0._r8,qflx_in_soil(c) -  (1.0_r8 - frac_h2osfc(c) - frac_h2orof(c))*qinmax)
              elseif (use_lnd_ocn_two_way) then
                 if (h2oocn(c) > 0.0_r8) then
-                   ! whole grid cell is inundated by ocean water
-                   qflx_infl_excess(c) = 0.0_r8
+                   ! whole grid cell is inundated by ocean water, the rainfall will not infiltrate into the soil
+                   qflx_infl_excess(c) = max(0._r8,qflx_in_soil(c))
                 else
                    qflx_infl_excess(c) = max(0._r8,qflx_in_soil(c) -  (1.0_r8 - frac_h2osfc(c))*qinmax)
                 endif
@@ -634,6 +638,8 @@ contains
                else
                   qflx_h2oocn_drain(c)=0._r8
                endif
+
+               h2oocn_drain(c) = h2oocn_drain(c) + qflx_h2oocn_drain(c) * dtime
 
                qflx_infl(c) = qflx_infl(c) + qflx_h2oocn_drain(c) 
                qflx_gross_infl_soil(c) = qflx_gross_infl_soil(c) + qflx_h2osfc_drain(c) + qflx_h2oocn_drain(c) 

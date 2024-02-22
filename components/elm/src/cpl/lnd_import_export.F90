@@ -4,6 +4,7 @@ module lnd_import_export
   use abortutils   , only: endrun
   use decompmod    , only: bounds_type
   use lnd2atmType  , only: lnd2atm_type
+  use lnd2ocnType  , only: lnd2ocn_type
   use lnd2glcMod   , only: lnd2glc_type
   use atm2lndType  , only: atm2lnd_type
   use glc2lndMod   , only: glc2lnd_type
@@ -1369,7 +1370,7 @@ contains
 
   !===============================================================================
 
-  subroutine lnd_export( bounds, lnd2atm_vars, lnd2glc_vars, l2x)
+  subroutine lnd_export( bounds, lnd2atm_vars, lnd2ocn_vars, lnd2glc_vars, l2x)
 
     !---------------------------------------------------------------------------
     ! !DESCRIPTION:
@@ -1386,8 +1387,9 @@ contains
     ! !ARGUMENTS:
     implicit none
     type(bounds_type) , intent(in)    :: bounds  ! bounds
-    type(lnd2atm_type), intent(inout) :: lnd2atm_vars ! clm land to atmosphere exchange data type
-    type(lnd2glc_type), intent(inout) :: lnd2glc_vars ! clm land to atmosphere exchange data type
+    type(lnd2atm_type), intent(inout) :: lnd2atm_vars ! land to atmosphere exchange data type
+    type(lnd2ocn_type), intent(inout) :: lnd2ocn_vars ! land to ocean exchange data type
+    type(lnd2glc_type), intent(inout) :: lnd2glc_vars ! land to glacier exchange data type
     real(r8)          , intent(out)   :: l2x(:,:)! land to coupler export state on land grid
     !
     ! !LOCAL VARIABLES:
@@ -1488,6 +1490,10 @@ contains
           l2x(index_l2x_Flrl_inundinf,i) = lnd2atm_vars%qflx_h2orof_drain_grc(g)
        endif
        
+       if (index_l2x_Sl_coastalinf /= 0) then
+          l2x(index_l2x_Sl_coastalinf,i) = lnd2ocn_vars%h2oocn_drain_grc(g)
+       endif
+
        ! glc coupling
 
        if (create_glacier_mec_landunit) then

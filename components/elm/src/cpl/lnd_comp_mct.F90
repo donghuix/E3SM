@@ -71,7 +71,7 @@ contains
     use shr_kind_mod     , only : SHR_KIND_CL
     use elm_time_manager , only : get_nstep, get_step_size, set_timemgr_init, set_nextsw_cday
     use elm_initializeMod, only : initialize1, initialize2, initialize3
-    use elm_instMod      , only : lnd2atm_vars, lnd2glc_vars
+    use elm_instMod      , only : lnd2atm_vars, lnd2ocn_vars, lnd2glc_vars
     use elm_instance     , only : elm_instance_init
     use elm_varctl       , only : finidat,single_column, elm_varctl_set, iulog, noland, fatmlndfrc, &
                                   scm_multcols, scm_nx, scm_ny
@@ -367,7 +367,7 @@ contains
     ! Create land export state 
 
     if (atm_present) then 
-      call lnd_export(bounds, lnd2atm_vars, lnd2glc_vars, l2x_l%rattr)
+      call lnd_export(bounds, lnd2atm_vars, lnd2ocn_vars, lnd2glc_vars, l2x_l%rattr)
 #ifdef HAVE_MOAB
 !     Also send data through the MOAB path in driver-moab
       call lnd_export_moab(EClock, bounds, lnd2atm_vars, lnd2glc_vars) ! it is private here
@@ -376,7 +376,7 @@ contains
 
     ! Fill in infodata settings
 
-    call seq_infodata_PutData(infodata, lnd_prognostic=.true., lndocn_prognostic=use_lnd_ocn_two_way)
+    call seq_infodata_PutData(infodata, lnd_prognostic=.true., lndocn_prognostic=use_lnd_ocn_two_way, ocnlnd_prognostic=use_lnd_ocn_two_way)
     call seq_infodata_PutData(infodata, lnd_nx=ldomain%ni, lnd_ny=ldomain%nj, precip_downscaling_method = precip_downscaling_method)
 
 #ifdef HAVE_MOAB
@@ -423,7 +423,7 @@ contains
     ! !USES:
     use shr_kind_mod    ,  only : r8 => shr_kind_r8
     use elm_instMod     ,  only : lnd2atm_vars, atm2lnd_vars, lnd2glc_vars, glc2lnd_vars
-    use elm_instMod     ,  only : ocn2lnd_vars
+    use elm_instMod     ,  only : ocn2lnd_vars, lnd2ocn_vars
     use elm_driver      ,  only : elm_drv
     use elm_time_manager,  only : get_curr_date, get_nstep, get_curr_calday, get_step_size
     use elm_time_manager,  only : advance_timestep, set_nextsw_cday,update_rad_dtime
@@ -625,7 +625,7 @@ contains
 
 #ifndef CPL_BYPASS       
        call t_startf ('lc_lnd_export')
-       call lnd_export(bounds, lnd2atm_vars, lnd2glc_vars, l2x_l%rattr)
+       call lnd_export(bounds, lnd2atm_vars, lnd2ocn_vars, lnd2glc_vars, l2x_l%rattr)
 #ifdef HAVE_MOAB
        call lnd_export_moab(EClock, bounds, lnd2atm_vars, lnd2glc_vars) ! it is private here
 #endif

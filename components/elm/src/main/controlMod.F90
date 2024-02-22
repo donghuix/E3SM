@@ -331,6 +331,9 @@ contains
     namelist /elm_mosart/ &
          lnd_rof_coupling_nstep
 
+    namelist /elm_mpaso/  &
+         lnd_ocn_coupling_nstep
+
     namelist /elm_inparm/ &
          snow_shape, snicar_atm_type, use_dust_snow_internal_mixing 
     
@@ -393,6 +396,19 @@ contains
           read(unitn, elm_mosart, iostat=ierr)
           if (ierr /= 0) then
              call endrun(msg='ERROR reading elm_mosart namelist'//errMsg(__FILE__, __LINE__))
+          end if
+       end if
+
+       call relavu( unitn )
+
+       unitn = getavu()
+       write(iulog,*) 'Read in elm_mpaso namelist from: ', trim(NLFilename)
+       open( unitn, file=trim(NLFilename), status='old' )
+       call shr_nl_find_group_name(unitn, 'elm_mpaso', status=ierr)
+       if (ierr == 0) then
+          read(unitn, elm_mpaso, iostat=ierr)
+          if (ierr /= 0) then
+             call endrun(msg='ERROR reading elm_mpaso namelist'//errMsg(__FILE__, __LINE__))
           end if
        end if
 
@@ -563,6 +579,13 @@ contains
        if (use_lnd_rof_two_way) then
           if (lnd_rof_coupling_nstep < 1) then
           call endrun(msg=' ERROR: lnd_rof_coupling_nstep cannot be smaller than 1.'//&
+                   errMsg(__FILE__, __LINE__))     
+          endif
+       endif
+
+       if (use_lnd_ocn_two_way) then
+          if (lnd_ocn_coupling_nstep < 1) then
+          call endrun(msg=' ERROR: lnd_ocn_coupling_nstep cannot be smaller than 1.'//&
                    errMsg(__FILE__, __LINE__))     
           endif
        endif
@@ -991,7 +1014,8 @@ contains
     call mpi_bcast (use_lnd_rof_two_way   , 1, MPI_LOGICAL, 0, mpicom, ier)
     call mpi_bcast (lnd_rof_coupling_nstep, 1, MPI_INTEGER, 0, mpicom, ier)
     ! land ocean two way coupling
-    call mpi_bcast (use_lnd_ocn_two_way   , 1, MPI_LOGICAL, 0, mpicom, ier)
+    call mpi_bcast (use_lnd_ocn_two_way   ,  1, MPI_LOGICAL, 0, mpicom, ier)
+    call mpi_bcast (lnd_ocn_coupling_nstep,  1, MPI_INTEGER, 0, mpicom, ier)
 
     !SNICAR-AD
     call mpi_bcast (snow_shape, len(snow_shape), MPI_CHARACTER, 0, mpicom, ier)
@@ -1268,12 +1292,13 @@ contains
     endif
 
     ! land river two way coupling
-    write(iulog,*) '    use_lnd_rof_two_way    = ', use_lnd_rof_two_way
-    write(iulog,*) '    lnd_rof_coupling_nstep = ', lnd_rof_coupling_nstep
-    write(iulog,*) '    mpi_sync_nstep_freq    = ', mpi_sync_nstep_freq
+    write(iulog,*) '    use_lnd_rof_two_way     = ', use_lnd_rof_two_way
+    write(iulog,*) '    lnd_rof_coupling_nstep  = ', lnd_rof_coupling_nstep
+    write(iulog,*) '    mpi_sync_nstep_freq     = ', mpi_sync_nstep_freq
     ! land ocean two way coupling
-    write(iulog,*) '    use_lnd_ocn_two_way    = ', use_lnd_ocn_two_way
-    write(iulog,*) '    use_modified_infil = ', use_modified_infil
+    write(iulog,*) '    use_lnd_ocn_two_way     = ', use_lnd_ocn_two_way
+    write(iulog,*) '    lnd_ocn_coupling_nstep  = ', lnd_ocn_coupling_nstep
+    write(iulog,*) '    use_modified_infil      = ', use_modified_infil
     
 
    ! FAN

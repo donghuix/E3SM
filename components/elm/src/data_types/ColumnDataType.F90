@@ -169,6 +169,7 @@ module ColumnDataType
     real(r8), pointer :: h2orof             (:)   => null() ! floodplain inundation volume received from rof (mm)
     real(r8), pointer :: frac_h2orof        (:)   => null() ! floodplain inundation fraction received from rof (-)
     real(r8), pointer :: h2oocn             (:)   => null() ! coastal inundation volume received from ocn (mm)
+    real(r8), pointer :: h2oocn_drain       (:)   => null() ! accumulated drainage volume from coastal inundation volume (mm H2O)
 
   contains
     procedure, public :: Init    => col_ws_init
@@ -1444,6 +1445,7 @@ contains
     allocate(this%h2orof             (begc:endc))                     ; this%h2orof             (:)   = spval
     allocate(this%frac_h2orof        (begc:endc))                     ; this%frac_h2orof        (:)   = spval
     allocate(this%h2oocn             (begc:endc))                     ; this%h2oocn             (:)   = spval
+    allocate(this%h2oocn_drain       (begc:endc))                     ; this%h2oocn_drain       (:)   = spval
 
     !-----------------------------------------------------------------------
     ! initialize history fields for select members of col_ws
@@ -1639,6 +1641,7 @@ contains
        this%h2orof(c)                 = 0._r8
        this%frac_h2orof(c)            = 0._r8
        this%h2oocn(c)                 = 0._r8
+       this%h2oocn_drain(c)           = 0._r8
 
        if (lun_pp%urbpoi(l)) then
           ! From Bonan 1996 (LSM technical note)
@@ -5900,6 +5903,7 @@ contains
     this%qflx_over_supply(begc:endc) = 0._r8
     this%qflx_h2orof_drain(begc:endc)= 0._r8
     this%qflx_h2oocn_drain(begc:endc)= 0._r8
+    
     ! needed for CNNLeaching
     do c = begc, endc
        l = col_pp%landunit(c)

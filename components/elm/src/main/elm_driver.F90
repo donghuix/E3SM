@@ -124,6 +124,7 @@ module elm_driver
   use elm_instMod            , only : atm2lnd_vars
   use elm_instMod            , only : ocn2lnd_vars
   use elm_instMod            , only : lnd2atm_vars
+  use elm_instMod            , only : lnd2ocn_vars
   use elm_instMod            , only : glc2lnd_vars
   use elm_instMod            , only : lnd2glc_vars
   use elm_instMod            , only : soil_water_retention_curve
@@ -1414,7 +1415,7 @@ contains
          atm2lnd_vars, surfalb_vars, frictionvel_vars,          &
          energyflux_vars, solarabs_vars, drydepvel_vars,        &
          vocemis_vars, dust_vars, ch4_vars, soilhydrology_vars, &
-         sedflux_vars, lnd2atm_vars)
+         sedflux_vars, lnd2atm_vars, lnd2ocn_vars)
     call t_stopf('lnd2atm')
 
     ! ============================================================================
