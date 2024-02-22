@@ -6,7 +6,7 @@ module prep_ocn_mod
   use shr_sys_mod,      only: shr_sys_abort, shr_sys_flush
   use seq_comm_mct,     only: num_inst_atm, num_inst_rof, num_inst_ice
   use seq_comm_mct,     only: num_inst_glc, num_inst_wav, num_inst_ocn
-  use seq_comm_mct,     only: num_inst_xao, num_inst_frc
+  use seq_comm_mct,     only: num_inst_xao, num_inst_frc, num_inst_lnd
   use seq_comm_mct,     only: num_inst_max
   use seq_comm_mct,     only: CPLID, OCNID, logunit
   use seq_comm_mct,     only: seq_comm_getData=>seq_comm_setptrs
@@ -18,7 +18,7 @@ module prep_ocn_mod
   use mct_mod
   use perf_mod
   use component_type_mod, only: component_get_x2c_cx, component_get_c2x_cx
-  use component_type_mod, only: ocn, atm, ice, rof, wav, glc
+  use component_type_mod, only: ocn, atm, ice, rof, wav, glc, lnd
 
   implicit none
   save
@@ -40,6 +40,7 @@ module prep_ocn_mod
   public :: prep_ocn_calc_g2x_ox
   public :: prep_ocn_shelf_calc_g2x_ox
   public :: prep_ocn_calc_w2x_ox
+  public :: prep_ocn_calc_l2x_ox
 
   public :: prep_ocn_get_a2x_ox
   public :: prep_ocn_get_r2x_ox
@@ -66,6 +67,7 @@ module prep_ocn_mod
   public :: prep_ocn_get_mapper_Sg2o
   public :: prep_ocn_get_mapper_Fg2o
   public :: prep_ocn_get_mapper_Sw2o
+  public :: prep_ocn_get_mapper_Sl2o
 
   !--------------------------------------------------------------------------
   ! Private interfaces
@@ -90,6 +92,7 @@ module prep_ocn_mod
   type(seq_map), pointer :: mapper_Fg2o
   type(seq_map), pointer :: mapper_Sg2o
   type(seq_map), pointer :: mapper_Sw2o
+  type(seq_map), pointer :: mapper_Sl2o
 
   ! attribute vectors
   type(mct_aVect), pointer :: a2x_ox(:) ! Atm export, ocn grid, cpl pes
@@ -97,6 +100,7 @@ module prep_ocn_mod
   type(mct_aVect), pointer :: i2x_ox(:) ! Ice export, ocn grid, cpl pes
   type(mct_aVect), pointer :: g2x_ox(:) ! Glc export, ocn grid, cpl pes
   type(mct_aVect), pointer :: w2x_ox(:) ! Wav export, ocn grid, cpl pes
+  type(mct_aVect), pointer :: l2x_ox(:) ! Lnd export, ocn grid, cpl pes
 
   type(mct_aVect), target  :: x2o_ox_inst  ! multi instance for averaging
 
@@ -120,7 +124,7 @@ contains
   !================================================================================================
 
   subroutine prep_ocn_init(infodata, atm_c2_ocn, atm_c2_ice, ice_c2_ocn, rof_c2_ocn, &
-       wav_c2_ocn, glc_c2_ocn, glcshelf_c2_ocn)
+       wav_c2_ocn, glc_c2_ocn, lnd_c2_ocn, glcshelf_c2_ocn)
 
     !---------------------------------------------------------------
     ! Description
@@ -135,27 +139,31 @@ contains
     logical                 , intent(in)    :: rof_c2_ocn ! .true.=>rof to ocn coupling on
     logical                 , intent(in)    :: wav_c2_ocn ! .true.=>wav to ocn coupling on
     logical                 , intent(in)    :: glc_c2_ocn ! .true.=>glc to ocn coupling on
+    logical                 , intent(in)    :: lnd_c2_ocn ! .true.=>lnd to ocn coupling on
     logical                 , intent(in)    :: glcshelf_c2_ocn ! .true.=>glc ice shelf to ocn coupling on
     !
     ! Local Variables
     logical                  :: esmf_map_flag  ! .true. => use esmf for mapping
-    logical                  :: ocn_present    ! .true.  => ocn is present
-    logical                  :: atm_present    ! .true.  => atm is present
-    logical                  :: ice_present    ! .true.  => ice is present
+    logical                  :: ocn_present    ! .true. => ocn is present
+    logical                  :: atm_present    ! .true. => atm is present
+    logical                  :: ice_present    ! .true. => ice is present
+    logical                  :: lnd_present    ! .true. => lnd is present
     logical                  :: iamroot_CPLID  ! .true. => CPLID masterproc
     logical                  :: samegrid_ao    ! samegrid atm and ocean
     logical                  :: samegrid_og    ! samegrid glc and ocean
     logical                  :: samegrid_ow    ! samegrid ocean and wave
     logical                  :: samegrid_ro    ! samegrid runoff and ocean
+    logical                  :: samegrid_lo    ! samegrid land and ocean
     integer                  :: atm_nx, atm_ny
     integer                  :: lsize_o
-    integer                  :: egi, eri
+    integer                  :: egi, eri, eli
     integer                  :: ewi, eai, eii, eoi
     character(CL)            :: ocn_gnam       ! ocn grid
     character(CL)            :: atm_gnam       ! atm grid
     character(CL)            :: rof_gnam       ! rof grid
     character(CL)            :: wav_gnam       ! wav grid
     character(CL)            :: glc_gnam       ! glc grid
+    character(CL)            :: lnd_gnam       ! lnd grid
     type(mct_avect), pointer :: o2x_ox
     type(mct_avect), pointer :: x2o_ox
     character(*), parameter  :: subname = '(prep_ocn_init)'
@@ -167,12 +175,14 @@ contains
          ocn_present=ocn_present       , &
          atm_present=atm_present       , &
          ice_present=ice_present       , &
+         lnd_present=lnd_present       , &
          flood_present=flood_present   , &
          vect_map=vect_map             , &
          atm_gnam=atm_gnam             , &
          ocn_gnam=ocn_gnam             , &
          rof_gnam=rof_gnam             , &
          wav_gnam=wav_gnam             , &
+         lnd_gnam=lnd_gnam             , &
          atm_nx=atm_nx                 , &
          atm_ny=atm_ny                 , &
          glc_gnam=glc_gnam             , &
@@ -190,6 +200,7 @@ contains
     allocate(mapper_Sg2o)
     allocate(mapper_Fg2o)
     allocate(mapper_Sw2o)
+    allocate(mapper_Sl2o)
 
     if (ocn_present) then
 
@@ -243,6 +254,11 @@ contains
           call mct_aVect_init(i2x_ox(eii), rList=seq_flds_i2x_fields, lsize=lsize_o)
           call mct_aVect_zero(i2x_ox(eii))
        enddo
+       allocate(l2x_ox(num_inst_ice))
+       do eli = 1,num_inst_lnd
+          call mct_aVect_init(l2x_ox(eli), rList=seq_flds_l2x_states_to_ocn, lsize=lsize_o)
+          call mct_aVect_zero(l2x_ox(eli))
+       enddo
 
        allocate(x2oacc_ox(num_inst_ocn))
        do eoi = 1,num_inst_ocn
@@ -255,10 +271,12 @@ contains
        samegrid_ro = .true.
        samegrid_ow = .true.
        samegrid_og = .true.
+       samegrid_lo = .true.
        if (trim(atm_gnam) /= trim(ocn_gnam)) samegrid_ao = .false.
        if (trim(rof_gnam) /= trim(ocn_gnam)) samegrid_ro = .false.
        if (trim(ocn_gnam) /= trim(wav_gnam)) samegrid_ow = .false.
        if (trim(ocn_gnam) /= trim(glc_gnam)) samegrid_og = .false.
+       if (trim(lnd_gnam) /= trim(ocn_gnam)) samegrid_lo = .false.
 
        if (atm_present) then
           if (iamroot_CPLID) then
@@ -385,6 +403,17 @@ contains
        endif
        call shr_sys_flush(logunit)
 
+       if (lnd_c2_ocn) then
+          if (iamroot_CPLID) then
+             write(logunit,*) ' '
+             write(logunit,F00) 'Initializing mapper_Sl2o'
+          end if
+          call seq_map_init_rcfile(mapper_Sl2o, lnd(1), ocn(1), &
+               'seq_maps.rc', 'lnd2ocn_smapname:', 'lnd2ocn_smaptype:',samegrid_lo, &
+               'mapper_Sl2o initialization',esmf_map_flag)
+       endif
+       call shr_sys_flush(logunit)
+
     end if
 
   end subroutine prep_ocn_init
@@ -469,7 +498,7 @@ contains
     character(len=*)        , intent(in)    :: timer_mrg
     !
     ! Local Variables
-    integer                  :: eii, ewi, egi, eoi, eai, eri, exi, efi, emi
+    integer                  :: eii, ewi, egi, eoi, eai, eri, exi, efi, emi, eli
     real(r8)                 :: flux_epbalfact ! adjusted precip factor
     type(mct_avect), pointer :: x2o_ox
     integer                  :: cnt
@@ -502,6 +531,7 @@ contains
        egi = mod((emi-1),num_inst_glc) + 1
        exi = mod((emi-1),num_inst_xao) + 1
        efi = mod((emi-1),num_inst_frc) + 1
+       eli = mod((eli-1),num_inst_lnd) + 1
 
        if (x2o_average) then
           x2o_ox   => x2o_ox_inst
@@ -510,7 +540,7 @@ contains
        endif
 
        call prep_ocn_merge( flux_epbalfact, a2x_ox(eai), i2x_ox(eii), r2x_ox(eri),  &
-            w2x_ox(ewi), g2x_ox(egi), xao_ox(exi), fractions_ox(efi), x2o_ox )
+            w2x_ox(ewi), g2x_ox(egi), l2x_ox(eli), xao_ox(exi), fractions_ox(efi), x2o_ox )
 
        if (x2o_average) then
           x2o_ox   => component_get_x2c_cx(ocn(1))
@@ -530,7 +560,7 @@ contains
 
   !================================================================================================
 
-  subroutine prep_ocn_merge( flux_epbalfact, a2x_o, i2x_o, r2x_o, w2x_o, g2x_o, xao_o, &
+  subroutine prep_ocn_merge( flux_epbalfact, a2x_o, i2x_o, r2x_o, w2x_o, g2x_o, l2x_o, xao_o, &
        fractions_o, x2o_o )
 
     use prep_glc_mod, only: prep_glc_calculate_subshelf_boundary_fluxes
@@ -544,15 +574,16 @@ contains
     type(mct_aVect), intent(in)    :: r2x_o
     type(mct_aVect), intent(in)    :: w2x_o
     type(mct_aVect), intent(in)    :: g2x_o
+    type(mct_aVect), intent(in)    :: l2x_o
     type(mct_aVect), intent(in)    :: xao_o
     type(mct_aVect), intent(in)    :: fractions_o
     type(mct_aVect), intent(inout) :: x2o_o
     !
     ! Local variables
-    integer  :: n,ka,ki,ko,kr,kw,kx,kir,kor,i,i1,o1
+    integer  :: n,ka,ki,ko,kr,kw,kx,kl,kir,kor,i,i1,o1
     integer  :: kof,kif
     integer  :: lsize
-    integer  :: noflds,naflds,niflds,nrflds,nwflds,nxflds,ngflds
+    integer  :: noflds,naflds,niflds,nrflds,nwflds,nxflds,ngflds,nlflds
     real(r8) :: ifrac,ifracr
     real(r8) :: afrac,afracr
     real(r8) :: frac_sum
@@ -565,6 +596,7 @@ contains
     character(CL),allocatable :: field_wav(:)   ! string converted to char
     character(CL),allocatable :: field_xao(:)   ! string converted to char
     character(CL),allocatable :: field_glc(:)   ! string converted to char
+    character(CL),allocatable :: field_lnd(:)   ! string converted to char
     character(CL),allocatable :: itemc_ocn(:)   ! string converted to char
     character(CL),allocatable :: itemc_atm(:)   ! string converted to char
     character(CL),allocatable :: itemc_ice(:)   ! string converted to char
@@ -572,6 +604,7 @@ contains
     character(CL),allocatable :: itemc_wav(:)   ! string converted to char
     character(CL),allocatable :: itemc_xao(:)   ! string converted to char
     character(CL),allocatable :: itemc_g2x(:)   ! string converted to char
+    character(CL),allocatable :: itemc_lnd(:)   ! string converted to char
     integer, save :: index_a2x_Faxa_swvdr
     integer, save :: index_a2x_Faxa_swvdf
     integer, save :: index_a2x_Faxa_swndr
@@ -654,6 +687,8 @@ contains
     integer, save :: index_x2o_Faxa_rain_HDO
     integer, save :: index_x2o_Faxa_snow_HDO
     integer, save :: index_x2o_Faxa_prec_HDO
+    integer, save :: index_l2x_Sl_coastalinf
+    integer, save :: index_x2o_Sl_coastalinf
     logical :: iamroot
     logical, save, pointer :: amerge(:),imerge(:),xmerge(:)
     integer, save, pointer :: aindx(:), iindx(:), xindx(:)
@@ -664,6 +699,7 @@ contains
     type(mct_aVect_sharedindices),save :: w2x_sharedindices
     type(mct_aVect_sharedindices),save :: xao_sharedindices
     type(mct_aVect_sharedindices),save :: g2x_sharedindices
+    type(mct_aVect_sharedindices),save :: l2x_sharedindices
     logical, save :: first_time = .true.
     character(*),parameter :: subName = '(prep_ocn_merge) '
     !-----------------------------------------------------------------------
@@ -677,6 +713,7 @@ contains
     nwflds = mct_aVect_nRattr(w2x_o)
     nxflds = mct_aVect_nRattr(xao_o)
     ngflds = mct_aVect_nRattr(g2x_o)
+    nlflds = mct_aVect_nRattr(l2x_o)
 
     if (first_time) then
        index_a2x_Faxa_swvdr     = mct_aVect_indexRA(a2x_o,'Faxa_swvdr')
@@ -774,6 +811,9 @@ contains
        index_x2o_Faxa_prec_HDO  = mct_aVect_indexRA(x2o_o,'Faxa_prec_HDO' , perrWith='quiet')
        index_x2o_Foxx_rofl_HDO  = mct_aVect_indexRA(x2o_o,'Foxx_rofl_HDO' , perrWith='quiet')
        index_x2o_Foxx_rofi_HDO  = mct_aVect_indexRA(x2o_o,'Foxx_rofi_HDO' , perrWith='quiet')
+       ! land ocean two way coupling
+       index_l2x_Sl_coastalinf  = mct_aVect_indexRA(l2x_o,'Sl_coastalinf', perrWith='quiet')
+       index_x2o_Sl_coastalinf  = mct_aVect_indexRA(x2o_o,'Sl_coastalinf', perrWith='quiet')
 
        ! Compute all other quantities based on standardized naming convention (see below)
        ! Only ocn field states that have the name-prefix Sx_ will be merged
@@ -795,6 +835,7 @@ contains
        allocate(field_wav(nwflds), itemc_wav(nwflds))
        allocate(field_xao(nxflds), itemc_xao(nxflds))
        allocate(field_glc(ngflds), itemc_g2x(ngflds))
+       allocate(field_lnd(nlflds), itemc_lnd(nlflds))
        allocate(mrgstr(noflds))
        aindx(:) = 0
        iindx(:) = 0
@@ -831,6 +872,10 @@ contains
           field_glc(kx) = mct_aVect_getRList2c(kx, g2x_o)
           itemc_g2x(kx) = trim(field_glc(kx)(scan(field_glc(kx),'_'):))
        enddo
+       do kl = 1,nlflds
+          field_lnd(kl) = mct_aVect_getRList2c(kl, l2x_o)
+          itemc_lnd(kl) = trim(field_lnd(kl)(scan(field_lnd(kl),'_'):))
+       enddo
 
        call mct_aVect_setSharedIndices(a2x_o, x2o_o, a2x_SharedIndices)
        call mct_aVect_setSharedIndices(i2x_o, x2o_o, i2x_SharedIndices)
@@ -838,6 +883,7 @@ contains
        call mct_aVect_setSharedIndices(w2x_o, x2o_o, w2x_SharedIndices)
        call mct_aVect_setSharedIndices(xao_o, x2o_o, xao_SharedIndices)
        call mct_aVect_setSharedIndices(g2x_o, x2o_o, g2x_SharedIndices)
+       call mct_aVect_setSharedIndices(l2x_o, x2o_o, l2x_SharedIndices)
 
        do ko = 1,noflds
           !--- document merge ---
@@ -967,6 +1013,11 @@ contains
          o1=g2x_SharedIndices%shared_real%aVindices2(i)
          mrgstr(o1) = trim(mrgstr(o1))//' = g2x%'//trim(field_glc(i1))
       enddo
+      do i=1,l2x_SharedIndices%shared_real%num_indices
+         i1=l2x_SharedIndices%shared_real%aVindices1(i)
+         o1=l2x_SharedIndices%shared_real%aVindices2(i)
+         mrgstr(o1) = trim(mrgstr(o1))//' = l2x%'//trim(field_lnd(i1))
+      enddo
     endif
 
     !    call mct_aVect_copy(aVin=a2x_o, aVout=x2o_o, vector=mct_usevector)
@@ -980,6 +1031,7 @@ contains
     call mct_aVect_copy(aVin=w2x_o, aVout=x2o_o, vector=mct_usevector, sharedIndices=w2x_SharedIndices)
     call mct_aVect_copy(aVin=xao_o, aVout=x2o_o, vector=mct_usevector, sharedIndices=xao_SharedIndices)
     call mct_aVect_copy(aVin=g2x_o, aVout=x2o_o, vector=mct_usevector, sharedIndices=g2x_SharedIndices)
+    call mct_aVect_copy(aVin=l2x_o, aVout=x2o_o, vector=mct_usevector, sharedIndices=l2x_SharedIndices)
 
     !--- document manual merges ---
     if (first_time) then
@@ -1060,6 +1112,10 @@ contains
           mrgstr(index_x2o_Faxa_prec_HDO) = trim(mrgstr(index_x2o_Faxa_prec_HDO))//' = '// &
                'afrac*(a2x%Faxa_snowc_HDO + a2x%Faxa_snowl_HDO + a2x%Faxa_rainc_HDO + '// &
                'a2x%Faxa_rainl_HDO)*flux_epbalfact'
+       end if
+       if (index_x2o_Sl_coastalinf /= 0 ) then
+          mrgstr(index_x2o_Sl_coastalinf) = trim(mrgstr(index_x2o_Sl_coastalinf))//' = '// &
+               'l2x%Sl_coastalinf'
        end if
     endif
 
@@ -1197,6 +1253,10 @@ contains
           x2o_o%rAttr(index_x2o_Faxa_prec_HDO ,n) = x2o_o%rAttr(index_x2o_Faxa_rain_HDO ,n) + &
                x2o_o%rAttr(index_x2o_Faxa_snow_HDO ,n)
        end if
+
+       if (index_x2o_Sl_coastalinf /= 0 ) then
+          x2o_o%rAttr(index_x2o_Sl_coastalinf ,n) = l2x_o%rAttr(index_l2x_Sl_coastalinf ,n)
+       end if
     end do
 
     do ko = 1,noflds
@@ -1271,6 +1331,7 @@ contains
        deallocate(field_rof,itemc_rof)
        deallocate(field_wav,itemc_wav)
        deallocate(field_xao,itemc_xao)
+       deallocate(field_lnd,itemc_lnd)
     endif
 
     first_time = .false.
@@ -1453,6 +1514,30 @@ contains
 
   !================================================================================================
 
+  subroutine prep_ocn_calc_l2x_ox(timer)
+    !---------------------------------------------------------------
+    ! Description
+    ! Create l2x_ox (note that l2x_ox is a local module variable)
+    !
+    ! Arguments
+    character(len=*), intent(in) :: timer
+    !
+    ! Local Variables
+    integer :: eli
+    type(mct_avect), pointer :: l2x_lx
+    character(*), parameter  :: subname = '(prep_ocn_calc_l2x_ox)'
+    !---------------------------------------------------------------
+
+    call t_drvstartf (trim(timer),barrier=mpicom_CPLID)
+    do eli = 1,num_inst_lnd
+       l2x_lx => component_get_c2x_cx(lnd(eli))
+       call seq_map_map(mapper_Sl2o, l2x_lx, l2x_ox(eli), norm=.true.)
+    enddo
+    call t_drvstopf  (trim(timer))
+  end subroutine prep_ocn_calc_l2x_ox
+
+  !================================================================================================
+
   function prep_ocn_get_a2x_ox()
     type(mct_aVect), pointer :: prep_ocn_get_a2x_ox(:)
     prep_ocn_get_a2x_ox => a2x_ox(:)
@@ -1547,5 +1632,10 @@ contains
     type(seq_map), pointer :: prep_ocn_get_mapper_Sw2o
     prep_ocn_get_mapper_Sw2o => mapper_Sw2o
   end function prep_ocn_get_mapper_Sw2o
+
+  function prep_ocn_get_mapper_Sl2o()
+    type(seq_map), pointer :: prep_ocn_get_mapper_Sl2o
+    prep_ocn_get_mapper_Sl2o => mapper_Sl2o
+  end function prep_ocn_get_mapper_Sl2o
 
 end module prep_ocn_mod

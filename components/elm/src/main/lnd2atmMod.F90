@@ -13,13 +13,14 @@ module lnd2atmMod
   use elm_varpar           , only : numrad, ndst, nlevgrnd, nlevsno, nlevsoi !ndst = number of dust bins.
   use elm_varcon           , only : rair, grav, cpair, hfus, tfrz, spval
   use elm_varctl           , only : iulog, use_c13, use_cn, use_lch4, use_voc, use_fates, use_atm_downscaling_to_topunit, use_fan
-  use elm_varctl           , only : use_lnd_rof_two_way
+  use elm_varctl           , only : use_lnd_rof_two_way, use_lnd_ocn_two_way
   use tracer_varcon        , only : is_active_betr_bgc
   use seq_drydep_mod   , only : n_drydep, drydep_method, DD_XLND
   use decompMod            , only : bounds_type
   use subgridAveMod        , only : p2g, c2g, p2t  
   use lnd2atmType          , only : lnd2atm_type
   use atm2lndType          , only : atm2lnd_type
+  use lnd2ocnType          , only : lnd2ocn_type
   use CH4Mod               , only : ch4_type
   use DUSTMod              , only : dust_type
   use DryDepVelocity       , only : drydepvel_type
@@ -144,7 +145,7 @@ contains
        energyflux_vars, &
        solarabs_vars, drydepvel_vars, &
        vocemis_vars, dust_vars, ch4_vars, soilhydrology_vars, &
-       sedflux_vars, lnd2atm_vars)
+       sedflux_vars, lnd2atm_vars, lnd2ocn_vars)
     !
     ! !DESCRIPTION:
     ! Compute lnd2atm_vars component of gridcell derived type
@@ -167,6 +168,7 @@ contains
     type(soilhydrology_type), intent(in)    :: soilhydrology_vars
     type(sedflux_type)     , intent(in)     :: sedflux_vars
     type(lnd2atm_type)     , intent(inout)  :: lnd2atm_vars
+    type(lnd2ocn_type)     , intent(inout)  :: lnd2ocn_vars
     !
     ! !LOCAL VARIABLES:
     integer :: g, lvl             ! index
@@ -237,7 +239,9 @@ contains
       coszen_str       => lnd2atm_vars%coszen_str , &
       qflx_h2orof_drain     => col_wf%qflx_h2orof_drain , &
       qflx_h2orof_drain_grc => lnd2atm_vars%qflx_h2orof_drain_grc, &
-      nh3_total        => col_nf%nh3_total &
+      nh3_total        => col_nf%nh3_total , &
+      h2oocn_drain     => col_ws%h2oocn_drain , &
+      h2oocn_drain_grc => lnd2ocn_vars%h2oocn_drain_grc &
       )
     !----------------------------------------------------
     ! lnd -> atm
@@ -434,11 +438,20 @@ contains
     enddo
 
     ! land river two-way coupling
-    ! Average up  to gridcell for the inundation drainage
+    ! Average up to gridcell for the river inundation drainage
     if (use_lnd_rof_two_way) then
           call c2g( bounds, & 
                      qflx_h2orof_drain(bounds%begc:bounds%endc)     , &
                      qflx_h2orof_drain_grc(bounds%begg:bounds%endg) , &
+                     c2l_scale_type=unity,l2g_scale_type=unity )
+    endif
+
+    ! land ocean two-way coupling
+    ! Average up to gridcell for the ocean inundation drainage
+    if (use_lnd_ocn_two_way) then
+          call c2g( bounds, & 
+                     h2oocn_drain(bounds%begc:bounds%endc)     , &
+                     h2oocn_drain_grc(bounds%begg:bounds%endg) , &
                      c2l_scale_type=unity,l2g_scale_type=unity )
     endif
 
