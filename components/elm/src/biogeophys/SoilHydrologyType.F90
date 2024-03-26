@@ -65,6 +65,7 @@ Module SoilHydrologyType
      real(r8), pointer :: max_infil_col     (:)     => null()! col VIC maximum infiltration rate calculated in VIC
      real(r8), pointer :: i_0_col           (:)     => null()! col VIC average saturation in top soil layers
      real(r8), pointer :: ice_col           (:,:)   => null()! col VIC soil ice (kg/m2) for VIC soil layers
+     real(r8), pointer :: ar_col            (:,:)   => null()! col anisotropic ratio
 
    contains
 
@@ -154,6 +155,7 @@ contains
     allocate(this%max_infil_col     (begc:endc))                 ; this%max_infil_col     (:)     = spval
     allocate(this%i_0_col           (begc:endc))                 ; this%i_0_col           (:)     = spval
     allocate(this%ice_col           (begc:endc,nlayert))         ; this%ice_col           (:,:)   = spval
+    allocate(this%ar_col            (begc:endc,nlevgrnd))        ; this%ar_col            (:,:)   = 25.0_r8
 
   end subroutine InitAllocate
 
@@ -461,7 +463,7 @@ contains
                 ! do nothing
              else if (lun_pp%urbpoi(l) .and. (col_pp%itype(c) /= icol_road_perv) .and. (col_pp%itype(c) /= icol_road_imperv) )then
                 ! do nothing
-             else			    
+             else  
                   do lev = 1,nlevgrnd
                     if ( more_vertlayers )then
                       ! duplicate clay and sand values from last soil layer
@@ -499,6 +501,8 @@ contains
                    claycol(c,lev)    = clay
                    sandcol(c,lev)    = sand
                    om_fraccol(c,lev) = om_frac
+
+                   this%ar_col(c,lev)= clay
                 end do
              end if
           end if ! end of if not lake
