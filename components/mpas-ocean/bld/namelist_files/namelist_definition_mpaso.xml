@@ -2045,6 +2045,22 @@ Valid values: Real value greater or equal to 0.
 Default: Defined in namelist_defaults.xml
 </entry>
 
+<entry id="config_use_subgrid_wetting_drying" type="logical"
+	category="wetting_drying" group="wetting_drying">
+If true, use subgrid wetting and drying algorithm
+
+Valid values: .true. or .false.
+Default: Defined in namelist_defaults.xml
+</entry>
+
+<entry id="config_use_ssh_gradient_wetting_drying" type="logical"
+	category="wetting_drying" group="wetting_drying">
+If true, use take into account the ssh gradient across previously flux-limited edges in the wetting and drying algorithm
+
+Valid values: .true. or .false.
+Default: Defined in namelist_defaults.xml
+</entry>
+
 
 <!-- ocean_constants -->
 

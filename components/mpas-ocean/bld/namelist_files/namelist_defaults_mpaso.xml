@@ -546,6 +546,8 @@
 <config_zero_drying_velocity_ramp_hmax>2e-3</config_zero_drying_velocity_ramp_hmax>
 <config_verify_not_dry>.false.</config_verify_not_dry>
 <config_drying_safety_height>1.0e-10</config_drying_safety_height>
+<config_use_subgrid_wetting_drying>.false.</config_use_subgrid_wetting_drying>
+<config_use_ssh_gradient_wetting_drying>.false.</config_use_ssh_gradient_wetting_drying>
 
 <!-- ocean_constants -->
 <config_density0>1026.0</config_density0>
