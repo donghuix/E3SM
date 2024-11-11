@@ -205,7 +205,7 @@ OPTIONS
                               Default: .false.
      -l_ncpl "LND_NCPL"       Number of ELM coupling time-steps in a NCPL_BASE_PERIOD.
      -r_ncpl "ROF_NCPL"       Number of MOSART coupling time-steps in a NCPL_BASE_PERIOD.
-     -o_ncpl "OCN_NCPL"       Number of MPAS-O coupling time-steps in a NCPL_BASE_PERIOD
+     -o_ncpl "OCN_NCPL"       Number of MPAS-O coupling time-steps in a NCPL_BASE_PERIOD.
      -ncpl_base_period        Length of base period for ELM coupling (hour, day, year)
      -mask "landmask"         Type of land-mask (default, navy, gx3v5, gx1v5 etc.)
                               "-mask list" to list valid land masks.
