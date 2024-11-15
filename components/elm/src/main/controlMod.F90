@@ -332,7 +332,7 @@ contains
          lnd_rof_coupling_nstep
 
     namelist /elm_mpaso/  &
-         lnd_ocn_coupling_nstep
+         lnd_ocn_coupling_nstep, use_pfz
 
     namelist /elm_inparm/ &
          snow_shape, snicar_atm_type, use_dust_snow_internal_mixing 
@@ -588,6 +588,11 @@ contains
           call endrun(msg=' ERROR: lnd_ocn_coupling_nstep cannot be smaller than 1.'//&
                    errMsg(__FILE__, __LINE__))     
           endif
+       endif
+
+       if (.not. use_lnd_ocn_two_way .and. use_pfz) then
+          call endrun(msg=' ERROR: Only use_pfz for land-ocean two-way coupling'//&
+                   errMsg(__FILE__, __LINE__))     
        endif
 
     endif   ! end of if-masterproc if-block
@@ -1016,6 +1021,7 @@ contains
     ! land ocean two way coupling
     call mpi_bcast (use_lnd_ocn_two_way   ,  1, MPI_LOGICAL, 0, mpicom, ier)
     call mpi_bcast (lnd_ocn_coupling_nstep,  1, MPI_INTEGER, 0, mpicom, ier)
+    call mpi_bcast (use_pfz               ,  1, MPI_LOGICAL, 0, mpicom, ier)
 
     !SNICAR-AD
     call mpi_bcast (snow_shape, len(snow_shape), MPI_CHARACTER, 0, mpicom, ier)
@@ -1298,6 +1304,8 @@ contains
     ! land ocean two way coupling
     write(iulog,*) '    use_lnd_ocn_two_way     = ', use_lnd_ocn_two_way
     write(iulog,*) '    lnd_ocn_coupling_nstep  = ', lnd_ocn_coupling_nstep
+    write(iulog,*) '    use_pfz                 = ', use_pfz
+
     write(iulog,*) '    use_modified_infil      = ', use_modified_infil
     
 

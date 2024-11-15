@@ -31,7 +31,7 @@ contains
     use elm_varctl       , only: co2_type, co2_ppmv, iulog, use_c13, create_glacier_mec_landunit, &
                                  metdata_type, metdata_bypass, metdata_biases, co2_file, aero_file, use_atm_downscaling_to_topunit
     use elm_varctl       , only: const_climate_hist, add_temperature, add_co2, use_cn, use_fates
-    use elm_varctl       , only: startdate_add_temperature, startdate_add_co2
+    use elm_varctl       , only: startdate_add_temperature, startdate_add_co2, use_pfz
     use elm_varcon       , only: rair, o2_molar_const, c13ratio
     use elm_time_manager , only: get_nstep, get_step_size, get_curr_calday, get_curr_date 
     use controlMod       , only: NLFilename
@@ -702,6 +702,16 @@ contains
           forc_snowl = 0.9_R8 * (1.0_R8 - frac) * max((((atm2lnd_vars%atm_input(5,g,1,tindex(5,2))*atm2lnd_vars%scale_factors(5)+ &
                   atm2lnd_vars%add_offsets(5))) * atm2lnd_vars%var_mult(5,g,mon) + atm2lnd_vars%var_offset(5,g,mon)), 0.0_r8) 
         end if
+
+        if (use_pfz) then
+          if (atm2lnd_vars%pfz(g) == 1) then
+            forc_rainc = 0.0_R8
+            forc_rainl = 0.0_R8
+            forc_snowc = 0.0_R8
+            forc_snowl = 0.0_R8
+          end if
+        end if
+
         !Wind
         atm2lnd_vars%forc_u_grc(g) = (atm2lnd_vars%atm_input(6,g,1,tindex(6,1))*atm2lnd_vars%scale_factors(6)+ &
                                      atm2lnd_vars%add_offsets(6))*wt1(6) + (atm2lnd_vars%atm_input(6,g,1,tindex(6,2))* &
@@ -1125,6 +1135,15 @@ contains
        forc_rainl                                    = x2l(index_x2l_Faxa_rainl,i)   ! mm/s
        forc_snowc                                    = x2l(index_x2l_Faxa_snowc,i)   ! mm/s
        forc_snowl                                    = x2l(index_x2l_Faxa_snowl,i)   ! mm/s
+       
+       if (use_pfz) then
+         if (atm2lnd_vars%pfz(g) == 1) then
+            forc_rainc = 0.0_R8
+            forc_rainl = 0.0_R8
+            forc_snowc = 0.0_R8
+            forc_snowl = 0.0_R8
+         end if
+       end if
 
        ! atmosphere coupling, for prognostic/prescribed aerosols
        atm2lnd_vars%forc_aer_grc(g,1)  =  x2l(index_x2l_Faxa_bcphidry,i)

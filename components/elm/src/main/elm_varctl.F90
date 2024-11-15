@@ -551,6 +551,7 @@ module elm_varctl
    logical,  public :: use_lnd_ocn_two_way = .false.
    integer,  public :: lnd_ocn_coupling_nstep = 0
    real(r8), public :: lnd_ocn_coupling_period = 0.0_r8
+   logical,  public :: use_pfz = .false.
 
    !----------------------------------------------------------
    ! SNICAR-AD

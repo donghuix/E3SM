@@ -2184,7 +2184,7 @@ Toggle to turn on the soil erosion and OM pools feedback.
 <!-- Namelist options for using modifed infiltration scheme in h2osfc                          -->
 <!-- ========================================================================================  -->
 
-<entry id="use_modified_infil" type="logical" category="clm_physics"
+<entry id="use_modified_infil" type="logical" category="elm_physics"
        group="elm_inparm" valid_values="" value=".false.">
 Toggle to use modifed infiltration scheme in h2osfc     .
 </entry>
@@ -2203,6 +2203,15 @@ Number of ELM time steps per ELM and MOSART coupling period
 <entry id="lnd_ocn_coupling_nstep" type="integer" category="elm_physics"
        group="elm_mpaso" valid_values="">
 Number of ELM time steps per ELM and MPAS-O coupling period
+</entry>
+
+<!-- ========================================================================================  -->
+<!-- Namelist options for using periodic flooding zone for land-ocean two-way coupling         -->
+<!-- ========================================================================================  -->
+
+<entry id="use_pfz" type="logical" category="elm_physics"
+       group="elm_mpaso" valid_values="" value=".false.">
+Toggle to use let ELM not reading precipitation over periodic flooding zone
 </entry>
 
 <!-- ========================================================================================  -->

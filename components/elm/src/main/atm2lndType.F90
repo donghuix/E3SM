@@ -149,6 +149,8 @@ module atm2lndType
      ! Needed for FNM precip downscaling, when used within CPL_BYPASS
      real(r8), pointer :: forc_uovern                   (:)   => null() ! Froude number (dimensionless)
 
+     ! Periodicly Flooding Zone
+     integer,  pointer :: pfz                           (:)   => null() ! Periodicly Flooding Zone for land-ocean two-way coupling to avoid double counting precipitation
 
    contains
 
@@ -168,12 +170,33 @@ contains
   !------------------------------------------------------------------------
   subroutine Init(this, bounds)
 
+    ! !USES:
+    use elm_varctl, only : fsurdat, use_pfz
+    use fileutils,  only : getfil
+    use elm_varcon, only : grlnd
+    use ncdio_pio,  only : file_desc_t, ncd_io, ncd_pio_openfile, ncd_pio_closefile
+
+    ! !ARGUMENTS:
     class(atm2lnd_type) :: this
     type(bounds_type), intent(in) :: bounds  
+    ! !LOCAL VARIABLES:
+    character(len=256) :: locfn
+    logical            :: readvar
+    type(file_desc_t)  :: ncid
 
     call this%InitAllocate(bounds)
     call this%InitHistory(bounds)
-    
+
+    if (use_pfz) then
+      call getfil (fsurdat, locfn, 0)
+      call ncd_pio_openfile (ncid, locfn, 0)
+      call ncd_io(ncid=ncid, varname='pfz', flag='read', data=this%pfz, dim1name=grlnd, readvar=readvar)
+      if (.not. readvar) then
+        this%pfz(:) = 0
+      end if
+      call ncd_pio_closefile(ncid)
+    endif
+
   end subroutine Init
 
   !------------------------------------------------------------------------
@@ -305,8 +328,8 @@ contains
        allocate(this%rh24_patch                 (begp:endp))        ; this%rh24_patch                    (:)   = nan
        allocate(this%wind24_patch               (begp:endp))        ; this%wind24_patch                  (:)   = nan
     end if
-    allocate(this%t_mo_patch                    (begp:endp))        ; this%t_mo_patch               (:)   = nan
-    allocate(this%t_mo_min_patch                (begp:endp))        ; this%t_mo_min_patch           (:)   = spval ! TODO - initialize this elsewhere
+    allocate(this%t_mo_patch                    (begp:endp))        ; this%t_mo_patch                    (:)   = nan
+    allocate(this%t_mo_min_patch                (begp:endp))        ; this%t_mo_min_patch                (:)   = spval ! TODO - initialize this elsewhere
     if ( use_fan ) then
        allocate(this%forc_ndep_mgrz_grc         (begg:endg))        ; this%forc_ndep_mgrz_grc            (:)   = ival
        allocate(this%forc_ndep_past_grc         (begg:endg))        ; this%forc_ndep_past_grc            (:)   = ival
@@ -314,7 +337,8 @@ contains
        allocate(this%forc_ndep_nitr_grc         (begg:endg))        ; this%forc_ndep_nitr_grc            (:)   = ival
        allocate(this%forc_soilph_grc            (begg:endg))        ; this%forc_soilph_grc               (:)   = ival
     end if
-    allocate(this%forc_uovern                   (begg:endg))        ; this%forc_uovern                        (:)   = ival
+    allocate(this%forc_uovern                   (begg:endg))        ; this%forc_uovern                   (:)   = ival
+    allocate(this%pfz                           (begg:endg))        ; this%pfz                           (:)   = ival_int
 
   end subroutine InitAllocate
 

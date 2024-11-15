@@ -2535,6 +2535,7 @@ sub setup_logic_demand {
   $settings{'use_century_decomp'}  = $nl_flags->{'use_century_decomp'};
   $settings{'use_crop'}            = $nl_flags->{'use_crop'};
   $settings{'use_modified_infil'}  = $nl_flags->{'use_modified_infil'};
+  $settings{'use_pfz'}             = $nl_flags->{'use_pfz'};
   
   my $demand = $nl->get_value('clm_demand');
   if (defined($demand)) {
