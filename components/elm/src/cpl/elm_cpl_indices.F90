@@ -34,7 +34,7 @@ module elm_cpl_indices
   integer, public ::index_l2x_coszen_str      ! lnd->rtm cosine of zenith  
   integer, public ::index_l2x_Flrl_rofmud     ! lnd->rtm input sediment yield fluxes
   integer, public ::index_l2x_Flrl_inundinf   ! lnd->rtm infiltration from floodplain inundation
-  integer, public ::index_l2x_Sl_coastalinf   ! lnd->ocn infiltration volume from coastal inundation
+  integer, public ::index_l2x_Flol_coastalinf ! lnd->ocn infiltration from coastal inundation
   integer, public ::index_l2x_Sl_t            ! temperature
   integer, public ::index_l2x_Sl_tref         ! 2m reference temperature
   integer, public ::index_l2x_Sl_qref         ! 2m reference specific humidity
@@ -199,7 +199,7 @@ contains
       index_l2x_Flrl_inundinf = mct_avect_indexra(l2x,'Flrl_inundinf')
     endif
     if (lnd_ocn_two_way) then
-      index_l2x_Sl_coastalinf = mct_avect_indexra(l2x,'Sl_coastalinf')
+      index_l2x_Flol_coastalinf = mct_avect_indexra(l2x,'Flol_coastalinf')
     endif
     index_l2x_Sl_t          = mct_avect_indexra(l2x,'Sl_t')
     index_l2x_Sl_snowh      = mct_avect_indexra(l2x,'Sl_snowh')

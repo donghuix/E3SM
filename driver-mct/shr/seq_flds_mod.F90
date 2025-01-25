@@ -190,10 +190,10 @@ module seq_flds_mod
 
   character(CXX) :: seq_flds_l2x_states
   character(CXX) :: seq_flds_l2x_states_to_glc
-  character(CXX) :: seq_flds_l2x_states_to_ocn
   character(CXX) :: seq_flds_l2x_fluxes
   character(CXX) :: seq_flds_l2x_fluxes_to_glc
   character(CXX) :: seq_flds_l2x_fluxes_to_rof
+  character(CXX) :: seq_flds_l2x_fluxes_to_ocn
   character(CXX) :: seq_flds_x2l_states
   character(CXX) :: seq_flds_x2l_states_from_glc
   character(CXX) :: seq_flds_x2l_fluxes
@@ -331,10 +331,10 @@ contains
     character(CXX) :: x2i_fluxes = ''
     character(CXX) :: l2x_states = ''
     character(CXX) :: l2x_states_to_glc = ''
-    character(CXX) :: l2x_states_to_ocn = ''
     character(CXX) :: l2x_fluxes = ''
     character(CXX) :: l2x_fluxes_to_glc = ''
     character(CXX) :: l2x_fluxes_to_rof = ''
+    character(CXX) :: l2x_fluxes_to_ocn = ''
     character(CXX) :: x2l_states = ''
     character(CXX) :: x2l_states_from_glc = ''
     character(CXX) :: x2l_fluxes = ''
@@ -1761,13 +1761,13 @@ contains
     attname  = 'So_lt'
     call metadata_set(attname, longname, stdname, units)
 
-    ! coastal inundation drainage volume
-    call seq_flds_add(l2x_states,"Sl_coastalinf")
-    call seq_flds_add(x2o_states,"Sl_coastalinf")
-    call seq_flds_add(l2x_states_to_ocn,"So_coastalinf")
-    longname = 'Infiltration volume from coastal inundation volume'
+    ! coastal inundation drainage 
+    call seq_flds_add(l2x_fluxes,"Flol_coastalinf")
+    call seq_flds_add(x2o_fluxes,"Flol_coastalinf")
+    call seq_flds_add(l2x_fluxes_to_ocn,"Flol_coastalinf")
+    longname = 'Infiltration rate from coastal inundation'
     stdname  = 'coastal_inundation_infiltration'
-    units    = 'mm'
+    units    = 'mm/s'
     attname  = 'coastalinf'
     call metadata_set(attname, longname, stdname, units)
 
@@ -3960,7 +3960,6 @@ contains
     seq_flds_x2i_states = trim(x2i_states)
     seq_flds_l2x_states = trim(l2x_states)
     seq_flds_l2x_states_to_glc = trim(l2x_states_to_glc)
-    seq_flds_l2x_states_to_ocn = trim(l2x_states_to_ocn)
     seq_flds_x2l_states = trim(x2l_states)
     seq_flds_x2l_states_from_glc = trim(x2l_states_from_glc)
     seq_flds_o2x_states = trim(o2x_states)
@@ -3987,6 +3986,7 @@ contains
     seq_flds_l2x_fluxes = trim(l2x_fluxes)
     seq_flds_l2x_fluxes_to_glc = trim(l2x_fluxes_to_glc)
     seq_flds_l2x_fluxes_to_rof = trim(l2x_fluxes_to_rof)
+    seq_flds_l2x_fluxes_to_ocn = trim(l2x_fluxes_to_ocn)
     seq_flds_x2l_fluxes = trim(x2l_fluxes)
     seq_flds_x2l_fluxes_from_glc = trim(x2l_fluxes_from_glc)
     seq_flds_o2x_fluxes = trim(o2x_fluxes)
@@ -4038,7 +4038,6 @@ contains
        write(logunit,*) subname//': seq_flds_x2g_states= ',trim(seq_flds_x2g_states)
        write(logunit,*) subname//': seq_flds_x2g_states_from_lnd= ',trim(seq_flds_x2g_states_from_lnd)
        write(logunit,*) subname//': seq_flds_l2x_states_to_glc= ',trim(seq_flds_l2x_states_to_glc)
-       write(logunit,*) subname//': seq_flds_l2x_states_to_ocn= ',trim(seq_flds_l2x_states_to_ocn)
        write(logunit,*) subname//': seq_flds_x2g_states_from_ocn= ',trim(seq_flds_x2g_states_from_ocn)
        write(logunit,*) subname//': seq_flds_x2g_fluxes= ',trim(seq_flds_x2g_fluxes)
        write(logunit,*) subname//': seq_flds_x2g_fluxes_from_lnd= ',trim(seq_flds_x2g_fluxes_from_lnd)
@@ -4058,6 +4057,7 @@ contains
        write(logunit,*) subname//': seq_flds_w2x_fluxes= ',trim(seq_flds_w2x_fluxes)
        write(logunit,*) subname//': seq_flds_x2w_states= ',trim(seq_flds_x2w_states)
        write(logunit,*) subname//': seq_flds_x2w_fluxes= ',trim(seq_flds_x2w_fluxes)
+       write(logunit,*) subname//': seq_flds_l2x_fluxes_to_ocn= ',trim(seq_flds_l2x_fluxes_to_ocn)
        write(logunit,*) subname//': seq_flds_o2x_states_to_rof=',trim(seq_flds_o2x_states_to_rof)
        write(logunit,*) subname//': seq_flds_o2x_states_to_lnd=',trim(seq_flds_o2x_states_to_lnd)
     end if

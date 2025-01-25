@@ -28,7 +28,7 @@ module lnd2ocnType
   !
   type, public :: lnd2ocn_type
 
-      real(r8), pointer :: h2oocn_drain_grc(:) => null() ! drainage volume from coastal inundation [m]    
+      real(r8), pointer :: qflx_h2oocn_drain_grc(:) => null() ! drainage from coastal inundation [mm/s]    
 
     contains
 
@@ -76,8 +76,8 @@ module lnd2ocnType
       begc = bounds%begc; endc= bounds%endc
       begp = bounds%begp; endp= bounds%endp
 
-      allocate(this%h2oocn_drain_grc(begg:endg)); 
-      this%h2oocn_drain_grc(:) = ival
+      allocate(this%qflx_h2oocn_drain_grc(begg:endg)); 
+      this%qflx_h2oocn_drain_grc(:) = ival
 
     end subroutine InitAllocate
 

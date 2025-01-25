@@ -239,9 +239,9 @@ contains
       coszen_str       => lnd2atm_vars%coszen_str , &
       qflx_h2orof_drain     => col_wf%qflx_h2orof_drain , &
       qflx_h2orof_drain_grc => lnd2atm_vars%qflx_h2orof_drain_grc, &
-      nh3_total        => col_nf%nh3_total , &
-      h2oocn_drain     => col_ws%h2oocn_drain , &
-      h2oocn_drain_grc => lnd2ocn_vars%h2oocn_drain_grc &
+      nh3_total             => col_nf%nh3_total , &
+      qflx_h2oocn_drain     => col_wf%qflx_h2oocn_drain , &
+      qflx_h2oocn_drain_grc => lnd2ocn_vars%qflx_h2oocn_drain_grc &
       )
     !----------------------------------------------------
     ! lnd -> atm
@@ -450,8 +450,8 @@ contains
     ! Average up to gridcell for the ocean inundation drainage
     if (use_lnd_ocn_two_way) then
           call c2g( bounds, & 
-                     h2oocn_drain(bounds%begc:bounds%endc)     , &
-                     h2oocn_drain_grc(bounds%begg:bounds%endg) , &
+                     qflx_h2oocn_drain(bounds%begc:bounds%endc)     , &
+                     qflx_h2oocn_drain_grc(bounds%begg:bounds%endg) , &
                      c2l_scale_type=unity,l2g_scale_type=unity )
     endif
 

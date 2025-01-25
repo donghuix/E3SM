@@ -67,7 +67,7 @@ module prep_ocn_mod
   public :: prep_ocn_get_mapper_Sg2o
   public :: prep_ocn_get_mapper_Fg2o
   public :: prep_ocn_get_mapper_Sw2o
-  public :: prep_ocn_get_mapper_Sl2o
+  public :: prep_ocn_get_mapper_Fl2o
 
   !--------------------------------------------------------------------------
   ! Private interfaces
@@ -92,7 +92,7 @@ module prep_ocn_mod
   type(seq_map), pointer :: mapper_Fg2o
   type(seq_map), pointer :: mapper_Sg2o
   type(seq_map), pointer :: mapper_Sw2o
-  type(seq_map), pointer :: mapper_Sl2o
+  type(seq_map), pointer :: mapper_Fl2o
 
   ! attribute vectors
   type(mct_aVect), pointer :: a2x_ox(:) ! Atm export, ocn grid, cpl pes
@@ -200,7 +200,7 @@ contains
     allocate(mapper_Sg2o)
     allocate(mapper_Fg2o)
     allocate(mapper_Sw2o)
-    allocate(mapper_Sl2o)
+    allocate(mapper_Fl2o)
 
     if (ocn_present) then
 
@@ -256,7 +256,7 @@ contains
        enddo
        allocate(l2x_ox(num_inst_ice))
        do eli = 1,num_inst_lnd
-          call mct_aVect_init(l2x_ox(eli), rList=seq_flds_l2x_states_to_ocn, lsize=lsize_o)
+          call mct_aVect_init(l2x_ox(eli), rList=seq_flds_l2x_fluxes_to_ocn, lsize=lsize_o)
           call mct_aVect_zero(l2x_ox(eli))
        enddo
 
@@ -408,9 +408,9 @@ contains
              write(logunit,*) ' '
              write(logunit,F00) 'Initializing mapper_Sl2o'
           end if
-          call seq_map_init_rcfile(mapper_Sl2o, lnd(1), ocn(1), &
-               'seq_maps.rc', 'lnd2ocn_smapname:', 'lnd2ocn_smaptype:',samegrid_lo, &
-               'mapper_Sl2o initialization',esmf_map_flag)
+          call seq_map_init_rcfile(mapper_Fl2o, lnd(1), ocn(1), &
+               'seq_maps.rc', 'lnd2ocn_fmapname:', 'lnd2ocn_fmaptype:',samegrid_lo, &
+               'mapper_Fl2o initialization',esmf_map_flag)
        endif
        call shr_sys_flush(logunit)
 
@@ -687,8 +687,8 @@ contains
     integer, save :: index_x2o_Faxa_rain_HDO
     integer, save :: index_x2o_Faxa_snow_HDO
     integer, save :: index_x2o_Faxa_prec_HDO
-    integer, save :: index_l2x_Sl_coastalinf
-    integer, save :: index_x2o_Sl_coastalinf
+    integer, save :: index_l2x_Flol_coastalinf
+    integer, save :: index_x2o_Flol_coastalinf
     logical :: iamroot
     logical, save, pointer :: amerge(:),imerge(:),xmerge(:)
     integer, save, pointer :: aindx(:), iindx(:), xindx(:)
@@ -812,8 +812,8 @@ contains
        index_x2o_Foxx_rofl_HDO  = mct_aVect_indexRA(x2o_o,'Foxx_rofl_HDO' , perrWith='quiet')
        index_x2o_Foxx_rofi_HDO  = mct_aVect_indexRA(x2o_o,'Foxx_rofi_HDO' , perrWith='quiet')
        ! land ocean two way coupling
-       index_l2x_Sl_coastalinf  = mct_aVect_indexRA(l2x_o,'Sl_coastalinf', perrWith='quiet')
-       index_x2o_Sl_coastalinf  = mct_aVect_indexRA(x2o_o,'Sl_coastalinf', perrWith='quiet')
+       index_l2x_Flol_coastalinf  = mct_aVect_indexRA(l2x_o,'Flol_coastalinf', perrWith='quiet')
+       index_x2o_Flol_coastalinf  = mct_aVect_indexRA(x2o_o,'Flol_coastalinf', perrWith='quiet')
 
        ! Compute all other quantities based on standardized naming convention (see below)
        ! Only ocn field states that have the name-prefix Sx_ will be merged
@@ -1113,9 +1113,9 @@ contains
                'afrac*(a2x%Faxa_snowc_HDO + a2x%Faxa_snowl_HDO + a2x%Faxa_rainc_HDO + '// &
                'a2x%Faxa_rainl_HDO)*flux_epbalfact'
        end if
-       if (index_x2o_Sl_coastalinf /= 0 ) then
-          mrgstr(index_x2o_Sl_coastalinf) = trim(mrgstr(index_x2o_Sl_coastalinf))//' = '// &
-               'l2x%Sl_coastalinf'
+       if (index_x2o_Flol_coastalinf /= 0 ) then
+          mrgstr(index_x2o_Flol_coastalinf) = trim(mrgstr(index_x2o_Flol_coastalinf))//' = '// &
+               'l2x%Flol_coastalinf'
        end if
     endif
 
@@ -1254,8 +1254,8 @@ contains
                x2o_o%rAttr(index_x2o_Faxa_snow_HDO ,n)
        end if
 
-       if (index_x2o_Sl_coastalinf /= 0 ) then
-          x2o_o%rAttr(index_x2o_Sl_coastalinf ,n) = l2x_o%rAttr(index_l2x_Sl_coastalinf ,n)
+       if (index_x2o_Flol_coastalinf /= 0 ) then
+          x2o_o%rAttr(index_x2o_Flol_coastalinf ,n) = l2x_o%rAttr(index_l2x_Flol_coastalinf ,n)
        end if
     end do
 
@@ -1531,7 +1531,7 @@ contains
     call t_drvstartf (trim(timer),barrier=mpicom_CPLID)
     do eli = 1,num_inst_lnd
        l2x_lx => component_get_c2x_cx(lnd(eli))
-       call seq_map_map(mapper_Sl2o, l2x_lx, l2x_ox(eli), norm=.true.)
+       call seq_map_map(mapper_Fl2o, l2x_lx, l2x_ox(eli), norm=.true.)
     enddo
     call t_drvstopf  (trim(timer))
   end subroutine prep_ocn_calc_l2x_ox
@@ -1633,9 +1633,9 @@ contains
     prep_ocn_get_mapper_Sw2o => mapper_Sw2o
   end function prep_ocn_get_mapper_Sw2o
 
-  function prep_ocn_get_mapper_Sl2o()
-    type(seq_map), pointer :: prep_ocn_get_mapper_Sl2o
-    prep_ocn_get_mapper_Sl2o => mapper_Sl2o
-  end function prep_ocn_get_mapper_Sl2o
+  function prep_ocn_get_mapper_Fl2o()
+    type(seq_map), pointer :: prep_ocn_get_mapper_Fl2o
+    prep_ocn_get_mapper_Fl2o => mapper_Fl2o
+  end function prep_ocn_get_mapper_Fl2o
 
 end module prep_ocn_mod

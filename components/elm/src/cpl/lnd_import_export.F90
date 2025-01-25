@@ -1509,8 +1509,8 @@ contains
           l2x(index_l2x_Flrl_inundinf,i) = lnd2atm_vars%qflx_h2orof_drain_grc(g)
        endif
        
-       if (index_l2x_Sl_coastalinf /= 0) then
-          l2x(index_l2x_Sl_coastalinf,i) = lnd2ocn_vars%h2oocn_drain_grc(g)
+       if (index_l2x_Flol_coastalinf /= 0) then
+          l2x(index_l2x_Flol_coastalinf,i) = lnd2ocn_vars%qflx_h2oocn_drain_grc(g)
        endif
 
        ! glc coupling
