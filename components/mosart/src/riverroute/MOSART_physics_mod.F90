@@ -79,7 +79,8 @@ MODULE MOSART_physics_mod
     ! WRM prep
     !------------------
 
-
+    ! This is new feature 
+    
     if (wrmflag) then
        if ( ctlSubwWRM%ReturnFlowFlag > 0) then
           call insert_returnflow_soilcolumn
