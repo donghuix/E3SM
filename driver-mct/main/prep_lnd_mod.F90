@@ -179,7 +179,12 @@ contains
           call mct_aVect_init(g2x_lx(egi), rList=seq_flds_x2l_fields_from_glc, lsize=lsize_l)
           call mct_aVect_zero(g2x_lx(egi))
        end do
-
+       allocate(o2x_lx(num_inst_ocn))
+       do eoi = 1,num_inst_ocn
+          call mct_aVect_init(o2x_lx(eoi), rlist=seq_flds_o2x_fields_to_lnd, lsize=lsize_l)
+          call mct_aVect_zero(o2x_lx(eoi))
+       end do
+       
        if (ocn_present) then
           o2x_ox => component_get_c2x_cx(ocn(1))
           x2l_lx => component_get_x2c_cx(lnd(1))
@@ -190,12 +195,6 @@ contains
              call mct_aVect_zero(o2lacc_ox(eoi))
           end do
           o2lacc_ox_cnt = 0
-
-          allocate(o2x_lx(num_inst_ocn))
-          do eoi = 1,num_inst_ocn
-             call mct_aVect_init(o2x_lx(eoi), rlist=seq_flds_o2x_fields_to_lnd, lsize=lsize_l)
-             call mct_aVect_zero(o2x_lx(eoi))
-          end do
 
           samegrid_ol = .true. 
           if (trim(ocn_gnam) /= trim(lnd_gnam)) samegrid_ol = .false.
@@ -396,7 +395,6 @@ contains
        call mct_aVect_setSharedIndices(a2x_l, x2l_l, a2x_SharedIndices)
        call mct_aVect_setSharedIndices(r2x_l, x2l_l, r2x_SharedIndices)
        call mct_aVect_setSharedIndices(g2x_l, x2l_l, g2x_SharedIndices)
-       call mct_aVect_setSharedIndices(o2x_l, x2l_l, o2x_SharedIndices)
 
        !--- document copy operations ---
        do i=1,a2x_SharedIndices%shared_real%num_indices
@@ -417,19 +415,24 @@ contains
           field = mct_aVect_getRList2c(i1, g2x_l)
           mrgstr(o1) = trim(mrgstr(o1))//' = g2x%'//trim(field)
        enddo
-       do i=1,o2x_SharedIndices%shared_real%num_indices
-          i1=o2x_SharedIndices%shared_real%aVindices1(i)
-          o1=o2x_SharedIndices%shared_real%aVindices2(i)
-          field = mct_aVect_getRList2c(i1, o2x_l)
-          mrgstr(o1) = trim(mrgstr(o1))//' = o2x%'//trim(field)
-       enddo
+       
+       if (ocn_lnd_one_way) then
+          call mct_aVect_setSharedIndices(o2x_l, x2l_l, o2x_SharedIndices)
+          do i=1,o2x_SharedIndices%shared_real%num_indices
+             i1=o2x_SharedIndices%shared_real%aVindices1(i)
+             o1=o2x_SharedIndices%shared_real%aVindices2(i)
+             field = mct_aVect_getRList2c(i1, o2x_l)
+             mrgstr(o1) = trim(mrgstr(o1))//' = o2x%'//trim(field)
+          enddo
+       endif
     endif
 
     call mct_aVect_copy(aVin=a2x_l, aVout=x2l_l, vector=mct_usevector, sharedIndices=a2x_SharedIndices)
     call mct_aVect_copy(aVin=r2x_l, aVout=x2l_l, vector=mct_usevector, sharedIndices=r2x_SharedIndices)
     call mct_aVect_copy(aVin=g2x_l, aVout=x2l_l, vector=mct_usevector, sharedIndices=g2x_SharedIndices)
-    call mct_aVect_copy(aVin=o2x_l, aVout=x2l_l, vector=mct_usevector, sharedIndices=o2x_SharedIndices)
-
+    if (ocn_lnd_one_way) then
+       call mct_aVect_copy(aVin=o2x_l, aVout=x2l_l, vector=mct_usevector, sharedIndices=o2x_SharedIndices)
+    endif
     if (first_time) then
        if (iamroot) then
           write(logunit,'(A)') subname//' Summary:'
